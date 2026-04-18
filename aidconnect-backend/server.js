@@ -7,44 +7,54 @@ validateEnv();
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
 import connectDB from "./config/db.js";
-import { globalErrorHandler, notFound } from "./middleware/error.middleware.js";
+import {
+  globalErrorHandler,
+  notFound,
+  setupProcessHandlers,
+} from "./middleware/error.middleware.js";
 
-// ─── Haseeb's routes ──────────────────────────────────────────────────────────
-import requestRoutes     from "./routes/request.routes.js";
-import matchRoutes       from "./routes/match.routes.js";
+// ─── Haseeb's routes ───────────────────a───────────────────────────────────────
+import requestRoutes from "./routes/request.routes.js";
+import matchRoutes from "./routes/match.routes.js";
 
 // ─── Salman's routes ──────────────────────────────────────────────────────────
-import authRoutes        from "./routes/auth.routes.js";
-import volunteerRoutes   from "./routes/volunteer.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import volunteerRoutes from "./routes/volunteer.routes.js";
 
 // ─── Samrah's routes ──────────────────────────────────────────────────────────
-import providerRoutes    from "./routes/provider.routes.js";
+import providerRoutes from "./routes/provider.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 // ─── Rabia's routes ───────────────────────────────────────────────────────────
-import adminRoutes       from "./routes/admin.routes.js";
-import userRoutes        from "./routes/user.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
+// ─── App Setup ────────────────────────────────────────────────────────────────
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+app.use(helmet());
 app.use(cors({
-  origin:      env.NODE_ENV === "production"
-    ? process.env.FRONTEND_URL
-    : "http://localhost:5173",
+  origin:
+    env.NODE_ENV === "production"
+      ? process.env.FRONTEND_URL
+      : "http://localhost:5173",
   credentials: true,
 }));
-
+app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {
   res.status(200).json({
-    success:     true,
-    message:     "AidConnect API is running",
+    success: true,
+    message: "AidConnect API is running",
     environment: env.NODE_ENV,
-    timestamp:   new Date().toISOString(),
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -54,6 +64,7 @@ app.use("/api/matches",       matchRoutes);
 app.use("/api/auth",          authRoutes);
 app.use("/api/volunteers",    volunteerRoutes);
 app.use("/api/providers",     providerRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin",         adminRoutes);
 app.use("/api/users",         userRoutes);
 
@@ -68,15 +79,17 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, () => {
       console.log("─────────────────────────────────────────");
-      console.log(`Server running on port     ${env.PORT}`);
-      console.log(`Environment:               ${env.NODE_ENV}`);
-      console.log(`Health check: http://localhost:${env.PORT}/api/health`);
+      console.log(`🚀 Server running on port     ${env.PORT}`);
+      console.log(`🌍 Environment:               ${env.NODE_ENV}`);
+      console.log(`🔗 Health: http://localhost:${env.PORT}/api/health`);
       console.log("─────────────────────────────────────────");
     });
+
+    setupProcessHandlers(server);
   } catch (error) {
-    console.error("Failed to start server:", error.message);
+    console.error("❌ Failed to start server:", error.message);
     process.exit(1);
   }
 };
