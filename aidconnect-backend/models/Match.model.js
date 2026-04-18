@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const matchSchema = new mongoose.Schema(
   {
@@ -17,39 +17,22 @@ const matchSchema = new mongoose.Schema(
       enum: ["Volunteer", "Provider"],
       required: true,
     },
-    matchScore: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
-    distanceKm: {
-      type: Number,
-      default: 0,
-    },
+    matchScore: { type: Number, default: 0, min: 0, max: 100 },
+    distanceKm: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["notified", "accepted", "declined", "expired"],
       default: "notified",
     },
-    notifiedAt: {
-      type: Date,
-      default: Date.now,
-    },
-    respondedAt: {
-      type: Date,
-      default: null,
-    },
+    notifiedAt: { type: Date, default: Date.now },
+    respondedAt: { type: Date, default: null },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Indexes
 matchSchema.index({ requestId: 1 });
 matchSchema.index({ matchedTo: 1 });
 matchSchema.index({ status: 1 });
-matchSchema.index({ requestId: 1, matchedTo: 1 }, { unique: true }); // Prevent duplicate matches
+matchSchema.index({ requestId: 1, matchedTo: 1 }, { unique: true });
 
-module.exports = mongoose.model("Match", matchSchema);
+export default mongoose.model("Match", matchSchema);

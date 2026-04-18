@@ -59,7 +59,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ location: "2dsphere" });
 
 userSchema.pre("save", async function (next) {

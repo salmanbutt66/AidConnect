@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const helpRequestSchema = new mongoose.Schema(
   {
@@ -68,75 +68,31 @@ const helpRequestSchema = new mongoose.Schema(
       enum: ["Volunteer", "Provider"],
       default: null,
     },
-
-    // Timestamps for response time calculation
-    postedAt: {
-      type: Date,
-      default: Date.now,
-    },
-    acceptedAt: {
-      type: Date,
-      default: null,
-    },
-    completedAt: {
-      type: Date,
-      default: null,
-    },
-    cancelledAt: {
-      type: Date,
-      default: null,
-    },
-
-    // Calculated time fields for aggregation
-    responseTime: {
-      type: Number,
-      default: null,
-    },
-    resolutionTime: {
-      type: Number,
-      default: null,
-    },
-
-    isDisasterMode: {
-      type: Boolean,
-      default: false,
-    },
+    postedAt: { type: Date, default: Date.now },
+    acceptedAt: { type: Date, default: null },
+    completedAt: { type: Date, default: null },
+    cancelledAt: { type: Date, default: null },
+    responseTime: { type: Number, default: null },
+    resolutionTime: { type: Number, default: null },
+    isDisasterMode: { type: Boolean, default: false },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Indexes
 helpRequestSchema.index({ status: 1 });
 helpRequestSchema.index({ emergencyType: 1 });
 helpRequestSchema.index({ urgencyScore: -1 });
 helpRequestSchema.index({ location: "2dsphere" });
 helpRequestSchema.index({ requesterId: 1 });
-helpRequestSchema.index({ status: 1, urgencyScore: -1 }); // Compound index
+helpRequestSchema.index({ status: 1, urgencyScore: -1 });
 
-// Auto calculate urgency score before saving
 helpRequestSchema.pre("save", function (next) {
-  const urgencyMap = {
-    low: 25,
-    medium: 50,
-    high: 75,
-    critical: 100,
-  };
-
-  const typeBoost = {
-    medical: 10,
-    blood: 10,
-    accident: 8,
-    disaster: 8,
-    other: 0,
-  };
-
+  const urgencyMap = { low: 25, medium: 50, high: 75, critical: 100 };
+  const typeBoost = { medical: 10, blood: 10, accident: 8, disaster: 8, other: 0 };
   const base = urgencyMap[this.urgencyLevel] || 0;
   const boost = typeBoost[this.emergencyType] || 0;
   this.urgencyScore = Math.min(base + boost, 100);
-
   next();
 });
 
-module.exports = mongoose.model("HelpRequest", helpRequestSchema);
+export default mongoose.model("HelpRequest", helpRequestSchema);
