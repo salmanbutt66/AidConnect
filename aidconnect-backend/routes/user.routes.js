@@ -12,15 +12,9 @@ import {
   updateNotificationPreferences,
 } from "../controllers/user.controller.js";
 
-import { verifyToken } from "../middleware/auth.middleware.js";
-
+import { protect } from "../middleware/auth.middleware.js";
 const router = express.Router();
-
-// ─────────────────────────────────────────────
-// 🔒 All user routes require login
-// ─────────────────────────────────────────────
-
-router.use(verifyToken);
+router.use(protect);
 
 // ─────────────────────────────────────────────
 // 👤 PROFILE ROUTES

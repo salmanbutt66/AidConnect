@@ -16,18 +16,14 @@ import {
   getHighRiskAreas,
 } from "../controllers/admin.controller.js";
 
-import { verifyToken } from "../middleware/auth.middleware.js";
-import { authorizeRoles } from "../middleware/role.middleware.js";
+import { protect } from "../middleware/auth.middleware.js";
+import { restrictTo } from "../middleware/role.middleware.js";
 
-const router = express.Router();
+const router = express.Router(); 
 
-// ─────────────────────────────────────────────
-// 🔒 All admin routes are protected
-// Must be logged in AND must be admin
-// ─────────────────────────────────────────────
+router.use(protect);
+router.use(restrictTo("admin"));
 
-router.use(verifyToken);
-router.use(authorizeRoles("admin"));
 
 // ─────────────────────────────────────────────
 // 👥 USER MANAGEMENT ROUTES
