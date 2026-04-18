@@ -1,0 +1,13 @@
+# Backend
+aidconnect-backend/node_modules/
+aidconnect-backend/.env
+
+# Frontend
+aidconnect-frontend/node_modules/
+aidconnect-frontend/.env
+aidconnect-frontend/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
