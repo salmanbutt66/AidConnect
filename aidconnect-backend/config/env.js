@@ -6,6 +6,8 @@ const requiredEnvVars = [
   "MONGODB_URI",
   "JWT_SECRET",
   "JWT_EXPIRES_IN",
+  "JWT_REFRESH_SECRET",
+  "JWT_REFRESH_EXPIRES_IN",
   "NODE_ENV",
 ];
 

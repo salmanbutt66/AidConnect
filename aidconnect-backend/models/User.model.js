@@ -39,7 +39,6 @@ const userSchema = new mongoose.Schema(
       match: [/^(\+92|0)[0-9]{10}$/, "Please provide a valid Pakistani phone number"],
     },
 
-    // GeoJSON format for MongoDB geo queries
     location: {
       type: {
         type: String,
@@ -48,7 +47,7 @@ const userSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number],
-        default: [0, 0], // [longitude, latitude]
+        default: [0, 0],
       },
       city: { type: String, trim: true },
       area: { type: String, trim: true },
@@ -112,7 +111,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
-userSchema.index({ email: 1 });
+// email index removed — already created by unique: true in schema definition
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ bloodGroup: 1 });
 userSchema.index({ location: "2dsphere" });

@@ -4,7 +4,6 @@ import mongoose from "mongoose";
 
 const volunteerSchema = new mongoose.Schema(
   {
-    // ─── Core Link to User ──────────────────────────────────────────────────
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -12,7 +11,6 @@ const volunteerSchema = new mongoose.Schema(
       unique: true,
     },
 
-    // ─── Volunteer Status ───────────────────────────────────────────────────
     isAvailable: {
       type: Boolean,
       default: true,
@@ -34,46 +32,27 @@ const volunteerSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ─── Skills & Capabilities ──────────────────────────────────────────────
     skills: {
       type: [String],
       enum: [
-        "first_aid",
-        "firefighting",
-        "rescue",
-        "medical",
-        "counseling",
-        "logistics",
-        "driving",
-        "blood_donation",
-        "food_distribution",
-        "shelter_setup",
-        "translation",
-        "it_support",
-        "other",
+        "first_aid", "firefighting", "rescue", "medical",
+        "counseling", "logistics", "driving", "blood_donation",
+        "food_distribution", "shelter_setup", "translation",
+        "it_support", "other",
       ],
       default: [],
     },
 
-    // ─── Emergency Types They Handle ────────────────────────────────────────
     emergencyTypes: {
       type: [String],
       enum: [
-        "medical",
-        "fire",
-        "flood",
-        "earthquake",
-        "accident",
-        "blood_request",
-        "food_shortage",
-        "mental_health",
-        "missing_person",
-        "other",
+        "medical", "fire", "flood", "earthquake", "accident",
+        "blood_request", "food_shortage", "mental_health",
+        "missing_person", "other",
       ],
       default: [],
     },
 
-    // ─── GeoJSON Location for Matching Engine ───────────────────────────────
     location: {
       type: {
         type: String,
@@ -82,11 +61,10 @@ const volunteerSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number],
-        default: [0, 0], // [longitude, latitude]
+        default: [0, 0],
       },
     },
 
-    // ─── Service Area Details ────────────────────────────────────────────────
     serviceArea: {
       city: { type: String, trim: true },
       area: { type: String, trim: true },
@@ -98,7 +76,6 @@ const volunteerSchema = new mongoose.Schema(
       },
     },
 
-    // ─── Blood Donation Specific ────────────────────────────────────────────
     canDonatBlood: {
       type: Boolean,
       default: false,
@@ -109,7 +86,6 @@ const volunteerSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ─── Availability Schedule ──────────────────────────────────────────────
     availabilitySchedule: {
       monday:    { type: Boolean, default: true },
       tuesday:   { type: Boolean, default: true },
@@ -120,7 +96,6 @@ const volunteerSchema = new mongoose.Schema(
       sunday:    { type: Boolean, default: false },
     },
 
-    // ─── Trust / Reputation Score ───────────────────────────────────────────
     reputationScore: {
       type: Number,
       default: 50,
@@ -128,33 +103,12 @@ const volunteerSchema = new mongoose.Schema(
       max: 100,
     },
 
-    // ─── Performance Metrics ────────────────────────────────────────────────
-    totalAssigned: {
-      type: Number,
-      default: 0,
-    },
+    totalAssigned:   { type: Number, default: 0 },
+    totalAccepted:   { type: Number, default: 0 },
+    totalCompleted:  { type: Number, default: 0 },
+    totalCancelled:  { type: Number, default: 0 },
+    totalNoResponse: { type: Number, default: 0 },
 
-    totalAccepted: {
-      type: Number,
-      default: 0,
-    },
-
-    totalCompleted: {
-      type: Number,
-      default: 0,
-    },
-
-    totalCancelled: {
-      type: Number,
-      default: 0,
-    },
-
-    totalNoResponse: {
-      type: Number,
-      default: 0,
-    },
-
-    // ─── Ratings ────────────────────────────────────────────────────────────
     averageRating: {
       type: Number,
       default: 0,
@@ -193,14 +147,12 @@ const volunteerSchema = new mongoose.Schema(
       },
     ],
 
-    // ─── Bio ─────────────────────────────────────────────────────────────────
     bio: {
       type: String,
       maxlength: [300, "Bio cannot exceed 300 characters"],
       default: "",
     },
 
-    // ─── CNIC ────────────────────────────────────────────────────────────────
     cnic: {
       type: String,
       trim: true,
@@ -213,14 +165,12 @@ const volunteerSchema = new mongoose.Schema(
       default: false,
     },
 
-    // ─── Active Request ──────────────────────────────────────────────────────
     currentRequestId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "HelpRequest",
       default: null,
     },
 
-    // ─── Suspension ──────────────────────────────────────────────────────────
     isSuspended: {
       type: Boolean,
       default: false,
@@ -272,7 +222,7 @@ volunteerSchema.methods.freeUp = function () {
 };
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
-volunteerSchema.index({ user: 1 });
+// user index removed — already created by unique: true in schema definition
 volunteerSchema.index({ isAvailable: 1, isApproved: 1 });
 volunteerSchema.index({ reputationScore: -1 });
 volunteerSchema.index({ location: "2dsphere" });
