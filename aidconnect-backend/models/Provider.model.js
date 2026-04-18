@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const providerSchema = new mongoose.Schema(
   {
     userId: {
@@ -32,14 +31,8 @@ const providerSchema = new mongoose.Schema(
       default: true,
     },
     operatingHours: {
-      open: {
-        type: String,
-        default: "00:00",
-      },
-      close: {
-        type: String,
-        default: "23:59",
-      },
+      open: { type: String, default: "00:00" },
+      close: { type: String, default: "23:59" },
     },
     servicesOffered: {
       type: [String],
@@ -67,17 +60,10 @@ const providerSchema = new mongoose.Schema(
       },
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
-
-// ─── Indexes ──────────────────────────────────────────────────────────────────
-providerSchema.index({ userId: 1 });
 providerSchema.index({ serviceType: 1 });
 providerSchema.index({ isVerified: 1 });
 providerSchema.index({ isAvailable: 1 });
 providerSchema.index({ location: "2dsphere" });
-
-const Provider = mongoose.model("Provider", providerSchema);
-export default Provider;
+export default mongoose.model("Provider", providerSchema);
