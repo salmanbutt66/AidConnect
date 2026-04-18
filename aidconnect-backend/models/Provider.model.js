@@ -64,7 +64,6 @@ const providerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-providerSchema.index({ userId: 1 });
 providerSchema.index({ serviceType: 1 });
 providerSchema.index({ isVerified: 1 });
 providerSchema.index({ isAvailable: 1 });

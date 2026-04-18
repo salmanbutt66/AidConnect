@@ -6,6 +6,8 @@ import morgan from "morgan";
 
 import connectDB from "./config/db.js";
 import { globalErrorHandler, notFound, setupProcessHandlers } from "./middleware/error.middleware.js";
+import providerRoutes from "./routes/provider.routes.js";  
+import notificationRoutes from "./routes/notification.routes.js";
 
 dotenv.config();
 
@@ -26,7 +28,9 @@ app.get("/", (req, res) => {
   });
 });
 
-// Routes will be added here
+// routes
+app.use("/api/providers", providerRoutes); 
+app.use("/api/notifications", notificationRoutes);  
 
 // 404 handler — catches undefined routes
 app.use(notFound);
