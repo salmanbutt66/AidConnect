@@ -1,4 +1,5 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
 const requiredEnvVars = [
   "PORT",
@@ -28,7 +29,7 @@ const validateEnv = () => {
     process.exit(1);
   }
 
-  console.log("✅ Environment variables validated successfully");
+  console.log("Environment variables validated successfully");
 };
 
 const env = {
@@ -41,4 +42,4 @@ const env = {
   IS_PRODUCTION: process.env.NODE_ENV === "production",
 };
 
-module.exports = { validateEnv, env };
+export { validateEnv, env };

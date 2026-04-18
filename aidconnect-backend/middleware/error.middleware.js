@@ -155,24 +155,13 @@ export const globalErrorHandler = (err, req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// asyncHandler — wraps async route handlers to avoid try/catch repetition
-// Usage: router.get("/", asyncHandler(async (req, res) => { ... }))
-// Forwards any thrown error to globalErrorHandler automatically
-// ─────────────────────────────────────────────────────────────────────────────
-export const asyncHandler = (fn) => {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // unhandledRejection + uncaughtException handlers
 // Call setupProcessHandlers(server) in server.js after app.listen()
 // ─────────────────────────────────────────────────────────────────────────────
 export const setupProcessHandlers = (server) => {
   // Unhandled promise rejections (e.g. DB query that wasn't awaited)
   process.on("unhandledRejection", (reason, promise) => {
-    console.error("💥 UNHANDLED REJECTION:", reason);
+    console.error("UNHANDLED REJECTION:", reason);
     console.error("At promise:", promise);
 
     // Gracefully close server then exit
@@ -184,7 +173,7 @@ export const setupProcessHandlers = (server) => {
 
   // Uncaught synchronous exceptions
   process.on("uncaughtException", (err) => {
-    console.error("💥 UNCAUGHT EXCEPTION:", err.name, err.message);
+    console.error("UNCAUGHT EXCEPTION:", err.name, err.message);
     console.error(err.stack);
 
     server.close(() => {

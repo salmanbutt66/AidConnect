@@ -1,32 +1,8 @@
 // services/notification.service.js
-// Handles creation of all in-app notifications for AidConnect
-//
-// WHEN NOTIFICATIONS ARE CREATED:
-//   → New request posted    : nearby volunteers notified
-//   → Request accepted      : requester notified
-//   → Request completed     : requester notified
-//   → Request cancelled     : assigned volunteer notified
-//   → Account verified      : user notified
-//   → Disaster alert        : all users in area notified
-//
-// HOW IT WORKS:
-//   Every important action calls createNotification()
-//   Notification is saved to DB
-//   Frontend polls /api/notifications to show them
-//   User marks them as read
-
-const Notification = require("../models/Notification.model");
+import Notification from "../models/Notification.model.js";
 
 // ─────────────────────────────────────────
 // CREATE SINGLE NOTIFICATION
-// Core function used everywhere in the app
-// Parameters:
-//   recipientId    → ObjectId of who receives it
-//   type           → notification type (enum)
-//   title          → short heading
-//   message        → full message text
-//   relatedRequest → ObjectId of related request (optional)
-// Returns: created Notification document
 // ─────────────────────────────────────────
 const createNotification = async ({
   recipientId,
@@ -47,8 +23,6 @@ const createNotification = async ({
 
     return notification;
   } catch (error) {
-    // Notification failure should never crash the main operation
-    // Log it but don't throw — request creation still succeeds
     console.error("Failed to create notification:", error.message);
     return null;
   }
@@ -56,13 +30,7 @@ const createNotification = async ({
 
 // ─────────────────────────────────────────
 // CREATE BULK NOTIFICATIONS
-// Used in disaster mode to notify many users
-// Parameters:
-//   recipientIds → array of user ObjectIds
-//   type         → notification type
-//   title        → short heading
-//   message      → full message text
-// Returns: count of created notifications
+// Used in disaster mode
 // ─────────────────────────────────────────
 const createBulkNotifications = async ({
   recipientIds,
@@ -71,7 +39,6 @@ const createBulkNotifications = async ({
   message,
 }) => {
   try {
-    // Build array of notification documents
     const notifications = recipientIds.map((recipientId) => ({
       recipientId,
       type,
@@ -81,9 +48,8 @@ const createBulkNotifications = async ({
       isRead: false,
     }));
 
-    // insertMany is much faster than creating one by one
     const result = await Notification.insertMany(notifications, {
-      ordered: false, // continue even if some fail
+      ordered: false,
     });
 
     console.log(`✅ Created ${result.length} bulk notifications`);
@@ -96,22 +62,14 @@ const createBulkNotifications = async ({
 
 // ─────────────────────────────────────────
 // GET USER NOTIFICATIONS
-// Fetches all notifications for a user
-// Sorted by most recent first
-// Parameters:
-//   userId  → ObjectId of the recipient
-//   limit   → how many to fetch (default 20)
-//   page    → for pagination (default 1)
-// Returns: { notifications, unreadCount, total }
 // ─────────────────────────────────────────
 const getUserNotifications = async (userId, limit = 20, page = 1) => {
   try {
     const skip = (page - 1) * limit;
 
-    // Get notifications and total count in parallel
     const [notifications, total, unreadCount] = await Promise.all([
       Notification.find({ recipientId: userId })
-        .sort({ createdAt: -1 })          // newest first
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate("relatedRequest", "emergencyType urgencyLevel status"),
@@ -120,7 +78,7 @@ const getUserNotifications = async (userId, limit = 20, page = 1) => {
 
       Notification.countDocuments({
         recipientId: userId,
-        isRead: false,                    // count unread only
+        isRead: false,
       }),
     ]);
 
@@ -139,20 +97,16 @@ const getUserNotifications = async (userId, limit = 20, page = 1) => {
 
 // ─────────────────────────────────────────
 // MARK NOTIFICATION AS READ
-// Parameters:
-//   notificationId → ObjectId of notification
-//   userId         → must match recipientId (security)
-// Returns: updated notification
 // ─────────────────────────────────────────
 const markAsRead = async (notificationId, userId) => {
   try {
     const notification = await Notification.findOneAndUpdate(
       {
         _id: notificationId,
-        recipientId: userId,            // security: user can only mark their own
+        recipientId: userId,
       },
       { isRead: true },
-      { new: true }                     // return updated document
+      { new: true }
     );
 
     if (!notification) {
@@ -168,18 +122,13 @@ const markAsRead = async (notificationId, userId) => {
 
 // ─────────────────────────────────────────
 // MARK ALL AS READ
-// Marks all of a user's notifications as read
-// Used when user clicks "Mark all as read"
-// Parameters:
-//   userId → ObjectId of the recipient
-// Returns: count of updated notifications
 // ─────────────────────────────────────────
 const markAllAsRead = async (userId) => {
   try {
     const result = await Notification.updateMany(
       {
         recipientId: userId,
-        isRead: false,                  // only update unread ones
+        isRead: false,
       },
       { isRead: true }
     );
@@ -192,10 +141,7 @@ const markAllAsRead = async (userId) => {
 };
 
 // ─────────────────────────────────────────
-// PREDEFINED NOTIFICATION TEMPLATES
-// Ready-made notifications for common events
-// Controllers call these instead of building
-// notification objects manually each time
+// NOTIFICATION TEMPLATES
 // ─────────────────────────────────────────
 const notifyRequestAccepted = async (requesterId, request) => {
   return createNotification({
@@ -246,7 +192,7 @@ const notifyDisasterAlert = async (userIds, message) => {
   });
 };
 
-module.exports = {
+export {
   createNotification,
   createBulkNotifications,
   getUserNotifications,

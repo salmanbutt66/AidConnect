@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const providerSchema = new mongoose.Schema(
   {
@@ -72,11 +72,12 @@ const providerSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// ─── Indexes ──────────────────────────────────────────────────────────────────
 providerSchema.index({ userId: 1 });
 providerSchema.index({ serviceType: 1 });
 providerSchema.index({ isVerified: 1 });
 providerSchema.index({ isAvailable: 1 });
 providerSchema.index({ location: "2dsphere" });
 
-module.exports = mongoose.model("Provider", providerSchema);
+const Provider = mongoose.model("Provider", providerSchema);
+export default Provider;

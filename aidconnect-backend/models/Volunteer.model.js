@@ -9,7 +9,7 @@ const volunteerSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true, // one volunteer profile per user
+      unique: true,
     },
 
     // ─── Volunteer Status ───────────────────────────────────────────────────
@@ -20,7 +20,7 @@ const volunteerSchema = new mongoose.Schema(
 
     isApproved: {
       type: Boolean,
-      default: false, // Admin must approve volunteer before they go live
+      default: false,
     },
 
     approvedAt: {
@@ -73,17 +73,26 @@ const volunteerSchema = new mongoose.Schema(
       default: [],
     },
 
-    // ─── Location & Radius ──────────────────────────────────────────────────
+    // ─── GeoJSON Location for Matching Engine ───────────────────────────────
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0], // [longitude, latitude]
+      },
+    },
+
+    // ─── Service Area Details ────────────────────────────────────────────────
     serviceArea: {
       city: { type: String, trim: true },
       area: { type: String, trim: true },
-      coordinates: {
-        lat: { type: Number },
-        lng: { type: Number },
-      },
       radiusKm: {
         type: Number,
-        default: 10, // how far they're willing to travel
+        default: 10,
         min: 1,
         max: 100,
       },
@@ -112,15 +121,14 @@ const volunteerSchema = new mongoose.Schema(
     },
 
     // ─── Trust / Reputation Score ───────────────────────────────────────────
-    // Computed by scoring.service.js — stored here for fast querying
     reputationScore: {
       type: Number,
-      default: 50, // starts at neutral 50/100
+      default: 50,
       min: 0,
       max: 100,
     },
 
-    // ─── Performance Metrics (used by scoring engine) ───────────────────────
+    // ─── Performance Metrics ────────────────────────────────────────────────
     totalAssigned: {
       type: Number,
       default: 0,
@@ -185,14 +193,14 @@ const volunteerSchema = new mongoose.Schema(
       },
     ],
 
-    // ─── Bio / Introduction ─────────────────────────────────────────────────
+    // ─── Bio ─────────────────────────────────────────────────────────────────
     bio: {
       type: String,
       maxlength: [300, "Bio cannot exceed 300 characters"],
       default: "",
     },
 
-    // ─── CNIC (Pakistani ID - for verification) ─────────────────────────────
+    // ─── CNIC ────────────────────────────────────────────────────────────────
     cnic: {
       type: String,
       trim: true,
@@ -205,14 +213,14 @@ const volunteerSchema = new mongoose.Schema(
       default: false,
     },
 
-    // ─── Active Request Being Handled ───────────────────────────────────────
+    // ─── Active Request ──────────────────────────────────────────────────────
     currentRequestId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "HelpRequest",
       default: null,
     },
 
-    // ─── Suspension ─────────────────────────────────────────────────────────
+    // ─── Suspension ──────────────────────────────────────────────────────────
     isSuspended: {
       type: Boolean,
       default: false,
@@ -228,25 +236,23 @@ const volunteerSchema = new mongoose.Schema(
   }
 );
 
-// ─── Virtual: acceptance rate ────────────────────────────────────────────────
+// ─── Virtuals ─────────────────────────────────────────────────────────────────
 volunteerSchema.virtual("acceptanceRate").get(function () {
   if (this.totalAssigned === 0) return 0;
   return ((this.totalAccepted / this.totalAssigned) * 100).toFixed(1);
 });
 
-// ─── Virtual: completion rate ────────────────────────────────────────────────
 volunteerSchema.virtual("completionRate").get(function () {
   if (this.totalAccepted === 0) return 0;
   return ((this.totalCompleted / this.totalAccepted) * 100).toFixed(1);
 });
 
-// ─── Virtual: cancellation rate ──────────────────────────────────────────────
 volunteerSchema.virtual("cancellationRate").get(function () {
   if (this.totalAccepted === 0) return 0;
   return ((this.totalCancelled / this.totalAccepted) * 100).toFixed(1);
 });
 
-// ─── Instance Method: Add a new rating + recalculate average ─────────────────
+// ─── Instance Methods ─────────────────────────────────────────────────────────
 volunteerSchema.methods.addRating = function (userId, requestId, score, comment = "") {
   this.ratings.push({ givenBy: userId, requestId, score, comment });
   this.totalRatings += 1;
@@ -254,28 +260,25 @@ volunteerSchema.methods.addRating = function (userId, requestId, score, comment 
   this.averageRating = parseFloat((total / this.totalRatings).toFixed(2));
 };
 
-// ─── Instance Method: Mark as busy (assigned a request) ──────────────────────
 volunteerSchema.methods.assignRequest = function (requestId) {
   this.currentRequestId = requestId;
   this.isAvailable = false;
   this.totalAssigned += 1;
 };
 
-// ─── Instance Method: Free up after completing/cancelling ────────────────────
 volunteerSchema.methods.freeUp = function () {
   this.currentRequestId = null;
   this.isAvailable = true;
 };
 
-// ─── Indexes ─────────────────────────────────────────────────────────────────
+// ─── Indexes ──────────────────────────────────────────────────────────────────
 volunteerSchema.index({ user: 1 });
 volunteerSchema.index({ isAvailable: 1, isApproved: 1 });
 volunteerSchema.index({ reputationScore: -1 });
-volunteerSchema.index({ "serviceArea.city": 1 });
+volunteerSchema.index({ location: "2dsphere" });
 volunteerSchema.index({ emergencyTypes: 1 });
 volunteerSchema.index({ skills: 1 });
 
-// ensure virtuals show up in JSON
 volunteerSchema.set("toJSON", { virtuals: true });
 volunteerSchema.set("toObject", { virtuals: true });
 

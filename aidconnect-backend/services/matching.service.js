@@ -1,36 +1,17 @@
 // services/matching.service.js
-// The core brain of AidConnect
-//
-// WHAT IT DOES:
-// When a user posts a help request, this service:
-//   1. Finds all available volunteers/providers nearby
-//   2. Filters by compatibility (blood group, service type)
-//   3. Scores each match (distance + reliability)
-//   4. Takes top 5 matches
-//   5. Creates Match documents for each
-//   6. Triggers notifications for each
-//
-// THIS IS YOUR ADBMS SHOWCASE:
-//   ✅ MongoDB geo queries ($nearSphere)
-//   ✅ Aggregation pipeline for scoring
-//   ✅ Compound filtering
-//   ✅ Dynamic matching algorithm
-
-const Match = require("../models/Match.model");
-const { calculateDistance, getDistanceScore } = require("../utils/geoHelper");
-const { createNotification } = require("./notification.service");
+import Match from "../models/Match.model.js";
+import Volunteer from "../models/Volunteer.model.js";
+import Provider from "../models/Provider.model.js";
+import User from "../models/User.model.js";
+import HelpRequest from "../models/HelpRequest.model.js";
+import { calculateDistance, getDistanceScore } from "../utils/geoHelper.js";
+import { createNotification } from "./notification.service.js";
 
 // ─────────────────────────────────────────
 // MAIN MATCHING FUNCTION
-// Called by request.controller.js after
-// a new help request is created
-// Parameters:
-//   request → the newly created HelpRequest document
-// Returns: array of created Match documents
 // ─────────────────────────────────────────
 const findAndCreateMatches = async (request) => {
   try {
-    // Step 1: Find all nearby candidates
     const candidates = await findNearbyCandidates(request);
 
     if (candidates.length === 0) {
@@ -38,18 +19,11 @@ const findAndCreateMatches = async (request) => {
       return [];
     }
 
-    // Step 2: Score each candidate
     const scoredCandidates = scoreCandidates(candidates, request);
-
-    // Step 3: Take top 5 matches only
     const topMatches = scoredCandidates.slice(0, 5);
-
-    // Step 4: Create Match documents and notifications
     const createdMatches = await createMatchDocuments(topMatches, request);
 
-    console.log(
-      `✅ Created ${createdMatches.length} matches for request ${request._id}`
-    );
+    console.log(`✅ Created ${createdMatches.length} matches for request ${request._id}`);
 
     return createdMatches;
   } catch (error) {
@@ -60,26 +34,16 @@ const findAndCreateMatches = async (request) => {
 
 // ─────────────────────────────────────────
 // STEP 1: FIND NEARBY CANDIDATES
-// Uses MongoDB $nearSphere geo query to find
-// volunteers and providers within radius
 // ─────────────────────────────────────────
 const findNearbyCandidates = async (request) => {
-  // We need User model to access location
-  // Volunteer and Provider models are from team members
-  // We require them here to avoid circular dependencies
-  const Volunteer = require("../models/Volunteer.model");
-  const Provider = require("../models/Provider.model");
-  const User = require("../models/User.model");
-
   const [longitude, latitude] = request.location.coordinates;
-  const searchRadiusMeters = 10000; // 10km default radius
+  const searchRadiusMeters = 10000;
 
   let volunteers = [];
   let providers = [];
 
   // ── FIND NEARBY VOLUNTEERS ─────────────
   try {
-    // Find users with role "volunteer" near the request location
     const nearbyUsers = await User.find({
       role: "volunteer",
       isActive: true,
@@ -95,29 +59,23 @@ const findNearbyCandidates = async (request) => {
       },
     }).select("_id location");
 
-    // Get the volunteer profiles for these users
     if (nearbyUsers.length > 0) {
       const userIds = nearbyUsers.map((u) => u._id);
 
       let volunteerQuery = {
-        userId: { $in: userIds },
+        user: { $in: userIds },
         isAvailable: true,
+        isApproved: true,
       };
 
-      // If blood request, filter by blood group compatibility
-      if (
-        request.emergencyType === "blood" &&
-        request.bloodGroupNeeded
-      ) {
-        const compatibleGroups = getCompatibleBloodGroups(
-          request.bloodGroupNeeded
-        );
-        volunteerQuery.bloodGroup = { $in: compatibleGroups };
+      if (request.emergencyType === "blood" && request.bloodGroupNeeded) {
+        const compatibleGroups = getCompatibleBloodGroups(request.bloodGroupNeeded);
+        volunteerQuery["user.bloodGroup"] = { $in: compatibleGroups };
       }
 
       volunteers = await Volunteer.find(volunteerQuery).populate(
-        "userId",
-        "name phone location"
+        "user",
+        "name phone location bloodGroup"
       );
     }
   } catch (error) {
@@ -129,7 +87,6 @@ const findNearbyCandidates = async (request) => {
     providers = await Provider.find({
       isAvailable: true,
       isVerified: true,
-      // Match provider service type to emergency type
       serviceType: getRelevantProviderTypes(request.emergencyType),
       location: {
         $nearSphere: {
@@ -148,13 +105,13 @@ const findNearbyCandidates = async (request) => {
   // ── COMBINE AND FORMAT CANDIDATES ──────
   const formattedVolunteers = volunteers.map((v) => ({
     _id: v._id,
-    userId: v.userId._id,
+    userId: v.user._id,
     type: "Volunteer",
-    location: v.userId.location,
-    reliabilityScore: v.reliabilityScore || 50,
-    bloodGroup: v.bloodGroup,
-    name: v.userId.name,
-    phone: v.userId.phone,
+    location: v.location,
+    reliabilityScore: v.reputationScore || 50,
+    bloodGroup: v.user.bloodGroup,
+    name: v.user.name,
+    phone: v.user.phone,
   }));
 
   const formattedProviders = providers.map((p) => ({
@@ -162,7 +119,7 @@ const findNearbyCandidates = async (request) => {
     userId: p.userId,
     type: "Provider",
     location: p.location,
-    reliabilityScore: 70,           // providers get default score
+    reliabilityScore: 70,
     name: p.organizationName,
     phone: p.contactNumber,
   }));
@@ -172,35 +129,20 @@ const findNearbyCandidates = async (request) => {
 
 // ─────────────────────────────────────────
 // STEP 2: SCORE EACH CANDIDATE
-// Combines distance score + reliability score
-// into a single matchScore (0-100)
-//
-// SCORING FORMULA:
-//   matchScore = (distanceScore × 0.6) + (reliabilityScore × 0.4)
-//   Distance is weighted more (60%) than reliability (40%)
-//   Because proximity is most critical in emergencies
+// matchScore = (distanceScore × 0.6) + (reliabilityScore × 0.4)
 // ─────────────────────────────────────────
 const scoreCandidates = (candidates, request) => {
   const requestCoords = request.location.coordinates;
 
   const scored = candidates.map((candidate) => {
-    // Calculate actual distance in km
     const distanceKm = calculateDistance(
       requestCoords,
       candidate.location.coordinates
     );
 
-    // Convert distance to score (closer = higher score)
     const distanceScore = getDistanceScore(distanceKm, 10);
-
-    // Get reliability score (0-100)
     const reliabilityScore = candidate.reliabilityScore || 50;
-
-    // Weighted final score
-    // 60% distance + 40% reliability
-    const matchScore = Math.round(
-      distanceScore * 0.6 + reliabilityScore * 0.4
-    );
+    const matchScore = Math.round(distanceScore * 0.6 + reliabilityScore * 0.4);
 
     return {
       ...candidate,
@@ -210,21 +152,17 @@ const scoreCandidates = (candidates, request) => {
     };
   });
 
-  // Sort by matchScore descending (best match first)
   return scored.sort((a, b) => b.matchScore - a.matchScore);
 };
 
 // ─────────────────────────────────────────
 // STEP 3: CREATE MATCH DOCUMENTS
-// Creates a Match record for each top candidate
-// Also triggers a notification for each
 // ─────────────────────────────────────────
 const createMatchDocuments = async (topMatches, request) => {
   const createdMatches = [];
 
   for (const candidate of topMatches) {
     try {
-      // Create the Match document
       const match = await Match.create({
         requestId: request._id,
         matchedTo: candidate._id,
@@ -235,7 +173,6 @@ const createMatchDocuments = async (topMatches, request) => {
         notifiedAt: new Date(),
       });
 
-      // Create notification for this candidate
       await createNotification({
         recipientId: candidate.userId,
         type: "new_request",
@@ -250,7 +187,6 @@ const createMatchDocuments = async (topMatches, request) => {
         `Failed to create match for candidate ${candidate._id}:`,
         error.message
       );
-      // Continue with next candidate even if one fails
     }
   }
 
@@ -259,11 +195,6 @@ const createMatchDocuments = async (topMatches, request) => {
 
 // ─────────────────────────────────────────
 // BLOOD GROUP COMPATIBILITY
-// Returns array of blood groups that can
-// donate to the needed blood group
-// Medical compatibility rules:
-//   O- is universal donor
-//   AB+ is universal recipient
 // ─────────────────────────────────────────
 const getCompatibleBloodGroups = (neededGroup) => {
   const compatibility = {
@@ -282,8 +213,6 @@ const getCompatibleBloodGroups = (neededGroup) => {
 
 // ─────────────────────────────────────────
 // RELEVANT PROVIDER TYPES
-// Maps emergency type to relevant
-// service provider types
 // ─────────────────────────────────────────
 const getRelevantProviderTypes = (emergencyType) => {
   const mapping = {
@@ -299,63 +228,48 @@ const getRelevantProviderTypes = (emergencyType) => {
 
 // ─────────────────────────────────────────
 // HANDLE VOLUNTEER RESPONSE
-// Called when a volunteer accepts or declines
-// Updates the match status and request if accepted
 // ─────────────────────────────────────────
 const handleVolunteerResponse = async (matchId, volunteerId, action) => {
-  const HelpRequest = require("../models/HelpRequest.model");
-
-  // Find the match
   const match = await Match.findById(matchId);
   if (!match) throw new Error("Match not found");
 
-  // Verify this volunteer owns this match
   if (match.matchedTo.toString() !== volunteerId.toString()) {
     throw new Error("Unauthorized — this match does not belong to you");
   }
 
-  // Check match is still pending
   if (match.status !== "notified") {
     throw new Error("This match has already been responded to");
   }
 
-  // Update match status
-  match.status = action;              // "accepted" or "declined"
-  match.respondedAt = new Date();     // pre-save calculates responseTimeMinutes
+  match.status = action;
+  match.respondedAt = new Date();
   await match.save();
 
-  // If accepted, update the help request
   if (action === "accepted") {
     const request = await HelpRequest.findById(match.requestId);
 
     if (!request) throw new Error("Request not found");
     if (request.status !== "posted") throw new Error("Request is no longer available");
 
-    // Update request status and assignment
     request.status = "accepted";
     request.assignedTo = match.matchedTo;
     request.assignedType = match.matchedType;
     request.acceptedAt = new Date();
 
-    // Calculate response time in minutes
     const diffMs = request.acceptedAt - request.postedAt;
     request.responseTime = Math.round(diffMs / 1000 / 60);
 
     await request.save();
 
-    // Expire all other pending matches for this request
     await Match.updateMany(
       {
         requestId: match.requestId,
-        _id: { $ne: matchId },        // all matches except this one
+        _id: { $ne: matchId },
         status: "notified",
       },
-      {
-        status: "expired",
-      }
+      { status: "expired" }
     );
 
-    // Notify the requester that help is on the way
     await createNotification({
       recipientId: request.requesterId,
       type: "request_accepted",
@@ -368,7 +282,7 @@ const handleVolunteerResponse = async (matchId, volunteerId, action) => {
   return match;
 };
 
-module.exports = {
+export {
   findAndCreateMatches,
   handleVolunteerResponse,
   getCompatibleBloodGroups,
