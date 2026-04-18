@@ -23,9 +23,22 @@ const errorHandler = (err, req, res, next) => {
       .join(", ");
   }
 
+  // JWT invalid token
+  if (err.name === "JsonWebTokenError") {
+    statusCode = 401;
+    message = "Invalid token";
+  }
+
+  // JWT expired token
+  if (err.name === "TokenExpiredError") {
+    statusCode = 401;
+    message = "Token expired, please login again";
+  }
+
   return res.status(statusCode).json({
     success: false,
     message,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };
 
