@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"; // ✅ correct
 
 const helpRequestSchema = new mongoose.Schema(
   {
@@ -139,4 +139,4 @@ helpRequestSchema.pre("save", function (next) {
   next();
 });
 
-module.exports = mongoose.model("HelpRequest", helpRequestSchema);
+export default mongoose.model("HelpRequest", helpRequestSchema);

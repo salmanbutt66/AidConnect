@@ -1,3 +1,8 @@
+import adminRoutes from "./routes/admin.routes.js";
+import userRoutes from "./routes/user.routes.js";
+app.use("/api/admin", adminRoutes);
+app.use("/api/users", userRoutes);
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
