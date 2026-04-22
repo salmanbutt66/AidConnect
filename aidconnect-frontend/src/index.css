@@ -758,16 +758,18 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
   color: var(--text-muted);
 }
+/* stylelint-disable property-no-unknown */
 .request-card-desc {
   font-size: 14px;
   color: var(--text-mid);
   line-height: 1.6;
   margin-bottom: 14px;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
+/* stylelint-enable property-no-unknown */
 .request-card-footer {
   display: flex;
   align-items: center;
