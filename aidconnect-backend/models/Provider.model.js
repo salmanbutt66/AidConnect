@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const providerSchema = new mongoose.Schema(
   {
     userId: {
@@ -63,10 +62,8 @@ const providerSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 providerSchema.index({ serviceType: 1 });
 providerSchema.index({ isVerified: 1 });
 providerSchema.index({ isAvailable: 1 });
 providerSchema.index({ location: "2dsphere" });
-
 export default mongoose.model("Provider", providerSchema);

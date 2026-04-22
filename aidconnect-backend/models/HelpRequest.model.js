@@ -1,42 +1,69 @@
+// models/HelpRequest.model.js
 import mongoose from "mongoose";
 
 const helpRequestSchema = new mongoose.Schema(
   {
+    // ── WHO POSTED IT ──────────────────────
     requesterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: [true, "Requester ID is required"],
     },
+
+    // ── WHAT KIND OF EMERGENCY ─────────────
     emergencyType: {
       type: String,
-      enum: ["medical", "blood", "accident", "disaster", "other"],
+      enum: {
+        values: ["medical", "blood", "accident", "disaster", "other"],
+        message: "{VALUE} is not a valid emergency type",
+      },
       required: [true, "Emergency type is required"],
     },
+
+    // ── HOW URGENT IS IT ───────────────────
     urgencyLevel: {
       type: String,
-      enum: ["low", "medium", "high", "critical"],
+      enum: {
+        values: ["low", "medium", "high", "critical"],
+        message: "{VALUE} is not a valid urgency level",
+      },
       required: [true, "Urgency level is required"],
     },
+
+    // ── CALCULATED URGENCY SCORE ───────────
     urgencyScore: {
       type: Number,
-      default: 0,
-      min: 0,
+      min: 1,
       max: 100,
+      default: 1,
     },
+
+    // ── DESCRIPTION ────────────────────────
     description: {
       type: String,
       required: [true, "Description is required"],
       trim: true,
+      minlength: [10, "Description must be at least 10 characters"],
+      maxlength: [1000, "Description cannot exceed 1000 characters"],
     },
+
+    // ── OPTIONAL PROOF IMAGE ───────────────
     proofImage: {
       type: String,
-      default: "",
-    },
-    bloodGroupNeeded: {
-      type: String,
-      enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", null],
       default: null,
     },
+
+    // ── BLOOD GROUP ────────────────────────
+    bloodGroupNeeded: {
+      type: String,
+      enum: {
+        values: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", null],
+        message: "{VALUE} is not a valid blood group",
+      },
+      default: null,
+    },
+
+    // ── LOCATION ───────────────────────────
     location: {
       type: {
         type: String,
@@ -45,54 +72,128 @@ const helpRequestSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number],
-        default: [0, 0],
+        required: [true, "Location coordinates are required"],
+        validate: {
+          validator: function (coords) {
+            return (
+              coords.length === 2 &&
+              coords[0] >= -180 &&
+              coords[0] <= 180 &&
+              coords[1] >= -90 &&
+              coords[1] <= 90
+            );
+          },
+          message: "Invalid coordinates. Must be [longitude, latitude]",
+        },
       },
     },
+
     address: {
       type: String,
       trim: true,
-      default: "",
+      default: null,
     },
+
+    // ── REQUEST STATUS ─────────────────────
     status: {
       type: String,
-      enum: ["posted", "accepted", "in_progress", "completed", "cancelled"],
+      enum: {
+        values: ["posted", "accepted", "in_progress", "completed", "cancelled"],
+        message: "{VALUE} is not a valid status",
+      },
       default: "posted",
     },
+
+    // ── WHO IS HANDLING IT ─────────────────
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
-      default: null,
       refPath: "assignedType",
+      default: null,
     },
+
     assignedType: {
       type: String,
       enum: ["Volunteer", "Provider"],
       default: null,
     },
-    postedAt: { type: Date, default: Date.now },
-    acceptedAt: { type: Date, default: null },
-    completedAt: { type: Date, default: null },
-    cancelledAt: { type: Date, default: null },
-    responseTime: { type: Number, default: null },
-    resolutionTime: { type: Number, default: null },
-    isDisasterMode: { type: Boolean, default: false },
+
+    // ── TIMESTAMPS FOR ANALYTICS ───────────
+    postedAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    acceptedAt: {
+      type: Date,
+      default: null,
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+
+    // ── PERFORMANCE METRICS ────────────────
+    responseTime: {
+      type: Number,
+      default: null,
+    },
+
+    resolutionTime: {
+      type: Number,
+      default: null,
+    },
+
+    // ── DISASTER MODE FLAG ─────────────────
+    isDisasterMode: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
 
-helpRequestSchema.index({ status: 1 });
-helpRequestSchema.index({ emergencyType: 1 });
-helpRequestSchema.index({ urgencyScore: -1 });
+// ─── Indexes ──────────────────────────────────────────────────────────────────
 helpRequestSchema.index({ location: "2dsphere" });
-helpRequestSchema.index({ requesterId: 1 });
 helpRequestSchema.index({ status: 1, urgencyScore: -1 });
+helpRequestSchema.index({ requesterId: 1, status: 1 });
+helpRequestSchema.index({ emergencyType: 1, status: 1 });
 
+// ─── Urgency Score Calculator ─────────────────────────────────────────────────
+const calculateUrgencyScore = (urgencyLevel) => {
+  const ranges = {
+    critical: { min: 90, max: 100 },
+    high:     { min: 60, max: 89  },
+    medium:   { min: 30, max: 59  },
+    low:      { min: 1,  max: 29  },
+  };
+
+  const range = ranges[urgencyLevel];
+  if (!range) return 1;
+
+  return Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+};
+
+// ─── Pre-save Hook ────────────────────────────────────────────────────────────
 helpRequestSchema.pre("save", function (next) {
-  const urgencyMap = { low: 25, medium: 50, high: 75, critical: 100 };
-  const typeBoost = { medical: 10, blood: 10, accident: 8, disaster: 8, other: 0 };
-  const base = urgencyMap[this.urgencyLevel] || 0;
-  const boost = typeBoost[this.emergencyType] || 0;
-  this.urgencyScore = Math.min(base + boost, 100);
+  if (this.isModified("urgencyLevel")) {
+    this.urgencyScore = calculateUrgencyScore(this.urgencyLevel);
+  }
   next();
 });
 
-export default mongoose.model("HelpRequest", helpRequestSchema);
+// ─── Virtual: isActive ────────────────────────────────────────────────────────
+helpRequestSchema.virtual("isActive").get(function () {
+  return ["posted", "accepted", "in_progress"].includes(this.status);
+});
+
+helpRequestSchema.set("toJSON", { virtuals: true });
+helpRequestSchema.set("toObject", { virtuals: true });
+
+const HelpRequest = mongoose.model("HelpRequest", helpRequestSchema);
+export default HelpRequest;

@@ -1,47 +1,89 @@
-import express from "express";
+// server.js
 import dotenv from "dotenv";
+dotenv.config();
+
+import { validateEnv, env } from "./config/env.js";
+validateEnv();
+
+import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-
 import connectDB from "./config/db.js";
-import { globalErrorHandler, notFound, setupProcessHandlers } from "./middleware/error.middleware.js";
-import providerRoutes from "./routes/provider.routes.js";  
+import {
+  globalErrorHandler,
+  notFound,
+  setupProcessHandlers,
+} from "./middleware/error.middleware.js";
+
+// ─── Haseeb's routes ───────────────────a───────────────────────────────────────
+import requestRoutes from "./routes/request.routes.js";
+import matchRoutes from "./routes/match.routes.js";
+
+// ─── Salman's routes ──────────────────────────────────────────────────────────
+import authRoutes from "./routes/auth.routes.js";
+import volunteerRoutes from "./routes/volunteer.routes.js";
+
+// ─── Samrah's routes ──────────────────────────────────────────────────────────
+import providerRoutes from "./routes/provider.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 
-dotenv.config();
+// ─── Rabia's routes ───────────────────────────────────────────────────────────
+import adminRoutes from "./routes/admin.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
-connectDB();
-
+// ─── App Setup ────────────────────────────────────────────────────────────────
 const app = express();
 
+// ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin:
+    env.NODE_ENV === "production"
+      ? process.env.FRONTEND_URL
+      : "http://localhost:5173",
+  credentials: true,
+}));
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
-  res.json({
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
     success: true,
     message: "AidConnect API is running",
+    environment: env.NODE_ENV,
+    timestamp: new Date().toISOString(),
   });
 });
 
-// routes
-app.use("/api/providers", providerRoutes); 
-app.use("/api/notifications", notificationRoutes);  
+// Routes will be added here
 
 // 404 handler — catches undefined routes
 app.use(notFound);
 
-// Global error handler — must be last
+// ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(globalErrorHandler);
 
-const PORT = process.env.PORT || 5000;
+// ─── Start Server ─────────────────────────────────────────────────────────────
+const startServer = async () => {
+  try {
+    await connectDB();
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+    const server = app.listen(env.PORT, () => {
+      console.log("─────────────────────────────────────────");
+      console.log(`🚀 Server running on port     ${env.PORT}`);
+      console.log(`🌍 Environment:               ${env.NODE_ENV}`);
+      console.log(`🔗 Health: http://localhost:${env.PORT}/api/health`);
+      console.log("─────────────────────────────────────────");
+    });
 
-setupProcessHandlers(server);
+    setupProcessHandlers(server);
+  } catch (error) {
+    console.error("❌ Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
