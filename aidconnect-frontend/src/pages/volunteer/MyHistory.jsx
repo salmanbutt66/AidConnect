@@ -1,137 +1,37 @@
+// src/pages/volunteer/MyHistory.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth.js';
+import { useNavigate } from 'react-router-dom';
+import Navbar from '../../components/common/Navbar.jsx';
+import StatsCard from '../../components/dashboard/StatsCard.jsx';
+import Badge from '../../components/common/Badge.jsx';
+import Loader from '../../components/common/Loader.jsx';
+import useAuth from '../../hooks/useAuth.js';
 import { getVolunteerHistory } from '../../api/volunteer.api.js';
+import {
+  formatDate,
+  formatDateTime,
+  formatTimeAgo,
+  formatDuration,
+  formatEmergencyType,
+  getEmergencyEmoji,
+  getInitials,
+} from '../../utils/formatters.js';
 
-// ─── Badges ───────────────────────────────────────────────────────────────────
-const StatusBadge = ({ status }) => {
-  const map = {
-    posted:      { color: '#6b7280', label: 'Posted'      },
-    accepted:    { color: '#3b82f6', label: 'Accepted'    },
-    in_progress: { color: '#f59e0b', label: 'In Progress' },
-    completed:   { color: '#22c55e', label: 'Completed'   },
-    cancelled:   { color: '#ef4444', label: 'Cancelled'   },
-  };
-  const { color, label } = map[status] || map.posted;
-  return (
-    <span style={{
-      background: `${color}22`,
-      color,
-      border: `1px solid ${color}44`,
-      borderRadius: '20px',
-      padding: '3px 12px',
-      fontSize: '12px',
-      fontWeight: 600,
-      whiteSpace: 'nowrap',
-    }}>
-      {label}
-    </span>
-  );
-};
-
-const EmergencyBadge = ({ type }) => {
-  const colors = {
-    medical:        '#ef4444',
-    fire:           '#f97316',
-    flood:          '#3b82f6',
-    earthquake:     '#a855f7',
-    accident:       '#f59e0b',
-    blood_request:  '#dc2626',
-    food_shortage:  '#84cc16',
-    mental_health:  '#06b6d4',
-    missing_person: '#8b5cf6',
-    other:          '#6b7280',
-  };
-  const color = colors[type] || colors.other;
-  return (
-    <span style={{
-      background: `${color}18`,
-      color,
-      border: `1px solid ${color}44`,
-      borderRadius: '6px',
-      padding: '2px 10px',
-      fontSize: '12px',
-      fontWeight: 600,
-      textTransform: 'capitalize',
-      whiteSpace: 'nowrap',
-    }}>
-      {type?.replace(/_/g, ' ')}
-    </span>
-  );
-};
-
-const UrgencyDot = ({ level }) => {
-  const map = {
-    critical: '#ef4444',
-    high:     '#f97316',
-    medium:   '#f59e0b',
-    low:      '#22c55e',
-  };
-  return (
-    <span style={{
-      display: 'inline-block',
-      width: '8px', height: '8px',
-      borderRadius: '50%',
-      background: map[level] || map.low,
-      marginRight: '6px',
-      flexShrink: 0,
-    }} />
-  );
-};
-
-// ─── Filter Button ────────────────────────────────────────────────────────────
-const FilterBtn = ({ label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    style={{
-      background: active ? 'var(--accent)' : 'var(--surface)',
-      color: active ? '#fff' : 'var(--text-muted)',
-      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-      borderRadius: '20px',
-      padding: '6px 16px',
-      fontSize: '13px',
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: 'all 0.15s',
-      whiteSpace: 'nowrap',
-    }}
-  >
-    {label}
-  </button>
-);
-
-// ─── Request Card ─────────────────────────────────────────────────────────────
-const RequestCard = ({ request }) => {
+// ─── Expandable history row ───────────────────────────────────────────────────
+function HistoryRow({ request }) {
   const [expanded, setExpanded] = useState(false);
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-PK', {
-      day:   'numeric',
-      month: 'short',
-      year:  'numeric',
-    });
-  };
-
-  const formatTime = (dateStr) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleTimeString('en-PK', {
-      hour:   '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const requester = request.requesterId;
 
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      transition: 'border-color 0.15s',
-    }}>
-      {/* ── Card Header ──────────────────────────────────────────────── */}
+    <div
+      className="card"
+      style={{
+        overflow: 'hidden',
+        transition: 'box-shadow var(--t-base)',
+        animation: 'fadeSlideUp var(--t-page) var(--ease) both',
+      }}
+    >
+      {/* ── Collapsed header ──────────────────────────────────────────── */}
       <div
         style={{
           padding: '16px 20px',
@@ -143,213 +43,204 @@ const RequestCard = ({ request }) => {
         }}
         onClick={() => setExpanded((p) => !p)}
       >
-        {/* Left side */}
+        {/* Left — icon + badges + meta */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-          <div style={{
-            width: '40px', height: '40px',
-            borderRadius: '10px',
-            background: request.status === 'completed' ? '#22c55e22' : '#ef444422',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', flexShrink: 0,
-          }}>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: 'var(--radius-md)',
+              background: request.status === 'completed'
+                ? 'var(--green-100)'
+                : 'var(--danger-bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+              flexShrink: 0,
+            }}
+          >
             {request.status === 'completed' ? '✅' : '❌'}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              flexWrap: 'wrap', marginBottom: '4px',
-            }}>
-              <UrgencyDot level={request.urgencyLevel} />
-              <EmergencyBadge type={request.emergencyType} />
-              <StatusBadge    status={request.status} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <span style={{ fontSize: '14px' }}>{getEmergencyEmoji(request.emergencyType)}</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-dark)' }}>
+                {formatEmergencyType(request.emergencyType)}
+              </span>
+              <Badge urgency={request.urgencyLevel} />
+              <Badge status={request.status} />
             </div>
-            <div style={{
-              fontSize: '13px', color: 'var(--text-muted)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>
-              {formatDate(request.createdAt)} · {formatTime(request.createdAt)}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {formatDateTime(request.createdAt)}
               {requester?.name && ` · ${requester.name}`}
             </div>
           </div>
         </div>
 
-        {/* Right side */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0,
-        }}>
+        {/* Right — resolution time + chevron */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {request.resolutionTime && (
-            <span style={{
-              fontSize: '12px', color: 'var(--text-muted)',
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '20px',
-              padding: '2px 10px',
-            }}>
-              ⏱ {request.resolutionTime}m
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                background: 'var(--stone-200)',
+                borderRadius: 'var(--radius-full)',
+                padding: '2px 10px',
+                fontWeight: 600,
+              }}
+            >
+              ⏱ {formatDuration(request.resolutionTime)}
             </span>
           )}
-          <span style={{
-            color: 'var(--text-muted)', fontSize: '16px',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
-            transition: 'transform 0.2s',
-            display: 'inline-block',
-          }}>
+          <span
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '14px',
+              display: 'inline-block',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+              transition: 'transform var(--t-base)',
+            }}
+          >
             ▾
           </span>
         </div>
       </div>
 
-      {/* ── Expanded Details ─────────────────────────────────────────── */}
+      {/* ── Expanded details ──────────────────────────────────────────── */}
       {expanded && (
-        <div style={{
-          borderTop: '1px solid var(--border)',
-          padding: '16px 20px',
-          display: 'flex', flexDirection: 'column', gap: '10px',
-        }}>
+        <div
+          style={{
+            borderTop: '1px solid var(--stone-200)',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            animation: 'fadeSlideDown var(--t-base) var(--ease)',
+          }}
+        >
           {/* Description */}
           {request.description && (
             <div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>
                 Description
               </div>
-              <div style={{ fontSize: '14px', lineHeight: 1.5 }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-mid)', lineHeight: 1.6 }}>
                 {request.description}
               </div>
             </div>
           )}
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '12px',
-            marginTop: '4px',
-          }}>
-            {/* Location */}
-            <div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                📍 Location
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                {request.address ||
+          {/* Detail grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            {[
+              {
+                icon: '📍',
+                label: 'Location',
+                value: request.address ||
                   (request.location?.city
                     ? `${request.location.city}${request.location.area ? ', ' + request.location.area : ''}`
-                    : '—')}
-              </div>
-            </div>
-
-            {/* Accepted at */}
-            {request.acceptedAt && (
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                  ✅ Accepted At
+                    : null),
+              },
+              { icon: '✅', label: 'Accepted At',  value: request.acceptedAt  ? formatDateTime(request.acceptedAt)  : null },
+              { icon: '🎉', label: 'Completed At', value: request.completedAt ? formatDateTime(request.completedAt) : null },
+              { icon: '⚡', label: 'Response Time', value: request.responseTime   ? formatDuration(request.responseTime)   : null },
+              { icon: '⏱', label: 'Resolution',    value: request.resolutionTime ? formatDuration(request.resolutionTime) : null },
+              { icon: '🩸', label: 'Blood Group',   value: request.bloodGroupNeeded || null },
+            ].filter((item) => !!item.value).map((item) => (
+              <div key={item.label}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>
+                  {item.icon} {item.label}
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                  {formatDate(request.acceptedAt)} {formatTime(request.acceptedAt)}
-                </div>
-              </div>
-            )}
-
-            {/* Completed at */}
-            {request.completedAt && (
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                  🎉 Completed At
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                  {formatDate(request.completedAt)} {formatTime(request.completedAt)}
+                <div style={{ fontSize: '13px', color: 'var(--text-dark)', fontWeight: 500 }}>
+                  {item.value}
                 </div>
               </div>
-            )}
-
-            {/* Response time */}
-            {request.responseTime !== undefined && (
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                  ⚡ Response Time
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                  {request.responseTime} min
-                </div>
-              </div>
-            )}
-
-            {/* Blood group */}
-            {request.bloodGroupNeeded && (
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                  🩸 Blood Group
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                  {request.bloodGroupNeeded}
-                </div>
-              </div>
-            )}
+            ))}
           </div>
 
           {/* Requester info */}
           {requester && (
-            <div style={{
-              marginTop: '8px',
-              padding: '12px 16px',
-              background: 'var(--bg)',
-              borderRadius: '8px',
-              display: 'flex', alignItems: 'center', gap: '12px',
-            }}>
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '50%',
-                background: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: '13px', color: '#fff', flexShrink: 0,
-              }}>
-                {requester.name?.[0]?.toUpperCase() || '?'}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                background: 'var(--green-50)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--green-100)',
+              }}
+            >
+              <div className="avatar avatar-sm">
+                {getInitials(requester.name)}
               </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 600 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-dark)' }}>
                   {requester.name}
                 </div>
                 {requester.phone && (
-                  <a href={`tel:${requester.phone}`} style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none' }}>
-                    {requester.phone}
+                  <a
+                    href={`tel:${requester.phone}`}
+                    style={{ fontSize: '12px', color: 'var(--green-700)', textDecoration: 'none', fontWeight: 500 }}
+                  >
+                    📞 {requester.phone}
                   </a>
                 )}
               </div>
+              {requester.phone && (
+                <a
+                  href={`tel:${requester.phone}`}
+                  className="btn btn-secondary btn-sm"
+                  style={{ textDecoration: 'none' }}
+                >
+                  Call
+                </a>
+              )}
             </div>
           )}
         </div>
       )}
     </div>
   );
-};
+}
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── MyHistory ────────────────────────────────────────────────────────────────
+const FILTERS = [
+  { label: 'All',           value: 'all'         },
+  { label: '✅ Completed',   value: 'completed'   },
+  { label: '❌ Cancelled',   value: 'cancelled'   },
+  { label: '🚀 In Progress', value: 'in_progress' },
+];
+
 export default function MyHistory() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [requests,    setRequests]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState('');
-  const [filter,      setFilter]      = useState('all');
-  const [pagination,  setPagination]  = useState(null);
-  const [page,        setPage]        = useState(1);
+  const [requests,   setRequests]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
+  const [filter,     setFilter]     = useState('all');
+  const [pagination, setPagination] = useState(null);
+  const [page,       setPage]       = useState(1);
 
-  const FILTERS = [
-    { label: 'All',         value: 'all'         },
-    { label: '✅ Completed', value: 'completed'   },
-    { label: '❌ Cancelled', value: 'cancelled'   },
-    { label: '🚀 In Progress',value: 'in_progress'},
-  ];
-
+  // ── Load history ───────────────────────────────────────────────────────────
   const load = useCallback(async (statusFilter, pageNum) => {
     setLoading(true);
     setError('');
     try {
       const params = { page: pageNum, limit: 10 };
       if (statusFilter !== 'all') params.status = statusFilter;
-
       const res = await getVolunteerHistory(params);
       setRequests(res.requests || []);
       setPagination(res.pagination || null);
-    } catch (err) {
+    } catch {
       setError('Failed to load history. Please try again.');
     } finally {
       setLoading(false);
@@ -365,245 +256,167 @@ export default function MyHistory() {
     setPage(1);
   };
 
-  // ── Summary counts ─────────────────────────────────────────────────────────
-  const completed = requests.filter((r) => r.status === 'completed').length;
-  const cancelled = requests.filter((r) => r.status === 'cancelled').length;
-  const avgTime   = (() => {
-    const timed = requests.filter((r) => r.resolutionTime);
-    if (!timed.length) return null;
-    return Math.round(timed.reduce((s, r) => s + r.resolutionTime, 0) / timed.length);
-  })();
+  // ── Derived stats from current page ───────────────────────────────────────
+  const completedCount = requests.filter((r) => r.status === 'completed').length;
+  const cancelledCount = requests.filter((r) => r.status === 'cancelled').length;
+  const timedRequests  = requests.filter((r) => r.resolutionTime);
+  const avgTime        = timedRequests.length
+    ? Math.round(timedRequests.reduce((s, r) => s + r.resolutionTime, 0) / timedRequests.length)
+    : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+    <Navbar title="Request History">
+      <div className="page-wrapper">
 
-      {/* ── Top Bar ───────────────────────────────────────────────────── */}
-      <div style={{
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        padding: '0 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: '64px',
-      }}>
-        <div style={{ fontWeight: 800, fontSize: '20px', letterSpacing: '-0.5px' }}>
-          Aid<span style={{ color: 'var(--accent)' }}>Connect</span>
-        </div>
-        <nav style={{ display: 'flex', gap: '8px' }}>
-          {[
-            { label: 'Dashboard', to: '/volunteer'         },
-            { label: 'Active',    to: '/volunteer/active'  },
-            { label: 'History',   to: '/volunteer/history' },
-            { label: 'Profile',   to: '/volunteer/profile' },
-          ].map(({ label, to }) => (
-            <Link key={to} to={to} style={{
-              padding: '6px 14px', borderRadius: '8px',
-              fontSize: '14px', fontWeight: 500,
-              color: window.location.pathname === to
-                ? 'var(--accent)' : 'var(--text-muted)',
-              background: window.location.pathname === to
-                ? 'var(--accent-dim)' : 'transparent',
-              textDecoration: 'none',
-            }}>
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-          {user?.name}
-        </div>
-      </div>
-
-      {/* ── Content ───────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: '28px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px' }}>
-            Request History
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
-            All emergency requests you've handled
-          </p>
+        {/* ── Page header ───────────────────────────────────────────────── */}
+        <div className="page-header">
+          <h1>Request History 📋</h1>
+          <p>All emergency requests you've handled as a volunteer.</p>
         </div>
 
-        {/* ── Quick Stats ───────────────────────────────────────────── */}
+        {/* ── Quick stats ───────────────────────────────────────────────── */}
         {!loading && requests.length > 0 && (
-          <div style={{
-            display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px',
-          }}>
-            {[
-              { label: 'Showing',    value: requests.length,          color: 'var(--text)' },
-              { label: 'Completed',  value: completed,                color: '#22c55e'     },
-              { label: 'Cancelled',  value: cancelled,                color: '#ef4444'     },
-              { label: 'Avg Time',   value: avgTime ? `${avgTime}m` : '—', color: '#f59e0b' },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
-                padding: '12px 20px',
-                flex: '1', minWidth: '100px',
-              }}>
-                <div style={{ fontSize: '20px', fontWeight: 700, color }}>{value}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Filters ───────────────────────────────────────────────── */}
-        <div style={{
-          display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px',
-        }}>
-          {FILTERS.map(({ label, value }) => (
-            <FilterBtn
-              key={value}
-              label={label}
-              active={filter === value}
-              onClick={() => handleFilterChange(value)}
+          <div className="grid-4" style={{ marginBottom: '28px' }}>
+            <StatsCard
+              label="Showing"
+              value={requests.length}
+              icon="📋"
+              color="blue"
+              delay={0}
             />
-          ))}
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="alert alert-danger" style={{ borderRadius: '10px', marginBottom: '20px' }}>
-            ⚠️ {error}
+            <StatsCard
+              label="Completed"
+              value={completedCount}
+              icon="✅"
+              color="green"
+              delay={100}
+            />
+            <StatsCard
+              label="Cancelled"
+              value={cancelledCount}
+              icon="❌"
+              color="red"
+              delay={200}
+            />
+            <StatsCard
+              label="Avg Resolution"
+              value={avgTime ? `${avgTime}m` : '—'}
+              icon="⏱"
+              color="orange"
+              format="raw"
+              delay={300}
+            />
           </div>
         )}
 
-        {/* ── List ──────────────────────────────────────────────────── */}
-        {loading ? (
-          <div style={{
-            display: 'flex', justifyContent: 'center',
-            padding: '60px 0',
-          }}>
-            <div className="spinner-border text-danger" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : requests.length === 0 ? (
-          <div style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '60px 40px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-            <h3 style={{ fontWeight: 700, marginBottom: '8px' }}>
-              No requests found
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '0 0 24px' }}>
-              {filter === 'all'
-                ? "You haven't handled any requests yet."
-                : `No ${filter.replace('_', ' ')} requests found.`}
-            </p>
-            {filter !== 'all' && (
-              <button
-                onClick={() => handleFilterChange('all')}
-                style={{
-                  background: 'var(--accent)',
-                  color: '#fff', border: 'none',
-                  borderRadius: '8px', padding: '10px 24px',
-                  fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                }}
-              >
-                View All
-              </button>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {requests.map((req) => (
-              <RequestCard key={req._id} request={req} />
-            ))}
-          </div>
-        )}
+        {/* ── Main card ─────────────────────────────────────────────────── */}
+        <div className="card anim-fade-up delay-100">
+          <div className="card-header">
 
-        {/* ── Pagination ────────────────────────────────────────────── */}
-        {pagination && pagination.totalPages > 1 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            marginTop: '28px',
-          }}>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                color: page === 1 ? 'var(--text-muted)' : 'var(--text)',
-                cursor: page === 1 ? 'not-allowed' : 'pointer',
-                fontSize: '14px', fontWeight: 600,
-                opacity: page === 1 ? 0.5 : 1,
-              }}
-            >
-              ← Prev
-            </button>
-
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-              .filter((p) => Math.abs(p - page) <= 2)
-              .map((p) => (
+            {/* Status filter tabs */}
+            <div className="tabs" style={{ marginBottom: 0 }}>
+              {FILTERS.map(({ label, value }) => (
                 <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  style={{
-                    background: p === page ? 'var(--accent)' : 'var(--surface)',
-                    color: p === page ? '#fff' : 'var(--text)',
-                    border: `1px solid ${p === page ? 'var(--accent)' : 'var(--border)'}`,
-                    borderRadius: '8px',
-                    padding: '8px 14px',
-                    fontSize: '14px', fontWeight: 600,
-                    cursor: 'pointer',
-                    minWidth: '40px',
-                  }}
+                  key={value}
+                  className={`tab-btn${filter === value ? ' active' : ''}`}
+                  onClick={() => handleFilterChange(value)}
                 >
-                  {p}
+                  {label}
                 </button>
               ))}
-
-            <button
-              onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-              disabled={page === pagination.totalPages}
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                color: page === pagination.totalPages ? 'var(--text-muted)' : 'var(--text)',
-                cursor: page === pagination.totalPages ? 'not-allowed' : 'pointer',
-                fontSize: '14px', fontWeight: 600,
-                opacity: page === pagination.totalPages ? 0.5 : 1,
-              }}
-            >
-              Next →
-            </button>
+            </div>
           </div>
-        )}
 
-        {/* Total count */}
-        {pagination && (
-          <div style={{
-            textAlign: 'center',
-            marginTop: '12px',
-            fontSize: '13px',
-            color: 'var(--text-muted)',
-          }}>
-            Page {page} of {pagination.totalPages} · {pagination.totalRequests} total requests
+          <div className="card-body">
+
+            {/* Error */}
+            {error && (
+              <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
+                <span className="alert-icon">⚠️</span>
+                {error}
+                <button
+                  onClick={() => setError('')}
+                  style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700 }}
+                >✕</button>
+              </div>
+            )}
+
+            {/* Loading */}
+            {loading && <Loader variant="skeleton" count={4} />}
+
+            {/* Empty state */}
+            {!loading && requests.length === 0 && (
+              <div className="empty-state">
+                <div className="empty-state-icon">📋</div>
+                <h3>No requests found</h3>
+                <p>
+                  {filter === 'all'
+                    ? "You haven't handled any requests yet."
+                    : `No ${filter.replace('_', ' ')} requests found.`
+                  }
+                </p>
+                {filter !== 'all' && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleFilterChange('all')}
+                  >
+                    View All
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* History list */}
+            {!loading && requests.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {requests.map((req) => (
+                  <HistoryRow key={req._id} request={req} />
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && pagination && pagination.totalPages > 1 && (
+              <div style={{ marginTop: '24px' }}>
+                <div className="pagination">
+                  <button
+                    className="page-btn"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    ‹
+                  </button>
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                    .filter((p) => Math.abs(p - page) <= 2)
+                    .map((p) => (
+                      <button
+                        key={p}
+                        className={`page-btn${p === page ? ' active' : ''}`}
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  <button
+                    className="page-btn"
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  >
+                    ›
+                  </button>
+                </div>
+
+                {/* Page info */}
+                <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                  Page {page} of {pagination.totalPages}
+                  {pagination.total ? ` · ${pagination.total} total requests` : ''}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
       </div>
-    </div>
+    </Navbar>
   );
 }

@@ -1,120 +1,167 @@
 // src/pages/volunteer/VolunteerDashboard.jsx
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth.js';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Navbar from '../../components/common/Navbar.jsx';
+import StatsCard from '../../components/dashboard/StatsCard.jsx';
+import Badge from '../../components/common/Badge.jsx';
+import Loader from '../../components/common/Loader.jsx';
+import NotificationPanel from '../../components/dashboard/NotificationPanel.jsx';
+import useAuth from '../../hooks/useAuth.js';
 import {
   getMyVolunteerProfile,
   getVolunteerStats,
   toggleAvailability,
   getActiveRequest,
 } from '../../api/volunteer.api.js';
+import { formatScore, formatPercent } from '../../utils/formatters.js';
 
-const StatCard = ({ label, value, sub, color = 'var(--accent)' }) => (
-  <div style={{
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: '12px',
-    padding: '20px 24px',
-    flex: '1',
-    minWidth: '140px',
-  }}>
-    <div style={{ fontSize: '28px', fontWeight: 700, color }}>{value}</div>
-    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{label}</div>
-    {sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{sub}</div>}
-  </div>
-);
-
-const ScoreBadge = ({ score }) => {
-  const getLabel = (s) => {
-    if (s >= 85) return { label: 'Elite',      color: '#22c55e' };
-    if (s >= 70) return { label: 'Trusted',    color: '#3b82f6' };
-    if (s >= 55) return { label: 'Reliable',   color: '#06b6d4' };
-    if (s >= 40) return { label: 'Developing', color: '#f59e0b' };
-    return             { label: 'At Risk',     color: '#ef4444' };
-  };
-  const { label, color } = getLabel(score);
+// ─── Availability toggle card ─────────────────────────────────────────────────
+function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onToggle }) {
   return (
-    <span style={{
-      background: `${color}22`,
-      color,
-      border: `1px solid ${color}44`,
-      borderRadius: '20px',
-      padding: '3px 12px',
-      fontSize: '12px',
-      fontWeight: 600,
-    }}>
-      {label}
-    </span>
-  );
-};
+    <div
+      className="card"
+      style={{
+        border: `2px solid ${isAvailable ? 'var(--green-300)' : 'var(--stone-200)'}`,
+        transition: 'border-color var(--t-base)',
+      }}
+    >
+      <div className="card-body" style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+          Availability Status
+        </div>
 
-const EmergencyBadge = ({ type }) => {
-  const colors = {
-    medical:        '#ef4444',
-    fire:           '#f97316',
-    flood:          '#3b82f6',
-    earthquake:     '#a855f7',
-    accident:       '#f59e0b',
-    blood_request:  '#dc2626',
-    food_shortage:  '#84cc16',
-    mental_health:  '#06b6d4',
-    missing_person: '#8b5cf6',
-    other:          '#6b7280',
-  };
-  const color = colors[type] || colors.other;
+        {/* Status indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '14px' }}>
+          <span className={`status-dot ${isAvailable ? 'dot-green pulse' : 'dot-stone'}`} />
+          <span style={{ fontWeight: 700, fontSize: '15px', color: isAvailable ? 'var(--green-700)' : 'var(--text-muted)' }}>
+            {isAvailable ? 'Available' : 'Unavailable'}
+          </span>
+        </div>
+
+        {/* Toggle button */}
+        <button
+          onClick={onToggle}
+          disabled={toggling || !isApproved || isSuspended}
+          className={`btn btn-full ${isAvailable ? 'btn-danger' : 'btn-primary'}`}
+          style={{ fontSize: '13px' }}
+        >
+          {toggling
+            ? <><span className="spinner" /> Updating…</>
+            : isAvailable ? 'Go Unavailable' : 'Go Available'
+          }
+        </button>
+
+        {!isApproved && (
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Awaiting admin approval
+          </div>
+        )}
+        {isSuspended && (
+          <div style={{ fontSize: '11px', color: 'var(--danger)', marginTop: '8px' }}>
+            Account suspended
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Performance bar ──────────────────────────────────────────────────────────
+function PerformanceBar({ label, value, color }) {
   return (
-    <span style={{
-      background: `${color}22`,
-      color,
-      border: `1px solid ${color}55`,
-      borderRadius: '6px',
-      padding: '2px 10px',
-      fontSize: '12px',
-      fontWeight: 600,
-      textTransform: 'capitalize',
-    }}>
-      {type?.replace('_', ' ')}
-    </span>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{label}</span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-dark)' }}>{value}%</span>
+      </div>
+      <div style={{ height: '6px', background: 'var(--stone-200)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+        <div style={{
+          width: `${Math.min(value, 100)}%`,
+          height: '100%',
+          background: color,
+          borderRadius: 'var(--radius-full)',
+          transition: 'width 0.6s var(--ease)',
+        }} />
+      </div>
+    </div>
   );
-};
+}
 
-const UrgencyBadge = ({ level }) => {
-  const map = {
-    critical: { color: '#ef4444', label: '🔴 Critical' },
-    high:     { color: '#f97316', label: '🟠 High' },
-    medium:   { color: '#f59e0b', label: '🟡 Medium' },
-    low:      { color: '#22c55e', label: '🟢 Low' },
-  };
-  const { color, label } = map[level] || map.low;
+// ─── Active request banner ────────────────────────────────────────────────────
+function ActiveRequestBanner({ request, onView }) {
   return (
-    <span style={{ color, fontSize: '13px', fontWeight: 600 }}>{label}</span>
+    <div
+      className="anim-fade-up"
+      style={{
+        padding: '16px 20px',
+        background: 'var(--danger-bg)',
+        border: '1.5px solid #f5c6c2',
+        borderRadius: 'var(--radius-lg)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div style={{
+        width: '44px', height: '44px',
+        background: 'rgba(192,57,43,0.12)',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '22px', flexShrink: 0,
+      }}>
+        🚨
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-dark)', marginBottom: '5px' }}>
+          You have an active request
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <Badge urgency={request.urgencyLevel} />
+          <Badge color="blue">{request.emergencyType?.replace('_', ' ')}</Badge>
+        </div>
+      </div>
+      <button className="btn btn-danger btn-sm" onClick={onView} style={{ flexShrink: 0 }}>
+        View Request →
+      </button>
+    </div>
   );
-};
+}
 
+// ─── VolunteerDashboard ───────────────────────────────────────────────────────
 export default function VolunteerDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
 
-  const [profile,       setProfile]       = useState(null);
-  const [stats,         setStats]         = useState(null);
-  const [activeRequest, setActiveRequest] = useState(null);
-  const [loading,       setLoading]       = useState(true);
-  const [toggling,      setToggling]      = useState(false);
-  const [error,         setError]         = useState('');
+  const [profile,        setProfile]        = useState(null);
+  const [stats,          setStats]          = useState(null);
+  const [activeRequest,  setActiveRequest]  = useState(null);
+  const [loading,        setLoading]        = useState(true);
+  const [toggling,       setToggling]       = useState(false);
+  const [error,          setError]          = useState('');
 
+  // ── Load all data on mount ─────────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       try {
-        const [profileRes, statsRes, activeRes] = await Promise.all([
+        // Run all three in parallel — handle each failure independently
+        const [profileRes, statsRes, activeRes] = await Promise.allSettled([
           getMyVolunteerProfile(),
           getVolunteerStats(),
           getActiveRequest(),
         ]);
-        setProfile(profileRes.profile);
-        setStats(statsRes.stats);
-        setActiveRequest(activeRes.activeRequest);
-      } catch (err) {
-        setError('Failed to load dashboard data. Please refresh.');
+        if (profileRes.status === 'fulfilled') setProfile(profileRes.value.profile);
+        if (statsRes.status   === 'fulfilled') setStats(statsRes.value.stats);
+        if (activeRes.status  === 'fulfilled') setActiveRequest(activeRes.value.activeRequest);
+        // Only show error if all three failed
+        if (
+          profileRes.status === 'rejected' &&
+          statsRes.status   === 'rejected' &&
+          activeRes.status  === 'rejected'
+        ) {
+          setError('Failed to load dashboard data. Please refresh.');
+        }
       } finally {
         setLoading(false);
       }
@@ -122,8 +169,10 @@ export default function VolunteerDashboard() {
     load();
   }, []);
 
-  const handleToggleAvailability = async () => {
+  // ── Toggle availability ────────────────────────────────────────────────────
+  const handleToggleAvailability = useCallback(async () => {
     setToggling(true);
+    setError('');
     try {
       const res = await toggleAvailability();
       setProfile((prev) => ({ ...prev, isAvailable: res.isAvailable }));
@@ -132,406 +181,303 @@ export default function VolunteerDashboard() {
     } finally {
       setToggling(false);
     }
-  };
+  }, []);
 
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'var(--bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div className="spinner-border text-danger" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  const isAvailable    = profile?.isAvailable;
-  const isApproved     = profile?.isApproved;
-  const isSuspended    = profile?.isSuspended;
-  const reputationScore = stats?.reputationScore ?? 50;
+  const isAvailable     = profile?.isAvailable;
+  const isApproved      = profile?.isApproved;
+  const isSuspended     = profile?.isSuspended;
+  const reputationScore = stats?.reputationScore ?? 0;
+  const scoreMeta       = formatScore(reputationScore);
+  const firstName       = user?.name?.split(' ')[0] || 'there';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+    <Navbar title="Dashboard">
+      <div className="page-wrapper">
 
-      {/* ── Top Bar ─────────────────────────────────────────────────────── */}
-      <div style={{
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        padding: '0 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: '64px',
-      }}>
-        <div style={{ fontWeight: 800, fontSize: '20px', letterSpacing: '-0.5px' }}>
-          Aid<span style={{ color: 'var(--accent)' }}>Connect</span>
+        {/* ── Page header ───────────────────────────────────────────────── */}
+        <div className="page-header">
+          <h1>Welcome back, {firstName} 👋</h1>
+          <p>Here's your volunteer activity and performance overview.</p>
         </div>
-        <nav style={{ display: 'flex', gap: '8px' }}>
-          {[
-            { label: 'Dashboard',  to: '/volunteer' },
-            { label: 'Active',     to: '/volunteer/active' },
-            { label: 'History',    to: '/volunteer/history' },
-            { label: 'Profile',    to: '/volunteer/profile' },
-          ].map(({ label, to }) => (
-            <Link
-              key={to}
-              to={to}
+
+        {/* ── Loading state ─────────────────────────────────────────────── */}
+        {loading && <Loader variant="skeleton" count={3} />}
+
+        {!loading && (
+          <>
+            {/* ── Error alert ─────────────────────────────────────────────── */}
+            {error && (
+              <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
+                <span className="alert-icon">⚠️</span>
+                {error}
+                <button
+                  onClick={() => setError('')}
+                  style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700 }}
+                >✕</button>
+              </div>
+            )}
+
+            {/* ── Status banners ────────────────────────────────────────── */}
+            {!isApproved && (
+              <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px' }}>
+                <span className="alert-icon">⏳</span>
+                <div>
+                  <strong>Pending Approval</strong> — Your volunteer profile is awaiting
+                  admin review. You'll be notified once approved.
+                </div>
+              </div>
+            )}
+
+            {isSuspended && (
+              <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
+                <span className="alert-icon">⛔</span>
+                <div>
+                  <strong>Account Suspended</strong> —{' '}
+                  {profile?.suspendedReason || 'Please contact the admin for details.'}
+                </div>
+              </div>
+            )}
+
+            {/* ── Active request banner ────────────────────────────────── */}
+            {activeRequest && (
+              <ActiveRequestBanner
+                request={activeRequest}
+                onView={() => navigate('/volunteer/active-request')}
+              />
+            )}
+
+            {/* ── Stats row ─────────────────────────────────────────────── */}
+            <div className="grid-4" style={{ marginBottom: '28px' }}>
+              <StatsCard
+                label="Completed"
+                value={stats?.totalCompleted ?? 0}
+                icon="✅"
+                color="green"
+                sub="Total resolved"
+                delay={0}
+              />
+              <StatsCard
+                label="Acceptance Rate"
+                value={stats?.acceptanceRate ?? 0}
+                icon="⚡"
+                color="blue"
+                format="percent"
+                delay={100}
+              />
+              <StatsCard
+                label="Avg Rating"
+                value={stats?.averageRating
+                  ? Number(stats.averageRating).toFixed(1)
+                  : '—'
+                }
+                icon="⭐"
+                color="orange"
+                format="raw"
+                sub={`${stats?.totalRatings ?? 0} ratings`}
+                delay={200}
+              />
+              <StatsCard
+                label="Reputation"
+                value={reputationScore}
+                icon="🏅"
+                color="green"
+                sub={scoreMeta.label}
+                delay={300}
+              />
+            </div>
+
+            {/* ── Main content grid ──────────────────────────────────────── */}
+            <div
               style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 500,
-                color: window.location.pathname === to ? 'var(--accent)' : 'var(--text-muted)',
-                background: window.location.pathname === to ? 'var(--accent-dim)' : 'transparent',
-                textDecoration: 'none',
-                transition: 'all 0.15s',
+                display: 'grid',
+                gridTemplateColumns: '1fr 300px',
+                gap: '24px',
+                alignItems: 'start',
               }}
             >
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-            {user?.name}
-          </span>
-          <div style={{
-            width: '36px', height: '36px',
-            borderRadius: '50%',
-            background: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, fontSize: '14px', color: '#fff',
-          }}>
-            {user?.name?.[0]?.toUpperCase()}
-          </div>
-        </div>
+              {/* Left column */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+                {/* Performance summary card */}
+                <div className="card anim-fade-up delay-200">
+                  <div className="card-header">
+                    <div className="section-header" style={{ marginBottom: 0 }}>
+                      <div>
+                        <div className="section-title">Performance Summary</div>
+                        <div className="section-subtitle">Your response metrics</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="card-body" style={{ paddingTop: '16px' }}>
+
+                    {/* Performance bars */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                      <PerformanceBar
+                        label="Acceptance Rate"
+                        value={stats?.acceptanceRate ?? 0}
+                        color="var(--info)"
+                      />
+                      <PerformanceBar
+                        label="Completion Rate"
+                        value={stats?.completionRate ?? 0}
+                        color="var(--green-600)"
+                      />
+                      <PerformanceBar
+                        label="Cancellation Rate"
+                        value={stats?.cancellationRate ?? 0}
+                        color="var(--danger)"
+                      />
+                    </div>
+
+                    {/* Breakdown counters */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '0',
+                        paddingTop: '20px',
+                        borderTop: '1px solid var(--stone-200)',
+                        justifyContent: 'space-around',
+                      }}
+                    >
+                      {[
+                        { label: 'Assigned',    value: stats?.totalAssigned   ?? 0 },
+                        { label: 'Accepted',    value: stats?.totalAccepted   ?? 0 },
+                        { label: 'Completed',   value: stats?.totalCompleted  ?? 0 },
+                        { label: 'Cancelled',   value: stats?.totalCancelled  ?? 0 },
+                        { label: 'No Response', value: stats?.totalNoResponse ?? 0 },
+                      ].map(({ label, value }) => (
+                        <div key={label} style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-0.5px' }}>
+                            {value}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
+                            {label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick actions card */}
+                <div className="card anim-fade-up delay-300">
+                  <div className="card-header">
+                    <div className="section-title">Quick Actions</div>
+                  </div>
+                  <div className="card-body" style={{ paddingTop: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {[
+                        { icon: '🚨', label: 'View Active Request', desc: 'Check and manage your current assignment', to: '/volunteer/active-request' },
+                        { icon: '📋', label: 'Request History',     desc: 'Browse your past responses and ratings',  to: '/volunteer/history'        },
+                        { icon: '👤', label: 'Edit Profile',         desc: 'Update your skills and service area',     to: '/volunteer/profile'        },
+                      ].map((action) => (
+                        <button
+                          key={action.to}
+                          onClick={() => navigate(action.to)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '14px',
+                            padding: '14px 16px',
+                            background: 'white',
+                            border: '1.5px solid var(--stone-200)',
+                            borderRadius: 'var(--radius-lg)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all var(--t-base)',
+                            width: '100%',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--green-300)';
+                            e.currentTarget.style.boxShadow  = 'var(--shadow-md)';
+                            e.currentTarget.style.transform  = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--stone-200)';
+                            e.currentTarget.style.boxShadow  = 'none';
+                            e.currentTarget.style.transform  = 'translateY(0)';
+                          }}
+                        >
+                          <div style={{
+                            width: '40px', height: '40px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'var(--green-100)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '18px', flexShrink: 0,
+                          }}>
+                            {action.icon}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--green-800)', marginBottom: '2px' }}>
+                              {action.label}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                              {action.desc}
+                            </div>
+                          </div>
+                          <span style={{ marginLeft: 'auto', color: 'var(--text-light)', fontSize: '16px' }}>›</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                {/* Availability card */}
+                <div className="anim-fade-up delay-100">
+                  <AvailabilityCard
+                    isAvailable={isAvailable}
+                    isApproved={isApproved}
+                    isSuspended={isSuspended}
+                    toggling={toggling}
+                    onToggle={handleToggleAvailability}
+                  />
+                </div>
+
+                {/* Reputation card */}
+                <div className="card anim-fade-up delay-200">
+                  <div className="card-body">
+                    <div className="section-title" style={{ marginBottom: '14px' }}>
+                      Reputation Score
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-1px' }}>
+                        {reputationScore}
+                      </div>
+                      <span className="badge badge-green">{scoreMeta.label}</span>
+                    </div>
+                    {/* Score bar */}
+                    <div style={{ height: '8px', background: 'var(--stone-200)', borderRadius: 'var(--radius-full)', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{
+                        width: `${reputationScore}%`,
+                        height: '100%',
+                        background: reputationScore >= 70
+                          ? 'var(--green-600)'
+                          : reputationScore >= 40
+                            ? 'var(--warning)'
+                            : 'var(--danger)',
+                        borderRadius: 'var(--radius-full)',
+                        transition: 'width 0.6s var(--ease)',
+                      }} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Out of 100 — based on response rate, completion and ratings
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notifications */}
+                <div className="anim-fade-up delay-300">
+                  <NotificationPanel limit={5} />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
-
-        {/* Error */}
-        {error && (
-          <div className="alert alert-danger" style={{ marginBottom: '24px', borderRadius: '10px' }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* ── Status Banners ─────────────────────────────────────────────── */}
-        {!isApproved && (
-          <div style={{
-            background: '#f59e0b22',
-            border: '1px solid #f59e0b55',
-            borderRadius: '10px',
-            padding: '14px 20px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}>
-            <span style={{ fontSize: '20px' }}>⏳</span>
-            <div>
-              <div style={{ fontWeight: 600, color: '#f59e0b' }}>Pending Approval</div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Your volunteer profile is awaiting admin approval. You'll be notified once approved.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isSuspended && (
-          <div style={{
-            background: '#ef444422',
-            border: '1px solid #ef444455',
-            borderRadius: '10px',
-            padding: '14px 20px',
-            marginBottom: '24px',
-          }}>
-            <div style={{ fontWeight: 600, color: '#ef4444' }}>⛔ Account Suspended</div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {profile?.suspendedReason || 'Contact admin for details.'}
-            </div>
-          </div>
-        )}
-
-        {/* ── Welcome Row ────────────────────────────────────────────────── */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '32px',
-        }}>
-          <div>
-            <h1 style={{ fontSize: '26px', fontWeight: 800, margin: 0 }}>
-              Welcome back, {user?.name?.split(' ')[0]} 👋
-            </h1>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              marginTop: '8px',
-            }}>
-              <ScoreBadge score={reputationScore} />
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Reputation Score: <strong style={{ color: 'var(--text)' }}>{reputationScore}/100</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* Availability Toggle */}
-          <div style={{
-            background: 'var(--surface)',
-            border: `2px solid ${isAvailable ? '#22c55e55' : 'var(--border)'}`,
-            borderRadius: '12px',
-            padding: '16px 24px',
-            textAlign: 'center',
-            minWidth: '200px',
-          }}>
-            <div style={{
-              fontSize: '13px',
-              color: 'var(--text-muted)',
-              marginBottom: '10px',
-            }}>
-              Availability Status
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              marginBottom: '12px',
-            }}>
-              <div style={{
-                width: '10px', height: '10px',
-                borderRadius: '50%',
-                background: isAvailable ? '#22c55e' : '#6b7280',
-                boxShadow: isAvailable ? '0 0 8px #22c55e' : 'none',
-              }} />
-              <span style={{
-                fontWeight: 700,
-                color: isAvailable ? '#22c55e' : 'var(--text-muted)',
-              }}>
-                {isAvailable ? 'Available' : 'Unavailable'}
-              </span>
-            </div>
-            <button
-              onClick={handleToggleAvailability}
-              disabled={toggling || !isApproved || isSuspended}
-              style={{
-                background: isAvailable ? '#ef444422' : '#22c55e22',
-                color: isAvailable ? '#ef4444' : '#22c55e',
-                border: `1px solid ${isAvailable ? '#ef444444' : '#22c55e44'}`,
-                borderRadius: '8px',
-                padding: '7px 16px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: (!isApproved || isSuspended) ? 'not-allowed' : 'pointer',
-                opacity: (!isApproved || isSuspended) ? 0.5 : 1,
-                width: '100%',
-              }}
-            >
-              {toggling ? '...' : isAvailable ? 'Go Unavailable' : 'Go Available'}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Active Request Alert ────────────────────────────────────────── */}
-        {activeRequest && (
-          <div style={{
-            background: 'linear-gradient(135deg, #ef444415, #f9731615)',
-            border: '1px solid #ef444444',
-            borderRadius: '12px',
-            padding: '20px 24px',
-            marginBottom: '28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{
-                width: '44px', height: '44px',
-                background: '#ef444422',
-                borderRadius: '10px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '20px',
-              }}>
-                🚨
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '15px' }}>
-                  You have an active request
-                </div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '5px', flexWrap: 'wrap' }}>
-                  <EmergencyBadge type={activeRequest.emergencyType} />
-                  <UrgencyBadge level={activeRequest.urgencyLevel} />
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/volunteer/active')}
-              style={{
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-              }}
-            >
-              View Request →
-            </button>
-          </div>
-        )}
-
-        {/* ── Stats Row ──────────────────────────────────────────────────── */}
-        <div style={{
-          display: 'flex',
-          gap: '16px',
-          flexWrap: 'wrap',
-          marginBottom: '32px',
-        }}>
-          <StatCard
-            label="Completed"
-            value={stats?.totalCompleted ?? 0}
-            sub="Total requests resolved"
-            color="#22c55e"
-          />
-          <StatCard
-            label="Acceptance Rate"
-            value={`${stats?.acceptanceRate ?? 0}%`}
-            sub="Requests responded to"
-            color="#3b82f6"
-          />
-          <StatCard
-            label="Completion Rate"
-            value={`${stats?.completionRate ?? 0}%`}
-            sub="Accepted & finished"
-            color="#06b6d4"
-          />
-          <StatCard
-            label="Avg Rating"
-            value={stats?.averageRating ? stats.averageRating.toFixed(1) : '—'}
-            sub={`From ${stats?.totalRatings ?? 0} ratings`}
-            color="#f59e0b"
-          />
-          <StatCard
-            label="Reputation"
-            value={reputationScore}
-            sub="Out of 100"
-            color="var(--accent)"
-          />
-        </div>
-
-        {/* ── Quick Actions ──────────────────────────────────────────────── */}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '16px' }}>
-            Quick Actions
-          </h2>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {[
-              { label: '🚨 View Active Request', to: '/volunteer/active',  color: '#ef4444' },
-              { label: '📋 Request History',     to: '/volunteer/history', color: '#3b82f6' },
-              { label: '👤 Edit Profile',         to: '/volunteer/profile', color: '#8b5cf6' },
-            ].map(({ label, to, color }) => (
-              <Link
-                key={to}
-                to={to}
-                style={{
-                  background: `${color}15`,
-                  border: `1px solid ${color}33`,
-                  color,
-                  borderRadius: '10px',
-                  padding: '12px 20px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Performance Summary ────────────────────────────────────────── */}
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          padding: '24px',
-        }}>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '20px' }}>
-            Performance Summary
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {[
-              { label: 'Acceptance Rate',   value: stats?.acceptanceRate   ?? 0, color: '#3b82f6' },
-              { label: 'Completion Rate',   value: stats?.completionRate   ?? 0, color: '#22c55e' },
-              { label: 'Cancellation Rate', value: stats?.cancellationRate ?? 0, color: '#ef4444' },
-            ].map(({ label, value, color }) => (
-              <div key={label}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '6px',
-                }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{label}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600 }}>{value}%</span>
-                </div>
-                <div style={{
-                  height: '6px',
-                  background: 'var(--border)',
-                  borderRadius: '99px',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    width: `${Math.min(value, 100)}%`,
-                    height: '100%',
-                    background: color,
-                    borderRadius: '99px',
-                    transition: 'width 0.6s ease',
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{
-            display: 'flex',
-            gap: '24px',
-            marginTop: '20px',
-            paddingTop: '20px',
-            borderTop: '1px solid var(--border)',
-            flexWrap: 'wrap',
-          }}>
-            {[
-              { label: 'Assigned',    value: stats?.totalAssigned   ?? 0 },
-              { label: 'Accepted',    value: stats?.totalAccepted   ?? 0 },
-              { label: 'Completed',   value: stats?.totalCompleted  ?? 0 },
-              { label: 'Cancelled',   value: stats?.totalCancelled  ?? 0 },
-              { label: 'No Response', value: stats?.totalNoResponse ?? 0 },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '20px', fontWeight: 700 }}>{value}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </div>
-    </div>
+    </Navbar>
   );
 }
