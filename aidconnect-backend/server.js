@@ -58,17 +58,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// ─── Mount Routes ─────────────────────────────────────────────────────────────
-app.use("/api/requests",      requestRoutes);
-app.use("/api/matches",       matchRoutes);
-app.use("/api/auth",          authRoutes);
-app.use("/api/volunteers",    volunteerRoutes);
-app.use("/api/providers",     providerRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/admin",         adminRoutes);
-app.use("/api/users",         userRoutes);
+// Routes will be added here
 
-// ─── 404 Handler ──────────────────────────────────────────────────────────────
+// 404 handler — catches undefined routes
 app.use(notFound);
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────

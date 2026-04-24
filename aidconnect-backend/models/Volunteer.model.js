@@ -170,16 +170,6 @@ const volunteerSchema = new mongoose.Schema(
       ref: "HelpRequest",
       default: null,
     },
-
-    isSuspended: {
-      type: Boolean,
-      default: false,
-    },
-
-    suspendedReason: {
-      type: String,
-      default: null,
-    },
   },
   {
     timestamps: true,

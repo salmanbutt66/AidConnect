@@ -68,9 +68,7 @@ const matchSchema = new mongoose.Schema(
       default: null,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────

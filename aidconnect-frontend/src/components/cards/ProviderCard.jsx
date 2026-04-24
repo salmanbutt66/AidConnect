@@ -207,15 +207,15 @@ export default function ProviderCard({
         )}
 
         {/* ── Admin actions ─────────────────────────────────────────────── */}
-        {isAdmin && (
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              marginTop: 'auto',
-              paddingTop: '4px',
-            }}
-          >
+        {isAdmin && (typeof onVerify === 'function' || typeof onSuspend === 'function') && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            marginTop: 'auto',
+            paddingTop: '4px',
+          }}
+        >
             {!isVerified && typeof onVerify === 'function' && (
               <button
                 className="btn btn-secondary btn-sm"

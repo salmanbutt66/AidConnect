@@ -155,9 +155,7 @@ const helpRequestSchema = new mongoose.Schema(
       default: false,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
