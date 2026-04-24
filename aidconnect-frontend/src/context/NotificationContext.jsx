@@ -78,18 +78,17 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   // ─── Delete single notification ────────────────────────────────────────────
+  // FIX: previously called setNotifications twice — second call referenced
+  // stale prev (already filtered), so wasUnread check never found the item.
+  // Now we check isRead BEFORE filtering, then do both updates atomically.
   const removeNotification = useCallback(async (notificationId) => {
     try {
       await deleteNotification(notificationId);
-      setNotifications((prev) =>
-        prev.filter((n) => n._id !== notificationId)
-      );
-      // Update unread count if deleted notification was unread
       setNotifications((prev) => {
-        const wasUnread = prev.find(
-          (n) => n._id === notificationId && !n.isRead
-        );
-        if (wasUnread) setUnreadCount((c) => Math.max(0, c - 1));
+        const target = prev.find((n) => n._id === notificationId);
+        if (target && !target.isRead) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
         return prev.filter((n) => n._id !== notificationId);
       });
     } catch {}

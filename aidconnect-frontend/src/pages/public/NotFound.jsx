@@ -1,6 +1,7 @@
 // src/pages/public/NotFound.jsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { APP_NAME } from '../../utils/constants.js';
 
 export default function NotFound() {
   const navigate = useNavigate();
@@ -9,7 +10,8 @@ export default function NotFound() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 100%)',
+        // FIX: hardcoded hex → design system vars
+        background: `linear-gradient(135deg, var(--green-950) 0%, var(--green-900) 100%)`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -25,17 +27,26 @@ export default function NotFound() {
             fontSize: 'clamp(80px, 20vw, 140px)',
             fontWeight: 900,
             lineHeight: 1,
-            background: 'linear-gradient(90deg, var(--green-400), var(--green-300))',
+            background: `linear-gradient(90deg, var(--green-400), var(--green-300))`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             marginBottom: '8px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) both',
           }}
         >
           404
         </div>
 
         {/* Icon */}
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>🗺️</div>
+        <div
+          style={{
+            fontSize: '48px',
+            marginBottom: '20px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 100ms both',
+          }}
+        >
+          🗺️
+        </div>
 
         {/* Heading */}
         <h1
@@ -44,6 +55,7 @@ export default function NotFound() {
             fontWeight: 800,
             color: 'white',
             marginBottom: '12px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 150ms both',
           }}
         >
           Page Not Found
@@ -56,6 +68,7 @@ export default function NotFound() {
             color: 'rgba(255,255,255,0.55)',
             lineHeight: 1.7,
             marginBottom: '36px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 200ms both',
           }}
         >
           The page you are looking for doesn't exist or has been moved.
@@ -70,6 +83,7 @@ export default function NotFound() {
             justifyContent: 'center',
             flexWrap: 'wrap',
             marginBottom: '32px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 250ms both',
           }}
         >
           <button
@@ -82,10 +96,7 @@ export default function NotFound() {
           >
             ← Go Back
           </button>
-          <Link
-            to="/"
-            className="btn btn-primary"
-          >
+          <Link to="/" className="btn btn-primary">
             🏠 Back to Home
           </Link>
         </div>
@@ -95,6 +106,7 @@ export default function NotFound() {
           style={{
             borderTop: '1px solid rgba(255,255,255,0.08)',
             paddingTop: '24px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 300ms both',
           }}
         >
           <p
@@ -111,10 +123,10 @@ export default function NotFound() {
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
-              { label: 'Login',        to: '/login'       },
-              { label: 'Register',     to: '/register'    },
-              { label: 'How It Works', to: '/how-it-works'},
-              { label: 'About',        to: '/about'       },
+              { label: 'Login',        to: '/login'        },
+              { label: 'Register',     to: '/register'     },
+              { label: 'How It Works', to: '/how-it-works' },
+              { label: 'About',        to: '/about'        },
             ].map((link) => (
               <Link
                 key={link.label}
@@ -135,7 +147,8 @@ export default function NotFound() {
           </div>
         </div>
 
-        {/* AidConnect branding */}
+        {/* Branding */}
+        {/* FIX: hardcoded "AidConnect" → APP_NAME */}
         <div
           style={{
             marginTop: '40px',
@@ -144,7 +157,8 @@ export default function NotFound() {
             fontWeight: 600,
           }}
         >
-          Aid<span style={{ color: 'var(--green-600)' }}>Connect</span>
+          {APP_NAME.replace('Connect', '')}
+          <span style={{ color: 'var(--green-600)' }}>Connect</span>
         </div>
 
       </div>

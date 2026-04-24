@@ -4,15 +4,15 @@ import { Link } from 'react-router-dom';
 import Footer from '../../components/common/Footer.jsx';
 import { APP_NAME, APP_TAGLINE, EMERGENCY_TYPES, SERVICE_TYPES } from '../../utils/constants.js';
 
-// ── Stats data ─────────────────────────────────────────────────────────────
+// ── Stats ──────────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '10,000+', label: 'Lives Impacted'      },
-  { value: '500+',    label: 'Verified Volunteers'  },
-  { value: '200+',    label: 'Partner Organizations'},
-  { value: '<3 min',  label: 'Avg. Response Time'   },
+  { value: '10,000+', label: 'Lives Impacted'       },
+  { value: '500+',    label: 'Verified Volunteers'   },
+  { value: '200+',    label: 'Partner Organizations' },
+  { value: '<3 min',  label: 'Avg. Response Time'    },
 ];
 
-// ── How it works steps ─────────────────────────────────────────────────────
+// ── How it works ───────────────────────────────────────────────────────────
 const HOW_IT_WORKS = [
   {
     step: '01',
@@ -34,12 +34,12 @@ const HOW_IT_WORKS = [
   },
 ];
 
-// ── Who can use ────────────────────────────────────────────────────────────
+// ── Roles ──────────────────────────────────────────────────────────────────
 const ROLES = [
   {
     emoji: '🙋',
     title: 'Citizens',
-    color: 'var(--green-600)',
+    color: 'var(--green-700)',
     desc:  'Post emergency requests and get connected to help instantly.',
     cta:   'Post a Request',
     to:    '/register?role=user',
@@ -47,7 +47,7 @@ const ROLES = [
   {
     emoji: '🤝',
     title: 'Volunteers',
-    color: 'var(--blue-600, #2563eb)',
+    color: 'var(--info)',
     desc:  'Sign up to respond to nearby emergencies with your skills.',
     cta:   'Become a Volunteer',
     to:    '/register?role=volunteer',
@@ -55,24 +55,38 @@ const ROLES = [
   {
     emoji: '🏥',
     title: 'Organizations',
-    color: 'var(--orange-600, #ea580c)',
+    color: 'var(--warning)',
     desc:  'Register your NGO, hospital, or service to be part of the network.',
     cta:   'Register Organization',
     to:    '/register?role=provider',
   },
 ];
 
+// ── Shared nav link style helper ───────────────────────────────────────────
+const navLinkStyle = {
+  fontSize: '13px',
+  color: 'rgba(255,255,255,0.65)',
+  textDecoration: 'none',
+  padding: '6px 12px',
+  borderRadius: 'var(--radius-sm)',
+  transition: 'color var(--t-fast)',
+};
+
 export default function Landing() {
   return (
-    <div style={{ background: 'var(--stone-50)', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
 
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
+      {/* FIX: position sticky → fixed so nav stays visible while scrolling.
+          paddingTop on hero compensates for fixed nav height (60px). */}
       <nav
         style={{
-          position: 'sticky',
+          position: 'fixed',
           top: 0,
+          left: 0,
+          right: 0,
           zIndex: 100,
-          background: 'rgba(15,23,42,0.97)',
+          background: 'rgba(7,31,18,0.97)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(255,255,255,0.07)',
           padding: '0 24px',
@@ -82,23 +96,13 @@ export default function Landing() {
           justifyContent: 'space-between',
         }}
       >
-        {/* Logo */}
         <div style={{ fontWeight: 800, fontSize: '18px', color: 'white' }}>
           Aid<span style={{ color: 'var(--green-400)' }}>Connect</span>
         </div>
-
-        {/* Nav links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Link
             to="/how-it-works"
-            style={{
-              fontSize: '13px',
-              color: 'rgba(255,255,255,0.65)',
-              textDecoration: 'none',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              transition: 'color var(--t-fast)',
-            }}
+            style={navLinkStyle}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'white')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
           >
@@ -106,20 +110,15 @@ export default function Landing() {
           </Link>
           <Link
             to="/about"
-            style={{
-              fontSize: '13px',
-              color: 'rgba(255,255,255,0.65)',
-              textDecoration: 'none',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              transition: 'color var(--t-fast)',
-            }}
+            style={navLinkStyle}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'white')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
           >
             About
           </Link>
-          <Link to="/login" className="btn btn-ghost btn-sm"
+          <Link
+            to="/login"
+            className="btn btn-ghost btn-sm"
             style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}
           >
             Login
@@ -131,11 +130,13 @@ export default function Landing() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
+      {/* FIX: hardcoded hex (#0f172a, #1a2744) → design system variables
+          paddingTop: 60px compensates for fixed nav */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 60%, #0f2d1f 100%)',
+          background: `linear-gradient(135deg, var(--green-950) 0%, var(--green-900) 60%, var(--green-900) 100%)`,
           color: 'white',
-          padding: '100px 24px',
+          padding: '160px 24px 100px',
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden',
@@ -150,7 +151,7 @@ export default function Landing() {
             transform: 'translateX(-50%)',
             width: '600px',
             height: '400px',
-            background: 'radial-gradient(ellipse, rgba(34,197,94,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(42,173,96,0.14) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
@@ -162,14 +163,15 @@ export default function Landing() {
             alignItems: 'center',
             gap: '8px',
             padding: '6px 16px',
-            background: 'rgba(239,68,68,0.15)',
-            border: '1px solid rgba(239,68,68,0.3)',
+            background: 'rgba(192,57,43,0.15)',
+            border: '1px solid rgba(192,57,43,0.3)',
             borderRadius: 'var(--radius-full)',
             fontSize: '12px',
             fontWeight: 600,
             color: '#fca5a5',
             marginBottom: '28px',
             letterSpacing: '0.5px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) both',
           }}
         >
           🚨 Pakistan's Emergency Coordination Network
@@ -180,15 +182,15 @@ export default function Landing() {
             fontSize: 'clamp(36px, 6vw, 68px)',
             fontWeight: 900,
             lineHeight: 1.1,
-            marginBottom: '24px',
-            maxWidth: '800px',
             margin: '0 auto 24px',
+            maxWidth: '800px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 100ms both',
           }}
         >
           Help Finds You{' '}
           <span
             style={{
-              background: 'linear-gradient(90deg, var(--green-400), var(--green-300))',
+              background: `linear-gradient(90deg, var(--green-400), var(--green-300))`,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}
@@ -204,6 +206,7 @@ export default function Landing() {
             maxWidth: '560px',
             margin: '0 auto 40px',
             lineHeight: 1.7,
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 200ms both',
           }}
         >
           {APP_TAGLINE}. Connect with verified volunteers,
@@ -218,6 +221,7 @@ export default function Landing() {
             justifyContent: 'center',
             flexWrap: 'wrap',
             marginBottom: '64px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 300ms both',
           }}
         >
           <Link
@@ -250,13 +254,14 @@ export default function Landing() {
           </Link>
         </div>
 
-        {/* Emergency types chips */}
+        {/* Emergency type chips */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'center',
             gap: '10px',
             flexWrap: 'wrap',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 400ms both',
           }}
         >
           {EMERGENCY_TYPES.map((type) => (
@@ -278,12 +283,7 @@ export default function Landing() {
       </section>
 
       {/* ── Stats bar ───────────────────────────────────────────────────── */}
-      <section
-        style={{
-          background: 'var(--green-700)',
-          padding: '32px 24px',
-        }}
-      >
+      <section style={{ background: 'var(--green-800)', padding: '32px 24px' }}>
         <div
           style={{
             maxWidth: '900px',
@@ -303,6 +303,7 @@ export default function Landing() {
                   color: 'white',
                   lineHeight: 1,
                   marginBottom: '6px',
+                  letterSpacing: '-1px',
                 }}
               >
                 {stat.value}
@@ -318,14 +319,12 @@ export default function Landing() {
       {/* ── How it works ────────────────────────────────────────────────── */}
       <section style={{ padding: '80px 24px', maxWidth: '960px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '52px' }}>
-          <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px' }}>
-            How AidConnect Works
-          </h2>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '480px', margin: '0 auto' }}>
+          <div className="section-eyebrow">The Process</div>
+          <h2 className="section-h2">How AidConnect Works</h2>
+          <p className="section-p" style={{ margin: '0 auto' }}>
             From emergency to response in under 3 minutes.
           </p>
         </div>
-
         <div
           style={{
             display: 'grid',
@@ -333,53 +332,49 @@ export default function Landing() {
             gap: '24px',
           }}
         >
-          {HOW_IT_WORKS.map((step) => (
+          {HOW_IT_WORKS.map((step, i) => (
+            // FIX: inline padding on .card → wrapped in .card-body
             <div
               key={step.step}
-              className="card"
-              style={{ textAlign: 'center', padding: '32px 24px' }}
+              className="card card-hover anim-fade-up"
+              style={{ animationDelay: `${i * 100}ms`, textAlign: 'center' }}
             >
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--green-600)',
-                  letterSpacing: '1.5px',
-                  textTransform: 'uppercase',
-                  marginBottom: '16px',
-                }}
-              >
-                Step {step.step}
+              <div className="card-body">
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--green-600)',
+                    letterSpacing: '1.5px',
+                    textTransform: 'uppercase',
+                    marginBottom: '16px',
+                  }}
+                >
+                  Step {step.step}
+                </div>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>{step.icon}</div>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '10px', color: 'var(--text-dark)' }}>
+                  {step.title}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0 }}>
+                  {step.desc}
+                </p>
               </div>
-              <div style={{ fontSize: '40px', marginBottom: '16px' }}>{step.icon}</div>
-              <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '10px' }}>
-                {step.title}
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0 }}>
-                {step.desc}
-              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Who is it for ───────────────────────────────────────────────── */}
-      <section
-        style={{
-          padding: '80px 24px',
-          background: 'white',
-        }}
-      >
+      <section style={{ padding: '80px 24px', background: 'white' }}>
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '52px' }}>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px' }}>
-              Who Is AidConnect For?
-            </h2>
-            <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '480px', margin: '0 auto' }}>
+            <div className="section-eyebrow">For Everyone</div>
+            <h2 className="section-h2">Who Is AidConnect For?</h2>
+            <p className="section-p" style={{ margin: '0 auto' }}>
               A platform built for every person in Pakistan's emergency ecosystem.
             </p>
           </div>
-
           <div
             style={{
               display: 'grid',
@@ -387,40 +382,43 @@ export default function Landing() {
               gap: '24px',
             }}
           >
-            {ROLES.map((role) => (
+            {ROLES.map((role, i) => (
+              // FIX: inline padding on .card → wrapped in .card-body
               <div
                 key={role.title}
-                className="card"
-                style={{ padding: '32px 24px', textAlign: 'center' }}
+                className="card card-hover anim-fade-up"
+                style={{ animationDelay: `${i * 100}ms`, textAlign: 'center' }}
               >
-                <div style={{ fontSize: '44px', marginBottom: '16px' }}>{role.emoji}</div>
-                <h3
-                  style={{
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    marginBottom: '10px',
-                    color: role.color,
-                  }}
-                >
-                  {role.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '13px',
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.7,
-                    marginBottom: '20px',
-                  }}
-                >
-                  {role.desc}
-                </p>
-                <Link
-                  to={role.to}
-                  className="btn btn-ghost btn-sm"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  {role.cta} →
-                </Link>
+                <div className="card-body">
+                  <div style={{ fontSize: '44px', marginBottom: '16px' }}>{role.emoji}</div>
+                  <h3
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      marginBottom: '10px',
+                      color: role.color,
+                    }}
+                  >
+                    {role.title}
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.7,
+                      marginBottom: '20px',
+                    }}
+                  >
+                    {role.desc}
+                  </p>
+                  <Link
+                    to={role.to}
+                    className="btn btn-ghost btn-sm"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    {role.cta} →
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
@@ -430,21 +428,13 @@ export default function Landing() {
       {/* ── Service types ───────────────────────────────────────────────── */}
       <section style={{ padding: '80px 24px', maxWidth: '960px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '10px' }}>
-            Our Network Covers
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+          <div className="section-eyebrow">Our Network</div>
+          <h2 className="section-h2">Our Network Covers</h2>
+          <p className="section-p" style={{ margin: '0 auto' }}>
             Verified organizations across Pakistan ready to respond.
           </p>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px' }}>
           {SERVICE_TYPES.map((type) => (
             <div
               key={type.value}
@@ -458,7 +448,19 @@ export default function Landing() {
                 gap: '8px',
                 fontSize: '14px',
                 fontWeight: 600,
+                color: 'var(--text-dark)',
                 boxShadow: 'var(--shadow-sm)',
+                transition: 'all var(--t-base)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--green-300)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--stone-200)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <span style={{ fontSize: '20px' }}>{type.emoji}</span>
@@ -471,7 +473,7 @@ export default function Landing() {
       {/* ── Final CTA ───────────────────────────────────────────────────── */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #0f172a, #1a2744)',
+          background: `linear-gradient(135deg, var(--green-950), var(--green-900))`,
           color: 'white',
           padding: '80px 24px',
           textAlign: 'center',
@@ -495,7 +497,7 @@ export default function Landing() {
             lineHeight: 1.7,
           }}
         >
-          Join thousands of Pakistanis already connected through AidConnect.
+          Join thousands of Pakistanis already connected through {APP_NAME}.
           Every second counts in an emergency.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -504,7 +506,7 @@ export default function Landing() {
             className="btn btn-primary"
             style={{ fontSize: '15px', padding: '12px 28px' }}
           >
-            Join AidConnect
+            Join {APP_NAME}
           </Link>
           <Link
             to="/about"
@@ -519,7 +521,10 @@ export default function Landing() {
               fontSize: '15px',
               textDecoration: 'none',
               fontWeight: 600,
+              transition: 'background var(--t-fast)',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.13)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
           >
             Learn More
           </Link>

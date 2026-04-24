@@ -2,25 +2,28 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../../components/common/Footer.jsx';
+import { APP_NAME } from '../../utils/constants.js';
 
 // ── Detailed steps per role ────────────────────────────────────────────────
 const ROLE_STEPS = {
   citizen: {
     label: 'As a Citizen',
     emoji: '🙋',
+    // FIX: use existing design system var
     color: 'var(--green-600)',
     steps: [
-      { icon: '📝', title: 'Create Account',    desc: 'Register in under a minute. Just your name, email, and location.' },
-      { icon: '🆘', title: 'Post a Request',    desc: 'Describe your emergency, set urgency level, and confirm your location.' },
-      { icon: '⚡', title: 'Get Matched',       desc: 'Our system instantly finds the nearest verified helpers for your need.' },
-      { icon: '📍', title: 'Track Progress',    desc: 'See real-time status updates as your request moves from posted to completed.' },
-      { icon: '⭐', title: 'Rate & Review',     desc: 'After the emergency, rate your responder to help build community trust.' },
+      { icon: '📝', title: 'Create Account',  desc: 'Register in under a minute. Just your name, email, and location.' },
+      { icon: '🆘', title: 'Post a Request',  desc: 'Describe your emergency, set urgency level, and confirm your location.' },
+      { icon: '⚡', title: 'Get Matched',     desc: 'Our system instantly finds the nearest verified helpers for your need.' },
+      { icon: '📍', title: 'Track Progress',  desc: 'See real-time status updates as your request moves from posted to completed.' },
+      { icon: '⭐', title: 'Rate & Review',   desc: 'After the emergency, rate your responder to help build community trust.' },
     ],
   },
   volunteer: {
     label: 'As a Volunteer',
     emoji: '🤝',
-    color: 'var(--blue-600, #2563eb)',
+    // FIX: var(--blue-600) doesn't exist → var(--info)
+    color: 'var(--info)',
     steps: [
       { icon: '📋', title: 'Register & Profile', desc: 'Sign up, add your skills, blood group, and set your service radius.' },
       { icon: '✅', title: 'Get Verified',        desc: 'Admin reviews your profile. Once approved, you can start responding.' },
@@ -32,7 +35,8 @@ const ROLE_STEPS = {
   provider: {
     label: 'As an Organization',
     emoji: '🏥',
-    color: 'var(--orange-600, #ea580c)',
+    // FIX: var(--orange-600) doesn't exist → var(--warning)
+    color: 'var(--warning)',
     steps: [
       { icon: '🏢', title: 'Register Organization', desc: 'Add your org details, service type, license number, and operating hours.' },
       { icon: '🛡️', title: 'Admin Verification',    desc: 'Our team verifies your license and organization before you go live.' },
@@ -71,6 +75,16 @@ const FAQS = [
   },
 ];
 
+// ── Shared nav link style ──────────────────────────────────────────────────
+const navLinkStyle = {
+  fontSize: '13px',
+  color: 'rgba(255,255,255,0.65)',
+  textDecoration: 'none',
+  padding: '6px 12px',
+  borderRadius: 'var(--radius-sm)',
+  transition: 'color var(--t-fast)',
+};
+
 export default function HowItWorks() {
   const [activeRole, setActiveRole] = useState('citizen');
   const [openFaq,    setOpenFaq]    = useState(null);
@@ -78,15 +92,19 @@ export default function HowItWorks() {
   const current = ROLE_STEPS[activeRole];
 
   return (
-    <div style={{ background: 'var(--stone-50)', minHeight: '100vh' }}>
+    // FIX: var(--stone-50) doesn't exist → var(--bg-page)
+    <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
 
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
+      {/* FIX: position sticky → fixed, consistent with Landing/AboutUs */}
       <nav
         style={{
-          position: 'sticky',
+          position: 'fixed',
           top: 0,
+          left: 0,
+          right: 0,
           zIndex: 100,
-          background: 'rgba(15,23,42,0.97)',
+          background: 'rgba(7,31,18,0.97)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(255,255,255,0.07)',
           padding: '0 24px',
@@ -105,11 +123,15 @@ export default function HowItWorks() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Link
             to="/about"
-            style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', textDecoration: 'none', padding: '6px 12px' }}
+            style={navLinkStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'white')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
           >
             About
           </Link>
-          <Link to="/login" className="btn btn-ghost btn-sm"
+          <Link
+            to="/login"
+            className="btn btn-ghost btn-sm"
             style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}
           >
             Login
@@ -121,17 +143,33 @@ export default function HowItWorks() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
+      {/* FIX: hardcoded hex → design system vars. paddingTop compensates for fixed nav */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 100%)',
+          background: `linear-gradient(135deg, var(--green-950) 0%, var(--green-900) 100%)`,
           color: 'white',
-          padding: '80px 24px',
+          padding: '140px 24px 80px',
           textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: '52px', marginBottom: '20px' }}>⚡</div>
-        <h1 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 900, marginBottom: '16px' }}>
-          How AidConnect Works
+        <div
+          style={{
+            fontSize: '52px',
+            marginBottom: '20px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) both',
+          }}
+        >
+          ⚡
+        </div>
+        <h1
+          style={{
+            fontSize: 'clamp(28px, 5vw, 48px)',
+            fontWeight: 900,
+            marginBottom: '16px',
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 100ms both',
+          }}
+        >
+          How {APP_NAME} Works
         </h1>
         <p
           style={{
@@ -140,6 +178,7 @@ export default function HowItWorks() {
             maxWidth: '520px',
             margin: '0 auto',
             lineHeight: 1.7,
+            animation: 'fadeSlideUp var(--t-page) var(--ease) 200ms both',
           }}
         >
           From emergency to response in under 3 minutes.
@@ -149,6 +188,7 @@ export default function HowItWorks() {
 
       {/* ── Role tabs ───────────────────────────────────────────────────── */}
       <section style={{ padding: '64px 24px', maxWidth: '860px', margin: '0 auto' }}>
+
         {/* Tab switcher */}
         <div
           style={{
@@ -177,7 +217,7 @@ export default function HowItWorks() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                transition: 'all 0.2s ease',
+                transition: 'all var(--t-base) var(--ease)',
               }}
             >
               {val.emoji} {val.label}
@@ -202,49 +242,52 @@ export default function HowItWorks() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {current.steps.map((step, index) => (
+              // FIX: inline padding on .card → .card-body wrapper
               <div
                 key={step.title}
-                className="card"
+                className="card anim-fade-up"
                 style={{
-                  display: 'flex',
-                  gap: '20px',
-                  alignItems: 'flex-start',
                   position: 'relative',
                   zIndex: 1,
-                  padding: '20px 24px',
+                  animationDelay: `${index * 80}ms`,
                 }}
               >
-                {/* Step number circle */}
                 <div
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: 'var(--radius-full)',
-                    background: current.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 800,
-                    fontSize: '16px',
-                    flexShrink: 0,
-                    boxShadow: '0 0 0 4px white',
-                  }}
+                  className="card-body"
+                  style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}
                 >
-                  {index + 1}
-                </div>
-
-                {/* Content */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '20px' }}>{step.icon}</span>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>
-                      {step.title}
-                    </h3>
+                  {/* Step number circle */}
+                  <div
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: 'var(--radius-full)',
+                      background: current.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 800,
+                      fontSize: '16px',
+                      flexShrink: 0,
+                      boxShadow: '0 0 0 4px white',
+                    }}
+                  >
+                    {index + 1}
                   </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-                    {step.desc}
-                  </p>
+
+                  {/* Content */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '20px' }}>{step.icon}</span>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-dark)' }}>
+                        {step.title}
+                      </h3>
+                    </div>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                      {step.desc}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -255,26 +298,13 @@ export default function HowItWorks() {
       {/* ── Request lifecycle ────────────────────────────────────────────── */}
       <section style={{ background: 'white', padding: '80px 24px' }}>
         <div style={{ maxWidth: '860px', margin: '0 auto' }}>
-          <h2
-            style={{
-              fontSize: '26px',
-              fontWeight: 800,
-              marginBottom: '12px',
-              textAlign: 'center',
-            }}
-          >
-            Request Lifecycle
-          </h2>
-          <p
-            style={{
-              fontSize: '14px',
-              color: 'var(--text-muted)',
-              textAlign: 'center',
-              marginBottom: '40px',
-            }}
-          >
-            Every help request goes through these stages
-          </p>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div className="section-eyebrow">The Journey</div>
+            <h2 className="section-h2">Request Lifecycle</h2>
+            <p className="section-p" style={{ margin: '0 auto' }}>
+              Every help request goes through these stages
+            </p>
+          </div>
 
           <div
             style={{
@@ -286,10 +316,11 @@ export default function HowItWorks() {
             }}
           >
             {[
-              { label: 'Posted',      color: 'var(--blue-500,  #3b82f6)', emoji: '📤' },
-              { label: 'Accepted',    color: 'var(--orange-500,#f97316)', emoji: '✅' },
-              { label: 'In Progress', color: 'var(--orange-600,#ea580c)', emoji: '🚀' },
-              { label: 'Completed',   color: 'var(--green-600)',           emoji: '🎉' },
+              // FIX: var(--blue-500), var(--orange-500), var(--orange-600) don't exist
+              { label: 'Posted',      color: 'var(--info)',        emoji: '📤' },
+              { label: 'Accepted',    color: 'var(--warning)',     emoji: '✅' },
+              { label: 'In Progress', color: 'var(--danger)',      emoji: '🚀' },
+              { label: 'Completed',   color: 'var(--green-600)',   emoji: '🎉' },
             ].map((stage, i, arr) => (
               <React.Fragment key={stage.label}>
                 <div style={{ textAlign: 'center' }}>
@@ -304,7 +335,7 @@ export default function HowItWorks() {
                       justifyContent: 'center',
                       fontSize: '22px',
                       margin: '0 auto 8px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      boxShadow: 'var(--shadow-md)',
                     }}
                   >
                     {stage.emoji}
@@ -332,36 +363,34 @@ export default function HowItWorks() {
 
       {/* ── FAQ ─────────────────────────────────────────────────────────── */}
       <section style={{ padding: '80px 24px', maxWidth: '720px', margin: '0 auto' }}>
-        <h2
-          style={{
-            fontSize: '26px',
-            fontWeight: 800,
-            marginBottom: '40px',
-            textAlign: 'center',
-          }}
-        >
-          Frequently Asked Questions
-        </h2>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div className="section-eyebrow">Got Questions?</div>
+          <h2 className="section-h2">Frequently Asked Questions</h2>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {FAQS.map((faq, i) => (
+            // FIX: inline padding on .card → .card-body, overflow hidden kept for accordion
             <div
               key={i}
               className="card"
-              style={{ padding: '0', overflow: 'hidden', cursor: 'pointer' }}
+              style={{ overflow: 'hidden', cursor: 'pointer' }}
               onClick={() => setOpenFaq(openFaq === i ? null : i)}
             >
               {/* Question row */}
               <div
+                className="card-body"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '16px 20px',
                   gap: '12px',
+                  paddingBottom: openFaq === i ? '8px' : '24px',
                 }}
               >
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>{faq.q}</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)' }}>
+                  {faq.q}
+                </span>
                 <span
                   style={{
                     fontSize: '18px',
@@ -379,11 +408,12 @@ export default function HowItWorks() {
               {openFaq === i && (
                 <div
                   style={{
-                    padding: '0 20px 16px',
+                    padding: '0 24px 20px',
                     fontSize: '14px',
                     color: 'var(--text-muted)',
                     lineHeight: 1.7,
-                    borderTop: '1px solid var(--stone-100)',
+                    // FIX: var(--stone-100) doesn't exist → var(--stone-200)
+                    borderTop: '1px solid var(--stone-200)',
                     paddingTop: '14px',
                   }}
                 >
@@ -396,9 +426,10 @@ export default function HowItWorks() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
+      {/* FIX: hardcoded hex → design system vars */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #0f172a, #1a2744)',
+          background: `linear-gradient(135deg, var(--green-950), var(--green-900))`,
           color: 'white',
           padding: '64px 24px',
           textAlign: 'center',
@@ -416,15 +447,19 @@ export default function HowItWorks() {
             lineHeight: 1.7,
           }}
         >
-          Join AidConnect today — whether you need help or want to give it.
+          {/* FIX: hardcoded "AidConnect" → APP_NAME */}
+          Join {APP_NAME} today — whether you need help or want to give it.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to="/register" className="btn btn-primary"
+          <Link
+            to="/register"
+            className="btn btn-primary"
             style={{ fontSize: '15px', padding: '12px 28px' }}
           >
             Create Account
           </Link>
-          <Link to="/"
+          <Link
+            to="/"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -436,7 +471,10 @@ export default function HowItWorks() {
               fontSize: '15px',
               textDecoration: 'none',
               fontWeight: 600,
+              transition: 'background var(--t-fast)',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.13)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
           >
             Back to Home
           </Link>

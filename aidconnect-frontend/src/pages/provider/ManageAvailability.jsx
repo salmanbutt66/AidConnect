@@ -1,6 +1,5 @@
 // src/pages/provider/ManageAvailability.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { toast } from 'react-toastify';
 import Navbar from '../../components/common/Navbar.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import { getProviderProfile, toggleAvailability } from '../../api/provider.api.js';
@@ -13,17 +12,29 @@ export default function ManageAvailability() {
   const [editHours, setEditHours] = useState(false);
   const [saving,    setSaving]    = useState(false);
 
+  // FIX: replaced toast with local error/success state (consistent with rest of app)
+  const [error,      setError]      = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const showSuccess = (msg) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 4000);
+  };
+  const showError = (msg) => setError(msg);
+
   // ── Fetch profile ──────────────────────────────────────────────────────────
+  // FIX: safe extraction consistent with ProviderDashboard (data.provider || data.data || data)
   const fetchProfile = useCallback(async () => {
     try {
       const data = await getProviderProfile();
-      setProfile(data.data);
+      const provider = data.provider || data.data || data;
+      setProfile(provider);
       setHours({
-        open:  data.data.operatingHours?.open  || '08:00',
-        close: data.data.operatingHours?.close || '22:00',
+        open:  provider.operatingHours?.open  || '08:00',
+        close: provider.operatingHours?.close || '22:00',
       });
     } catch (err) {
-      toast.error('Failed to load profile');
+      showError('Failed to load profile.');
     } finally {
       setLoading(false);
     }
@@ -34,16 +45,18 @@ export default function ManageAvailability() {
   // ── Toggle availability ────────────────────────────────────────────────────
   const handleToggle = useCallback(async () => {
     setToggling(true);
+    setError('');
     try {
       const data = await toggleAvailability();
-      setProfile((prev) => ({ ...prev, isAvailable: data.data.isAvailable }));
-      toast.success(
-        data.data.isAvailable
-          ? '✅ You are now available for requests'
-          : '🔴 You are now unavailable'
+      const updated = data.provider || data.data || data;
+      setProfile((prev) => ({ ...prev, isAvailable: updated.isAvailable }));
+      showSuccess(
+        updated.isAvailable
+          ? 'You are now available for requests.'
+          : 'You are now unavailable.'
       );
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update availability');
+      showError(err.response?.data?.message || 'Failed to update availability.');
     } finally {
       setToggling(false);
     }
@@ -52,17 +65,18 @@ export default function ManageAvailability() {
   // ── Save operating hours ───────────────────────────────────────────────────
   const handleSaveHours = useCallback(async () => {
     if (hours.open >= hours.close) {
-      toast.error('Closing time must be after opening time');
+      showError('Closing time must be after opening time.');
       return;
     }
     setSaving(true);
+    setError('');
     try {
       await toggleAvailability({ operatingHours: hours });
       setProfile((prev) => ({ ...prev, operatingHours: hours }));
       setEditHours(false);
-      toast.success('Operating hours updated');
+      showSuccess('Operating hours updated successfully.');
     } catch (err) {
-      toast.error('Failed to update hours');
+      showError(err.response?.data?.message || 'Failed to update hours.');
     } finally {
       setSaving(false);
     }
@@ -84,240 +98,241 @@ export default function ManageAvailability() {
     <Navbar title="Manage Availability">
       <div className="page-wrapper">
 
+        {/* ── Page header ───────────────────────────────────────────────── */}
+        <div className="page-header">
+          <h1>Manage Availability</h1>
+          <p>Control when you are available to accept emergency requests.</p>
+        </div>
+
+        {/* ── Alerts ────────────────────────────────────────────────────── */}
+        {error && (
+          <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
+            <span className="alert-icon">⚠️</span>
+            {error}
+            <button
+              onClick={() => setError('')}
+              style={{
+                marginLeft: 'auto',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--danger)',
+                fontWeight: 700,
+              }}
+            >✕</button>
+          </div>
+        )}
+        {successMsg && (
+          <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
+            <span className="alert-icon">✅</span>
+            {successMsg}
+          </div>
+        )}
+
         {/* ── Availability toggle card ─────────────────────────────────── */}
         <div className="card" style={{ marginBottom: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-            }}
-          >
-            {/* Status indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div
-                style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: 'var(--radius-full)',
-                  background: isAvailable ? 'var(--green-100)' : 'var(--stone-100)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '26px',
-                  flexShrink: 0,
-                }}
-              >
-                {isAvailable ? '🟢' : '🔴'}
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700 }}>
-                  {isAvailable ? 'Currently Available' : 'Currently Unavailable'}
-                </h3>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-                  {isAvailable
-                    ? 'You are visible to requesters and can accept requests.'
-                    : 'You are hidden from requesters. Toggle on to receive requests.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Toggle button */}
-            <button
-              className={`btn ${isAvailable ? 'btn-danger' : 'btn-primary'}`}
-              onClick={handleToggle}
-              disabled={toggling}
-              style={{ minWidth: '160px' }}
-            >
-              {toggling ? (
-                <><span className="spinner" /> Updating…</>
-              ) : isAvailable ? (
-                '🔴 Go Unavailable'
-              ) : (
-                '🟢 Go Available'
-              )}
-            </button>
-          </div>
-
-          {/* Visual status bar */}
-          <div
-            style={{
-              marginTop: '20px',
-              height: '6px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--stone-100)',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="card-body">
             <div
               style={{
-                height: '100%',
-                width: isAvailable ? '100%' : '0%',
-                background: 'var(--green-500)',
-                borderRadius: 'var(--radius-full)',
-                transition: 'width 0.5s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px',
               }}
-            />
+            >
+              {/* Status indicator */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div
+                  style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: 'var(--radius-full)',
+                    // FIX: var(--stone-100) doesn't exist — use var(--stone-200)
+                    background: isAvailable ? 'var(--green-100)' : 'var(--stone-200)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '26px',
+                    flexShrink: 0,
+                  }}
+                >
+                  {isAvailable ? '🟢' : '🔴'}
+                </div>
+                <div>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: 'var(--text-dark)' }}>
+                    {isAvailable ? 'Currently Available' : 'Currently Unavailable'}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                    {isAvailable
+                      ? 'You are visible to requesters and can accept requests.'
+                      : 'You are hidden from requesters. Toggle on to receive requests.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle button */}
+              <button
+                className={`btn ${isAvailable ? 'btn-danger' : 'btn-primary'}`}
+                onClick={handleToggle}
+                disabled={toggling}
+                style={{ minWidth: '160px' }}
+              >
+                {toggling ? (
+                  <><span className="spinner" /> Updating…</>
+                ) : isAvailable ? (
+                  '🔴 Go Unavailable'
+                ) : (
+                  '🟢 Go Available'
+                )}
+              </button>
+            </div>
+
+            {/* Visual status bar */}
+            <div
+              style={{
+                marginTop: '20px',
+                height: '6px',
+                borderRadius: 'var(--radius-full)',
+                // FIX: var(--stone-100) → var(--stone-200)
+                background: 'var(--stone-200)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: isAvailable ? '100%' : '0%',
+                  background: 'var(--green-500)',
+                  borderRadius: 'var(--radius-full)',
+                  transition: 'width 0.5s ease',
+                }}
+              />
+            </div>
           </div>
         </div>
 
         {/* ── Operating hours card ─────────────────────────────────────── */}
-        <div className="card">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '20px',
-            }}
-          >
-            <div>
-              <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 700 }}>
-                🕐 Operating Hours
-              </h3>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-                Set the hours during which you accept requests
-              </p>
-            </div>
-            {!editHours && (
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => setEditHours(true)}
-              >
-                ✏️ Edit
-              </button>
-            )}
-          </div>
-
-          {editHours ? (
-            /* Edit mode */
-            <div>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '20px',
-                  flexWrap: 'wrap',
-                  marginBottom: '20px',
-                }}
-              >
-                <div style={{ flex: 1, minWidth: '140px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: '6px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    Opening Time
-                  </label>
-                  <input
-                    type="time"
-                    className="form-control"
-                    value={hours.open}
-                    onChange={(e) =>
-                      setHours((prev) => ({ ...prev, open: e.target.value }))
-                    }
-                  />
-                </div>
-                <div style={{ flex: 1, minWidth: '140px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: '6px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    Closing Time
-                  </label>
-                  <input
-                    type="time"
-                    className="form-control"
-                    value={hours.close}
-                    onChange={(e) =>
-                      setHours((prev) => ({ ...prev, close: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSaveHours}
-                  disabled={saving}
-                >
-                  {saving ? <><span className="spinner" /> Saving…</> : '💾 Save Hours'}
-                </button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setEditHours(false)}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* View mode */
+        <div className="card" style={{ marginBottom: '20px' }}>
+          <div className="card-body">
             <div
               style={{
                 display: 'flex',
-                gap: '20px',
-                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '20px',
               }}
             >
-              {[
-                { label: 'Opens At', value: profile?.operatingHours?.open  || '08:00', icon: '🌅' },
-                { label: 'Closes At', value: profile?.operatingHours?.close || '22:00', icon: '🌙' },
-              ].map((item) => (
+              <div>
+                <div className="section-title">🕐 Operating Hours</div>
+                <div className="section-subtitle">
+                  Set the hours during which you accept requests
+                </div>
+              </div>
+              {!editHours && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEditHours(true)}
+                >
+                  ✏️ Edit
+                </button>
+              )}
+            </div>
+
+            {editHours ? (
+              /* Edit mode */
+              <div>
                 <div
-                  key={item.label}
                   style={{
-                    flex: 1,
-                    minWidth: '140px',
-                    padding: '16px 20px',
-                    background: 'var(--stone-50)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--stone-200)',
+                    display: 'flex',
+                    gap: '20px',
+                    flexWrap: 'wrap',
+                    marginBottom: '20px',
                   }}
                 >
-                  <div style={{ fontSize: '22px', marginBottom: '8px' }}>{item.icon}</div>
-                  <div
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: '4px',
-                    }}
-                  >
-                    {item.label}
+                  <div style={{ flex: 1, minWidth: '140px' }}>
+                    <label className="form-label">Opening Time</label>
+                    {/* FIX: form-control → form-input */}
+                    <input
+                      type="time"
+                      className="form-input"
+                      value={hours.open}
+                      onChange={(e) =>
+                        setHours((prev) => ({ ...prev, open: e.target.value }))
+                      }
+                    />
                   </div>
-                  <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-main)' }}>
-                    {item.value}
+                  <div style={{ flex: 1, minWidth: '140px' }}>
+                    <label className="form-label">Closing Time</label>
+                    {/* FIX: form-control → form-input */}
+                    <input
+                      type="time"
+                      className="form-input"
+                      value={hours.close}
+                      onChange={(e) =>
+                        setHours((prev) => ({ ...prev, close: e.target.value }))
+                      }
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveHours}
+                    disabled={saving}
+                  >
+                    {saving ? <><span className="spinner" /> Saving…</> : '💾 Save Hours'}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setEditHours(false);
+                      setError('');
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* View mode */
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Opens At',  value: profile?.operatingHours?.open  || '08:00', icon: '🌅' },
+                  { label: 'Closes At', value: profile?.operatingHours?.close || '22:00', icon: '🌙' },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      flex: 1,
+                      minWidth: '140px',
+                      padding: '16px 20px',
+                      // FIX: var(--stone-50) doesn't exist → var(--green-50)
+                      background: 'var(--green-50)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--stone-200)',
+                    }}
+                  >
+                    <div style={{ fontSize: '22px', marginBottom: '8px' }}>{item.icon}</div>
+                    <div className="stat-label">{item.label}</div>
+                    {/* FIX: var(--text-main) doesn't exist → var(--text-dark) */}
+                    <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-dark)' }}>
+                      {item.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Info note ────────────────────────────────────────────────── */}
         <div
           style={{
-            marginTop: '20px',
             padding: '14px 18px',
-            background: 'var(--stone-50)',
+            // FIX: var(--stone-50) → var(--green-50)
+            background: 'var(--green-50)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--stone-200)',
             fontSize: '13px',
