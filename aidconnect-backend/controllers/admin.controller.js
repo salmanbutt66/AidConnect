@@ -2,6 +2,8 @@
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import Rating from "../models/Rating.model.js";
+import Volunteer from "../models/Volunteer.model.js";
+import Provider from "../models/Provider.model.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
@@ -168,15 +170,19 @@ export const cancelRequest = asyncHandler(async (req, res) => {
 export const getAnalyticsOverview = asyncHandler(async (req, res) => {
   const [
     totalUsers, totalVolunteers, totalProviders,
+    activeVolunteers, verifiedProviders,
     totalRequests, completedRequests,
-    cancelledRequests, bannedUsers,
+    cancelledRequests, criticalRequests, bannedUsers,
   ] = await Promise.all([
-    User.countDocuments({ role: "user" }),
+    User.countDocuments(),
     User.countDocuments({ role: "volunteer" }),
     User.countDocuments({ role: "provider" }),
+    Volunteer.countDocuments({ isApproved: true, isSuspended: { $ne: true } }),
+    Provider.countDocuments({ isVerified: true }),
     HelpRequest.countDocuments(),
     HelpRequest.countDocuments({ status: "completed" }),
     HelpRequest.countDocuments({ status: "cancelled" }),
+    HelpRequest.countDocuments({ urgencyLevel: "critical" }),
     User.countDocuments({ isBanned: true }),
   ]);
 
@@ -184,9 +190,12 @@ export const getAnalyticsOverview = asyncHandler(async (req, res) => {
     totalUsers,
     totalVolunteers,
     totalProviders,
+    activeVolunteers,
+    verifiedProviders,
     totalRequests,
     completedRequests,
     cancelledRequests,
+    criticalRequests,
     bannedUsers,
     completionRate: totalRequests > 0
       ? ((completedRequests / totalRequests) * 100).toFixed(1) + "%"

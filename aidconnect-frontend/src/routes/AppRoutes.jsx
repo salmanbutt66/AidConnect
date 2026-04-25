@@ -35,6 +35,7 @@ const ProviderProfile      = lazy(() => import('../pages/provider/ProviderProfil
 
 // Admin
 const AdminDashboard    = lazy(() => import('../pages/admin/AdminDashboard.jsx'));
+const AdminProfile      = lazy(() => import('../pages/admin/AdminProfile.jsx'));
 const ManageUsers       = lazy(() => import('../pages/admin/ManageUsers.jsx'));
 const ManageRequests    = lazy(() => import('../pages/admin/ManageRequests.jsx'));
 const ManageVolunteers  = lazy(() => import('../pages/admin/ManageVolunteers.jsx'));
@@ -164,6 +165,11 @@ export default function AppRoutes() {
         <Route path="/admin/dashboard" element={
           <ProtectedRoute roles={['admin']}>
             <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/profile" element={
+          <ProtectedRoute roles={['admin']}>
+            <AdminProfile />
           </ProtectedRoute>
         } />
         <Route path="/admin/users" element={

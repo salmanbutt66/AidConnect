@@ -82,7 +82,7 @@ const PATTERNS = {
   email:    /^\S+@\S+\.\S+$/,
   phone:    /^(\+92|0)[0-9]{10}$/,       // Pakistani phone: +923001234567 or 03001234567
   cnic:     /^\d{5}-\d{7}-\d{1}$/,       // Pakistani CNIC: XXXXX-XXXXXXX-X
-  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/, // min 6, 1 upper, 1 lower, 1 digit
+  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, // min 8, 1 upper, 1 lower, 1 digit
   objectId: /^[a-fA-F0-9]{24}$/,         // MongoDB ObjectId
   url:      /^https?:\/\/.+\..+/,
 };
@@ -172,8 +172,8 @@ export const validateRegister = (req, res, next) => {
   // password
   if (!password) {
     errors.push({ field: "password", message: "Password is required" });
-  } else if (password.length < 6) {
-    errors.push({ field: "password", message: "Password must be at least 6 characters" });
+  } else if (password.length < 8) {
+    errors.push({ field: "password", message: "Password must be at least 8 characters" });
   } else if (!isValidPassword(password)) {
     errors.push({
       field: "password",

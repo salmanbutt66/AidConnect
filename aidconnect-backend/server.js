@@ -9,6 +9,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 import {
   globalErrorHandler,
@@ -16,7 +17,7 @@ import {
   setupProcessHandlers,
 } from "./middleware/error.middleware.js";
 
-// ─── Haseeb's routes ───────────────────a───────────────────────────────────────
+// ─── Haseeb's routes ──────────────────────────────────────────────────────────
 import requestRoutes from "./routes/request.routes.js";
 import matchRoutes from "./routes/match.routes.js";
 
@@ -45,6 +46,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(morgan("dev"));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -58,9 +60,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Routes will be added here
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/requests", requestRoutes);
+app.use("/api/volunteers", volunteerRoutes);
+app.use("/api/providers", providerRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/matches", matchRoutes);
+app.use("/api/admin", adminRoutes);
 
-// 404 handler — catches undefined routes
+// ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use(notFound);
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────

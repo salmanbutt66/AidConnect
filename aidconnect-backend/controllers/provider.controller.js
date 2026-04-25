@@ -60,7 +60,11 @@ export const getProviderProfile = asyncHandler(async (req, res) => {
     .populate("userId", "name email phone profileImage");
 
   if (!provider) {
-    throw new AppError("Provider profile not found", 404);
+    return res.status(404).json({
+      success: false,
+      message: "Provider profile not found. Please register as a provider first.",
+      code: "PROVIDER_PROFILE_MISSING",
+    });
   }
 
   res.status(200).json({
@@ -145,7 +149,11 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
 
   if (!provider) {
-    throw new AppError("Provider profile not found", 404);
+    return res.status(404).json({
+      success: false,
+      message: "Provider profile not found. Please register as a provider first.",
+      code: "PROVIDER_PROFILE_MISSING",
+    });
   }
 
   if (!provider.isVerified) {

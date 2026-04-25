@@ -213,6 +213,8 @@ router.put(
       profile.isApproved  = true;
       profile.approvedAt  = new Date();
       profile.approvedBy  = req.user.id;
+      profile.isSuspended = false;
+      profile.suspendedReason = null;
       profile.isAvailable = true;
       await profile.save();
 

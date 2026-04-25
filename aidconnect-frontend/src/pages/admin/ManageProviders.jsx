@@ -6,6 +6,8 @@ import Loader from '../../components/common/Loader.jsx';
 import Modal from '../../components/common/Modal.jsx';
 import { getAllProviders, verifyProvider, suspendProvider } from '../../api/provider.api.js';
 
+const ADMIN_STATS_REFRESH_EVENT = 'aidconnect:admin-stats-refresh';
+
 export default function ManageProviders() {
   const [providers,     setProviders]     = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -49,6 +51,7 @@ export default function ManageProviders() {
       setProviders((prev) =>
         prev.map((p) => p._id === id ? { ...p, isVerified: true } : p)
       );
+      window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       showSuccess('Provider verified successfully.');
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed. Please try again.');
@@ -68,6 +71,7 @@ export default function ManageProviders() {
           p._id === suspendModal.providerId ? { ...p, isAvailable: false } : p
         )
       );
+      window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       setSuspendModal({ isOpen: false, providerId: null });
       showSuccess('Provider suspended successfully.');
     } catch (err) {

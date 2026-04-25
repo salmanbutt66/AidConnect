@@ -24,11 +24,10 @@ const generateRefreshToken = (userId) => {
 };
 
 // ─── Helper: Send tokens as HTTP-only cookies + response ─────────────────────
-const sendTokenResponse = (user, statusCode, res, message = "Success") => {
+// refreshToken is now passed in — never regenerated here
+const sendTokenResponse = (user, statusCode, res, message = "Success", refreshToken) => {
   const accessToken = generateAccessToken(user._id, user.role);
-  const refreshToken = generateRefreshToken(user._id);
 
-  // Cookie options
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -48,7 +47,7 @@ const sendTokenResponse = (user, statusCode, res, message = "Success") => {
     .json({
       success: true,
       message,
-      accessToken, // also send in body for frontend axios usage
+      accessToken,
       user: user.toPublicJSON(),
     });
 };
@@ -103,13 +102,13 @@ export const register = async (req, res, next) => {
       });
     }
 
-    // 5. Save refresh token to DB
+    // 5. Generate refresh token once, save to DB, send in cookie
     const refreshToken = generateRefreshToken(user._id);
     user.refreshToken = refreshToken;
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    sendTokenResponse(user, 201, res, "Account created successfully");
+    sendTokenResponse(user, 201, res, "Account created successfully", refreshToken);
   } catch (error) {
     next(error);
   }
@@ -169,12 +168,12 @@ export const login = async (req, res, next) => {
     // 6. Update last login
     user.lastLogin = new Date();
 
-    // 7. Generate and save refresh token
+    // 7. Generate refresh token once, save to DB, send in cookie
     const refreshToken = generateRefreshToken(user._id);
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    sendTokenResponse(user, 200, res, "Login successful");
+    sendTokenResponse(user, 200, res, "Login successful", refreshToken);
   } catch (error) {
     next(error);
   }
@@ -307,7 +306,6 @@ export const updateProfile = async (req, res, next) => {
   try {
     const { name, phone, bloodGroup, location, notificationPreferences } = req.body;
 
-    // Fields that are allowed to be updated here
     const updates = {};
     if (name) updates.name = name;
     if (phone) updates.phone = phone;
@@ -353,7 +351,6 @@ export const changePassword = async (req, res, next) => {
       });
     }
 
-    // Get user with password
     const user = await User.findById(req.user.id).select("+password");
 
     const isMatch = await user.comparePassword(currentPassword);
@@ -364,7 +361,7 @@ export const changePassword = async (req, res, next) => {
       });
     }
 
-    user.password = newPassword; // pre-save hook will hash it
+    user.password = newPassword;
     await user.save();
 
     res.status(200).json({
@@ -388,12 +385,10 @@ export const deleteAccount = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Soft delete — just deactivate instead of removing from DB
     user.isActive = false;
     user.refreshToken = null;
     await user.save({ validateBeforeSave: false });
 
-    // If volunteer, mark as unavailable too
     if (user.role === "volunteer") {
       await Volunteer.findOneAndUpdate(
         { user: user._id },

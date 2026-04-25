@@ -11,6 +11,8 @@ import {
 } from '../../api/admin.api.js';
 import { formatNumber } from '../../utils/formatters.js';
 
+const ADMIN_STATS_REFRESH_EVENT = 'aidconnect:admin-stats-refresh';
+
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
@@ -21,34 +23,48 @@ export default function Analytics() {
     highRisk:       [],
   });
 
+  const fetchAnalytics = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setError('');
+    try {
+      const [overviewRes, typesRes, trendsRes, risksRes] = await Promise.all([
+        getAnalyticsOverview(),
+        getEmergencyTypeStats(),
+        getMonthlyTrends(),
+        getHighRiskAreas(),
+      ]);
+
+      // FIX: safe extraction consistent with rest of admin pages
+      setData({
+        overview:       overviewRes.data  || overviewRes,
+        emergencyTypes: typesRes.data     || typesRes     || [],
+        trends:         trendsRes.data    || trendsRes    || [],
+        highRisk:       risksRes.data     || risksRes     || [],
+      });
+    } catch (err) {
+      // FIX: local error state instead of console.error
+      setError('Failed to load analytics data. Please refresh.');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const [overviewRes, typesRes, trendsRes, risksRes] = await Promise.all([
-          getAnalyticsOverview(),
-          getEmergencyTypeStats(),
-          getMonthlyTrends(),
-          getHighRiskAreas(),
-        ]);
-
-        // FIX: safe extraction consistent with rest of admin pages
-        setData({
-          overview:       overviewRes.data  || overviewRes,
-          emergencyTypes: typesRes.data     || typesRes     || [],
-          trends:         trendsRes.data    || trendsRes    || [],
-          highRisk:       risksRes.data     || risksRes     || [],
-        });
-      } catch (err) {
-        // FIX: local error state instead of console.error
-        setError('Failed to load analytics data. Please refresh.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAnalytics();
+  }, []);
+
+  useEffect(() => {
+    const handleStatsRefresh = () => fetchAnalytics({ silent: true });
+    const interval = setInterval(() => fetchAnalytics({ silent: true }), 15000);
+
+    window.addEventListener(ADMIN_STATS_REFRESH_EVENT, handleStatsRefresh);
+    window.addEventListener('focus', handleStatsRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(ADMIN_STATS_REFRESH_EVENT, handleStatsRefresh);
+      window.removeEventListener('focus', handleStatsRefresh);
+    };
   }, []);
 
   if (loading) {
@@ -70,8 +86,15 @@ export default function Analytics() {
 
         {/* ── Page header ───────────────────────────────────────────────── */}
         <div className="page-header">
-          <h1>Platform Analytics</h1>
-          <p>System-wide performance metrics and emergency trends.</p>
+          <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h1>Platform Analytics</h1>
+              <p>System-wide performance metrics and emergency trends.</p>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => fetchAnalytics()}>
+              🔄 Refresh Analytics
+            </button>
+          </div>
         </div>
 
         {/* ── Error alert ───────────────────────────────────────────────── */}

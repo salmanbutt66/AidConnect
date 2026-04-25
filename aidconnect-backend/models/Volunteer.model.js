@@ -47,7 +47,7 @@ const volunteerSchema = new mongoose.Schema(
       type: [String],
       enum: [
         "medical", "fire", "flood", "earthquake", "accident",
-        "blood_request", "food_shortage", "mental_health",
+        "blood", "disaster", "blood_request", "food_shortage", "mental_health",
         "missing_person", "other",
       ],
       default: [],
@@ -168,6 +168,16 @@ const volunteerSchema = new mongoose.Schema(
     currentRequestId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "HelpRequest",
+      default: null,
+    },
+
+    isSuspended: {
+      type: Boolean,
+      default: false,
+    },
+
+    suspendedReason: {
+      type: String,
       default: null,
     },
   },

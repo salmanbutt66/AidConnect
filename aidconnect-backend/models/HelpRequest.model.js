@@ -180,11 +180,10 @@ const calculateUrgencyScore = (urgencyLevel) => {
 };
 
 // ─── Pre-save Hook ────────────────────────────────────────────────────────────
-helpRequestSchema.pre("save", function (next) {
+helpRequestSchema.pre("save", function () {
   if (this.isModified("urgencyLevel")) {
     this.urgencyScore = calculateUrgencyScore(this.urgencyLevel);
   }
-  next();
 });
 
 // ─── Virtual: isActive ────────────────────────────────────────────────────────

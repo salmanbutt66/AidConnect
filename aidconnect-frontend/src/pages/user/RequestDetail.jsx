@@ -20,6 +20,8 @@ import {
 } from '../../utils/formatters.js';
 import { validateRating, hasErrors } from '../../utils/validators.js';
 
+const REQUEST_STATUS_REFRESH_EVENT = 'aidconnect:request-status-changed';
+
 // ─── Detail row ───────────────────────────────────────────────────────────────
 function DetailRow({ icon, label, value, valueStyle }) {
   if (!value && value !== 0) return null;
@@ -204,6 +206,13 @@ export default function RequestDetail() {
     fetchRequestById(id);
     return () => clearCurrentRequest();
   }, [id]);
+
+  useEffect(() => {
+    const handleRefresh = () => fetchRequestById(id);
+
+    window.addEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
+  }, [id, fetchRequestById]);
 
   // ── Cancel ─────────────────────────────────────────────────────────────────
   const handleCancelConfirm = useCallback(async () => {

@@ -1,14 +1,17 @@
 // src/pages/provider/ProviderDashboard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import Modal from '../../components/common/Modal.jsx';
 import { getProviderProfile, getRelevantRequests, acceptRequest } from '../../api/provider.api.js';
-import { formatTimeAgo, formatEmergencyType, getEmergencyEmoji, getInitials } from '../../utils/formatters.js';
+import { formatTimeAgo, formatEmergencyType, getEmergencyEmoji } from '../../utils/formatters.js';
 import { SERVICE_TYPES } from '../../utils/constants.js';
 
 export default function ProviderDashboard() {
+  const navigate = useNavigate();
+
   const [profile,         setProfile]         = useState(null);
   const [requests,        setRequests]         = useState([]);
   const [loadingProfile,  setLoadingProfile]   = useState(true);
@@ -16,7 +19,6 @@ export default function ProviderDashboard() {
   const [acceptingId,     setAcceptingId]      = useState(null);
   const [confirmModal,    setConfirmModal]      = useState({ open: false, request: null });
 
-  // FIX: replaced toast with local error/success state
   const [error,      setError]      = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -32,11 +34,16 @@ export default function ProviderDashboard() {
       const data = await getProviderProfile();
       setProfile(data.provider || data.data || data);
     } catch (err) {
-      showError(err.response?.data?.message || 'Failed to load profile.');
+      if (err.response?.status === 404) {
+        // No provider profile yet — send to profile page to complete setup
+        navigate('/provider/profile', { replace: true });
+      } else {
+        showError(err.response?.data?.message || 'Failed to load profile.');
+      }
     } finally {
       setLoadingProfile(false);
     }
-  }, []);
+  }, [navigate]);
 
   // ── Fetch relevant requests ────────────────────────────────────────────────
   const fetchRequests = useCallback(async () => {
@@ -44,7 +51,6 @@ export default function ProviderDashboard() {
       const data = await getRelevantRequests();
       setRequests(data.requests || data.data || []);
     } catch (err) {
-      // 403 = not verified yet — show empty state, not an error
       if (err.response?.status !== 403) {
         showError('Failed to load requests.');
       }
@@ -60,7 +66,7 @@ export default function ProviderDashboard() {
   }, [fetchProfile, fetchRequests]);
 
   // ── Accept request ─────────────────────────────────────────────────────────
-  const handleAccept = useCallback(async () => {
+  const handleAccept = async () => {
     const request = confirmModal.request;
     if (!request) return;
     setAcceptingId(request._id);
@@ -75,7 +81,7 @@ export default function ProviderDashboard() {
     } finally {
       setAcceptingId(null);
     }
-  }, [confirmModal, fetchProfile]);
+  };
 
   const serviceTypeMeta = SERVICE_TYPES.find((s) => s.value === profile?.serviceType);
 
@@ -112,19 +118,14 @@ export default function ProviderDashboard() {
           <Loader variant="card" message="Loading your profile…" />
         ) : profile ? (
           <>
-            {/* FIX: uses .profile-hero CSS class instead of inline gradient card */}
             <div className="profile-hero" style={{ marginBottom: '24px' }}>
               <div
                 style={{
-                  width: '56px',
-                  height: '56px',
+                  width: '56px', height: '56px',
                   borderRadius: 'var(--radius-md)',
                   background: 'rgba(255,255,255,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '28px',
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '28px', flexShrink: 0,
                 }}
               >
                 {serviceTypeMeta?.emoji || '🏥'}
@@ -135,21 +136,16 @@ export default function ProviderDashboard() {
                   {serviceTypeMeta?.label || profile.serviceType}
                   {profile.address ? ` · ${profile.address}` : ''}
                 </div>
-                {/* Badges */}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
                   {profile.isVerified
                     ? <span className="badge badge-green" style={{ fontSize: '11px' }}>✅ Verified</span>
                     : <span className="badge badge-orange" style={{ fontSize: '11px' }}>⏳ Pending Verification</span>
                   }
-                  <span
-                    className={`badge ${profile.isAvailable ? 'badge-green' : 'badge-stone'}`}
-                    style={{ fontSize: '11px' }}
-                  >
+                  <span className={`badge ${profile.isAvailable ? 'badge-green' : 'badge-stone'}`} style={{ fontSize: '11px' }}>
                     <span className={`status-dot ${profile.isAvailable ? 'dot-green pulse' : 'dot-stone'}`} />
                     {profile.isAvailable ? 'Available' : 'Unavailable'}
                   </span>
                 </div>
-                {/* Services offered */}
                 {profile.servicesOffered?.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
                     {profile.servicesOffered.map((service) => (
@@ -159,10 +155,8 @@ export default function ProviderDashboard() {
                           padding: '3px 10px',
                           background: 'rgba(255,255,255,0.15)',
                           borderRadius: 'var(--radius-full)',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          color: 'white',
-                          textTransform: 'capitalize',
+                          fontSize: '11px', fontWeight: 600,
+                          color: 'white', textTransform: 'capitalize',
                         }}
                       >
                         {service.replace(/_/g, ' ')}
@@ -173,7 +167,6 @@ export default function ProviderDashboard() {
               </div>
             </div>
 
-            {/* FIX: pending verification uses alert-warning instead of var(--orange-*) */}
             {!profile.isVerified && (
               <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '24px' }}>
                 <span className="alert-icon">⏳</span>
@@ -192,27 +185,17 @@ export default function ProviderDashboard() {
             <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               Incoming Requests
               {requests.length > 0 && (
-                <span className="badge badge-red" style={{ fontSize: '11px' }}>
-                  {requests.length} new
-                </span>
+                <span className="badge badge-red" style={{ fontSize: '11px' }}>{requests.length} new</span>
               )}
             </div>
-            <div className="section-subtitle">
-              Emergency requests matching your service type
-            </div>
+            <div className="section-subtitle">Emergency requests matching your service type</div>
           </div>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={fetchRequests}
-          >
-            🔄 Refresh
-          </button>
+          <button className="btn btn-ghost btn-sm" onClick={fetchRequests}>🔄 Refresh</button>
         </div>
 
         {loadingRequests ? (
           <Loader variant="skeleton" count={3} />
         ) : requests.length === 0 ? (
-          // FIX: uses .empty-state CSS classes
           <div className="card">
             <div className="empty-state">
               <div className="empty-state-icon">📭</div>
@@ -229,24 +212,16 @@ export default function ProviderDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {requests.map((req) => (
               <div key={req._id} className="card anim-fade-up">
-                {/* FIX: uses card-body instead of inline padding */}
                 <div className="card-body">
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-
-                    {/* Left — type + description */}
                     <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          width: '44px',
-                          height: '44px',
+                          width: '44px', height: '44px',
                           borderRadius: 'var(--radius-md)',
-                          // FIX: var(--stone-100) doesn't exist — use var(--green-100)
                           background: 'var(--green-100)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '20px',
-                          flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '20px', flexShrink: 0,
                         }}
                       >
                         {getEmergencyEmoji(req.emergencyType)}
@@ -259,48 +234,23 @@ export default function ProviderDashboard() {
                           <Badge urgency={req.urgencyLevel} />
                           <Badge status={req.status} />
                         </div>
-                        <p
-                          style={{
-                            margin: '0 0 8px',
-                            fontSize: '13px',
-                            color: 'var(--text-mid)',
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                        >
+                        <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--text-mid)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                           {req.description}
                         </p>
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                          {req.address && (
-                            <span className="request-card-meta">
-                              <span>📍</span> {req.address}
-                            </span>
-                          )}
-                          <span className="request-card-meta">
-                            <span>🕐</span> {formatTimeAgo(req.postedAt)}
-                          </span>
-                          {req.requesterId?.name && (
-                            <span className="request-card-meta">
-                              <span>👤</span> {req.requesterId.name}
-                            </span>
-                          )}
+                          {req.address && <span className="request-card-meta"><span>📍</span> {req.address}</span>}
+                          <span className="request-card-meta"><span>🕐</span> {formatTimeAgo(req.postedAt)}</span>
+                          {req.requesterId?.name && <span className="request-card-meta"><span>👤</span> {req.requesterId.name}</span>}
                         </div>
                       </div>
                     </div>
-
-                    {/* Right — accept button */}
                     <button
                       className="btn btn-primary btn-sm"
-                      disabled={!!acceptingId}
+                      disabled={acceptingId === req._id}
                       onClick={() => setConfirmModal({ open: true, request: req })}
                       style={{ flexShrink: 0 }}
                     >
-                      {acceptingId === req._id
-                        ? <><span className="spinner" /> Accepting…</>
-                        : '✅ Accept'
-                      }
+                      {acceptingId === req._id ? <><span className="spinner" /> Accepting…</> : '✅ Accept'}
                     </button>
                   </div>
                 </div>
@@ -308,19 +258,21 @@ export default function ProviderDashboard() {
             ))}
           </div>
         )}
-
       </div>
 
       {/* ── Confirm accept modal ───────────────────────────────────────── */}
       <Modal
         isOpen={confirmModal.open}
-        onClose={() => setConfirmModal({ open: false, request: null })}
+        onClose={() => {
+          setConfirmModal({ open: false, request: null });
+          setAcceptingId(null);
+        }}
         title="Accept Request"
         icon="✅"
         onConfirm={handleAccept}
         confirmLabel="Yes, Accept"
         cancelLabel="Cancel"
-        loading={!!acceptingId}
+        loading={false}
       >
         {confirmModal.request && (
           <p style={{ fontSize: '14px', color: 'var(--text-mid)', lineHeight: 1.7, margin: 0 }}>
@@ -331,7 +283,6 @@ export default function ProviderDashboard() {
           </p>
         )}
       </Modal>
-
     </Navbar>
   );
 }

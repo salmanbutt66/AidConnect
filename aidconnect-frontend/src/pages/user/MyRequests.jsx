@@ -10,6 +10,8 @@ import Loader from '../../components/common/Loader.jsx';
 import useRequests from '../../hooks/useRequests.js';
 import { DEFAULT_FILTERS } from '../../hooks/useRequests.js';
 
+const REQUEST_STATUS_REFRESH_EVENT = 'aidconnect:request-status-changed';
+
 // ─── View toggle ──────────────────────────────────────────────────────────────
 function ViewToggle({ view, onChange }) {
   return (
@@ -121,6 +123,13 @@ export default function MyRequests() {
   useEffect(() => {
     fetchMyRequests({ page: 1, limit: 10 });
   }, []);
+
+  useEffect(() => {
+    const handleRefresh = () => fetchMyRequests({ ...filters, page: 1, limit: 10 });
+
+    window.addEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
+  }, [filters, fetchMyRequests]);
 
   // ── Derive status counts ───────────────────────────────────────────────────
   useEffect(() => {

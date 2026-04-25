@@ -8,6 +8,22 @@ import Modal from '../../components/common/Modal.jsx';
 import useRequests from '../../hooks/useRequests.js';
 import { getAnalyticsOverview } from '../../api/admin.api.js';
 
+const ADMIN_STATS_REFRESH_EVENT = 'aidconnect:admin-stats-refresh';
+
+const isBackendConnectivityIssue = (errOrMsg) => {
+  const msg = typeof errOrMsg === 'string'
+    ? errOrMsg
+    : errOrMsg?.message || errOrMsg?.code || '';
+  const text = String(msg).toLowerCase();
+
+  return (
+    text.includes('network error') ||
+    text.includes('econnrefused') ||
+    text.includes('failed to fetch') ||
+    text.includes('timeout')
+  );
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
@@ -16,6 +32,7 @@ export default function AdminDashboard() {
     pagination,
     loading: requestsLoading,
     actionLoading,
+    error: requestsError,
     filters,
     setFilters,
     resetFilters,
@@ -27,6 +44,24 @@ export default function AdminDashboard() {
   const [stats,        setStats]        = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError,   setStatsError]   = useState('');
+  const [backendDisconnected, setBackendDisconnected] = useState(false);
+
+  const loadStats = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setStatsLoading(true);
+    try {
+      const data = await getAnalyticsOverview();
+      setStats(data.data || data);
+      setStatsError('');
+      setBackendDisconnected(false);
+    } catch (err) {
+      setStatsError('Failed to load system analytics.');
+      if (isBackendConnectivityIssue(err)) {
+        setBackendDisconnected(true);
+      }
+    } finally {
+      if (!silent) setStatsLoading(false);
+    }
+  }, []);
 
   // FIX: Modal state instead of window.confirm
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -35,21 +70,33 @@ export default function AdminDashboard() {
   // ── Fetch on mount ─────────────────────────────────────────────────────────
   useEffect(() => {
     fetchAllRequests({ ...filters, limit: 10 });
-
-    setStatsLoading(true);
-    getAnalyticsOverview()
-      .then((data) => {
-        // Safe extraction — backend wraps in data.data or data
-        setStats(data.data || data);
-        setStatsError('');
-      })
-      .catch(() => {
-        setStatsError('Failed to load system analytics.');
-      })
-      .finally(() => {
-        setStatsLoading(false);
-      });
+    loadStats();
   }, []);
+
+  // ── Keep overview cards fresh without requiring hard refresh ──────────────
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadStats({ silent: true });
+    }, 15000);
+
+    const handleFocus = () => loadStats({ silent: true });
+    const handleStatsRefresh = () => loadStats({ silent: true });
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener(ADMIN_STATS_REFRESH_EVENT, handleStatsRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener(ADMIN_STATS_REFRESH_EVENT, handleStatsRefresh);
+    };
+  }, [loadStats]);
+
+  useEffect(() => {
+    if (!requestsError) return;
+    if (isBackendConnectivityIssue(requestsError)) {
+      setBackendDisconnected(true);
+    }
+  }, [requestsError]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handlePageChange = useCallback((newPage) => {
@@ -100,6 +147,12 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 className="btn btn-ghost btn-sm"
+                onClick={() => loadStats()}
+              >
+                🔄 Refresh Stats
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
                 onClick={() => navigate('/admin/analytics')}
               >
                 📊 Full Analytics
@@ -115,6 +168,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── Stats error ───────────────────────────────────────────────── */}
+        {backendDisconnected && (
+          <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px' }}>
+            <span className="alert-icon">⚠️</span>
+            Backend connection lost. Start or restart the API server on port 5000.
+          </div>
+        )}
+
         {statsError && (
           <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
             <span className="alert-icon">⚠️</span>

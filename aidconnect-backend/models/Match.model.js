@@ -77,7 +77,7 @@ matchSchema.index({ matchedTo: 1, status: 1 });
 matchSchema.index({ matchedTo: 1, matchedType: 1, status: 1 });
 
 // ─── Pre-save Hook ────────────────────────────────────────────────────────────
-matchSchema.pre("save", function (next) {
+matchSchema.pre("save", function () {
   if (
     this.isModified("respondedAt") &&
     this.respondedAt &&
@@ -86,7 +86,6 @@ matchSchema.pre("save", function (next) {
     const diffMs = this.respondedAt - this.notifiedAt;
     this.responseTimeMinutes = Math.round(diffMs / 1000 / 60);
   }
-  next();
 });
 
 // ─── Static Methods ───────────────────────────────────────────────────────────
@@ -107,4 +106,4 @@ matchSchema.statics.getVolunteerMatches = async function (volunteerId) {
 };
 
 const Match = mongoose.model("Match", matchSchema);
-export default Match; 
+export default Match;

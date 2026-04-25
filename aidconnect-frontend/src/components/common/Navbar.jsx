@@ -100,25 +100,6 @@ function NotifItem({ notif, onRead }) {
 }
 
 // ─── Navbar (Sidebar + Topbar layout wrapper) ─────────────────────────────────
-/**
- * Navbar — combined sidebar + topbar layout shell.
- *
- * Wraps every authenticated dashboard page. Usage in page components:
- *
- *   export default function UserDashboard() {
- *     return (
- *       <Navbar title="Dashboard">
- *         <div className="page-wrapper">
- *           ...page content...
- *         </div>
- *       </Navbar>
- *     );
- *   }
- *
- * Props:
- *   title      {string}   topbar page title
- *   children   {node}     page content rendered inside main-inner
- */
 export default function Navbar({ title, children }) {
   const { user, logout, isAdmin } = useAuth();
   const {
@@ -147,6 +128,8 @@ export default function Navbar({ title, children }) {
   const initials = getInitials(user?.name);
 
   // ── Close dropdowns on outside click ──────────────────────────────────────
+  // FIX: changed from mousedown to click so modal confirm buttons
+  // aren't interrupted before their click event fires
   useEffect(() => {
     const handleClick = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -156,8 +139,8 @@ export default function Navbar({ title, children }) {
         setUserMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
   // ── Fetch notifications when dropdown opens ────────────────────────────────
@@ -297,7 +280,6 @@ export default function Navbar({ title, children }) {
 
           {/* Left: hamburger (mobile) + page title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* Mobile hamburger */}
             <button
               onClick={() => setSidebarOpen((p) => !p)}
               style={{
@@ -341,8 +323,6 @@ export default function Navbar({ title, children }) {
               {/* Notification dropdown */}
               {notifOpen && (
                 <div className="notif-dropdown">
-
-                  {/* Dropdown header */}
                   <div className="notif-dropdown-header">
                     <h4>
                       Notifications
@@ -377,7 +357,6 @@ export default function Navbar({ title, children }) {
                     )}
                   </div>
 
-                  {/* Dropdown body */}
                   <div className="notif-dropdown-body">
                     {notifLoading ? (
                       <div style={{ padding: '32px', textAlign: 'center' }}>
@@ -404,7 +383,6 @@ export default function Navbar({ title, children }) {
                       ))
                     )}
                   </div>
-
                 </div>
               )}
             </div>

@@ -11,6 +11,8 @@ import {
   unsuspendVolunteer,
 } from '../../api/volunteer.api.js';
 
+const ADMIN_STATS_REFRESH_EVENT = 'aidconnect:admin-stats-refresh';
+
 export default function ManageVolunteers() {
 
   const [volunteers,    setVolunteers]    = useState([]);
@@ -59,6 +61,7 @@ export default function ManageVolunteers() {
       setVolunteers((prev) =>
         prev.map((v) => v._id === id ? { ...v, isApproved: true } : v)
       );
+      window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       showSuccess('Volunteer approved successfully.');
     } catch (err) {
       // FIX: alert() → local error state
@@ -86,6 +89,7 @@ export default function ManageVolunteers() {
             : v
         )
       );
+      window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       setSuspendModal({ isOpen: false, volunteerId: null, reason: '' });
       setSuspendReasonError('');
       showSuccess('Volunteer suspended.');
@@ -109,6 +113,7 @@ export default function ManageVolunteers() {
           v._id === id ? { ...v, isSuspended: false, suspendedReason: null } : v
         )
       );
+      window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       showSuccess('Suspension lifted.');
     } catch (err) {
       // FIX: alert() → local error state

@@ -10,6 +10,8 @@ import Loader from '../../components/common/Loader.jsx';
 import useAuth from '../../hooks/useAuth.js';
 import useRequests from '../../hooks/useRequests.js';
 
+const REQUEST_STATUS_REFRESH_EVENT = 'aidconnect:request-status-changed';
+
 // ─── Quick action button ──────────────────────────────────────────────────────
 function QuickAction({ icon, label, desc, onClick, color = 'var(--green-800)' }) {
   return (
@@ -151,6 +153,13 @@ export default function UserDashboard() {
   useEffect(() => {
     fetchMyRequests({ limit: 10 });
   }, []);
+
+  useEffect(() => {
+    const handleRefresh = () => fetchMyRequests({ limit: 10 });
+
+    window.addEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
+  }, [fetchMyRequests]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalRequests  = requests.length;
