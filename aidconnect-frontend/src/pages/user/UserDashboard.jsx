@@ -9,7 +9,6 @@ import Modal from '../../components/common/Modal.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import useAuth from '../../hooks/useAuth.js';
 import useRequests from '../../hooks/useRequests.js';
-import { formatTimeAgo } from '../../utils/formatters.js';
 
 // ─── Quick action button ──────────────────────────────────────────────────────
 function QuickAction({ icon, label, desc, onClick, color = 'var(--green-800)' }) {
@@ -31,13 +30,13 @@ function QuickAction({ icon, label, desc, onClick, color = 'var(--green-800)' })
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = 'var(--green-300)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow   = 'var(--shadow-md)';
+        e.currentTarget.style.transform   = 'translateY(-2px)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = 'var(--stone-200)';
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow   = 'none';
+        e.currentTarget.style.transform   = 'translateY(0)';
       }}
     >
       <div
@@ -93,7 +92,13 @@ function ActiveRequestBanner({ request, onView, onCancel, loading }) {
       <span className={`status-dot ${style.dot} pulse`} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-dark)' }}>
-          Active Request — {request.status === 'in_progress' ? 'Responder on the way' : request.status === 'accepted' ? 'Request accepted' : 'Awaiting responder'}
+          Active Request —{' '}
+          {request.status === 'in_progress'
+            ? 'Responder on the way'
+            : request.status === 'accepted'
+              ? 'Request accepted'
+              : 'Awaiting responder'
+          }
         </div>
         <div
           style={{
@@ -127,8 +132,8 @@ function ActiveRequestBanner({ request, onView, onCancel, loading }) {
 
 // ─── UserDashboard ────────────────────────────────────────────────────────────
 export default function UserDashboard() {
-  const navigate  = useNavigate();
-  const { user }  = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const {
     requests,
@@ -139,22 +144,21 @@ export default function UserDashboard() {
     clearError,
   } = useRequests();
 
-  // Cancel confirmation modal state
   const [cancelTarget,  setCancelTarget]  = useState(null);
   const [cancelSuccess, setCancelSuccess] = useState('');
 
-  // ── Fetch active + recent requests on mount ────────────────────────────────
+  // ── Fetch on mount ─────────────────────────────────────────────────────────
   useEffect(() => {
     fetchMyRequests({ limit: 10 });
   }, []);
 
-  // ── Derived stats from requests ────────────────────────────────────────────
-  const totalRequests   = requests.length;
-  const activeRequests  = requests.filter((r) =>
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const totalRequests  = requests.length;
+  const activeRequests = requests.filter((r) =>
     ['posted', 'accepted', 'in_progress'].includes(r.status)
   );
-  const completedCount  = requests.filter((r) => r.status === 'completed').length;
-  const latestActive    = activeRequests[0] || null;
+  const completedCount = requests.filter((r) => r.status === 'completed').length;
+  const latestActive   = activeRequests[0] || null;
 
   // ── Cancel flow ────────────────────────────────────────────────────────────
   const handleCancelConfirm = useCallback(async () => {
@@ -169,10 +173,9 @@ export default function UserDashboard() {
     }
   }, [cancelTarget, cancelMyRequest]);
 
-  // ── Greeting based on time of day ─────────────────────────────────────────
+  // ── Greeting ───────────────────────────────────────────────────────────────
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
   const firstName = user?.name?.split(' ')[0] || 'there';
 
   return (
@@ -181,8 +184,21 @@ export default function UserDashboard() {
 
         {/* ── Welcome header ────────────────────────────────────────────── */}
         <div className="page-header">
-          <h1>{greeting}, {firstName} 👋</h1>
-          <p>Here's an overview of your emergency requests and activity.</p>
+          <div className="flex-between" style={{ flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h1>{greeting}, {firstName} 👋</h1>
+              <p>Here's an overview of your emergency requests and activity.</p>
+            </div>
+            {/* Prominent CTA — from Rabia's branch */}
+            <button
+              className="btn btn-primary btn-lg"
+              onClick={() => navigate('/user/create-request')}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+            >
+              <span style={{ fontSize: '18px' }}>🆘</span>
+              New Emergency Request
+            </button>
+          </div>
         </div>
 
         {/* ── Cancel success alert ──────────────────────────────────────── */}
@@ -335,11 +351,46 @@ export default function UserDashboard() {
 
           </div>
 
-          {/* Right column — notifications */}
-          <div className="anim-fade-up delay-400">
-            <NotificationPanel limit={8} />
-          </div>
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
+            {/* Notifications */}
+            <div className="anim-fade-up delay-400">
+              <NotificationPanel limit={6} />
+            </div>
+
+            {/* Emergency tip card — from Rabia's branch */}
+            <div
+              className="card anim-fade-up delay-500"
+              style={{ background: 'var(--green-900)', border: 'none' }}
+            >
+              <div className="card-body">
+                <div style={{ fontSize: '24px', marginBottom: '10px' }}>💡</div>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'white',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Emergency Tip
+                </div>
+                <p
+                  style={{
+                    fontSize: '12px',
+                    color: 'rgba(255,255,255,0.75)',
+                    lineHeight: 1.6,
+                    margin: 0,
+                  }}
+                >
+                  Ensure your phone's GPS is enabled when posting a request to
+                  help responders find you faster.
+                </p>
+              </div>
+            </div>
+
+          </div>
         </div>
 
       </div>

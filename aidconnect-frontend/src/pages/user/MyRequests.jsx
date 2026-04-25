@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import RequestTable from '../../components/dashboard/RequestTable.jsx';
 import RequestCard from '../../components/cards/RequestCard.jsx';
+import StatsCard from '../../components/dashboard/StatsCard.jsx';
 import Modal from '../../components/common/Modal.jsx';
-import Badge from '../../components/common/Badge.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import useRequests from '../../hooks/useRequests.js';
 import { DEFAULT_FILTERS } from '../../hooks/useRequests.js';
 
-// ─── View toggle button ───────────────────────────────────────────────────────
+// ─── View toggle ──────────────────────────────────────────────────────────────
 function ViewToggle({ view, onChange }) {
   return (
     <div
@@ -81,9 +81,7 @@ function StatusTabs({ active, onChange, counts }) {
                 fontWeight: 700,
                 padding: '1px 6px',
                 borderRadius: 'var(--radius-full)',
-                background: active === tab.value
-                  ? 'var(--green-700)'
-                  : 'var(--stone-200)',
+                background: active === tab.value ? 'var(--green-700)' : 'var(--stone-200)',
                 color: active === tab.value ? 'white' : 'var(--text-muted)',
               }}
             >
@@ -114,7 +112,7 @@ export default function MyRequests() {
     clearError,
   } = useRequests();
 
-  const [view,         setView]         = useState('cards'); // 'cards' | 'table'
+  const [view,         setView]         = useState('cards');
   const [cancelTarget, setCancelTarget] = useState(null);
   const [successMsg,   setSuccessMsg]   = useState('');
   const [statusCounts, setStatusCounts] = useState({});
@@ -124,7 +122,7 @@ export default function MyRequests() {
     fetchMyRequests({ page: 1, limit: 10 });
   }, []);
 
-  // ── Derive status counts from fetched requests ─────────────────────────────
+  // ── Derive status counts ───────────────────────────────────────────────────
   useEffect(() => {
     if (!requests.length) return;
     const counts = {};
@@ -135,34 +133,37 @@ export default function MyRequests() {
     setStatusCounts(counts);
   }, [requests]);
 
-  // ── Filter change ──────────────────────────────────────────────────────────
+  // ── Derived stats — from Rabia's branch ───────────────────────────────────
+  const activeCount    = requests.filter((r) =>
+    ['posted', 'accepted', 'in_progress'].includes(r.status)
+  ).length;
+  const completedCount = requests.filter((r) => r.status === 'completed').length;
+  const cancelledCount = requests.filter((r) => r.status === 'cancelled').length;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleFilterChange = useCallback((key, value) => {
     const updated = { ...filters, [key]: value, page: 1 };
     setFilters(updated);
     fetchMyRequests(updated);
   }, [filters, setFilters, fetchMyRequests]);
 
-  // ── Status tab change ──────────────────────────────────────────────────────
   const handleStatusTab = useCallback((status) => {
     const updated = { ...filters, status, page: 1 };
     setFilters(updated);
     fetchMyRequests(updated);
   }, [filters, setFilters, fetchMyRequests]);
 
-  // ── Filter reset ───────────────────────────────────────────────────────────
   const handleFilterReset = useCallback(() => {
     resetFilters();
     fetchMyRequests({ page: 1, limit: 10 });
   }, [resetFilters, fetchMyRequests]);
 
-  // ── Page change ────────────────────────────────────────────────────────────
   const handlePageChange = useCallback((page) => {
     const updated = { ...filters, page };
     setFilters(updated);
     fetchMyRequests(updated);
   }, [filters, setFilters, fetchMyRequests]);
 
-  // ── Cancel flow ────────────────────────────────────────────────────────────
   const handleCancelConfirm = useCallback(async () => {
     if (!cancelTarget) return;
     try {
@@ -195,6 +196,42 @@ export default function MyRequests() {
           </div>
         </div>
 
+        {/* ── Stats row — from Rabia's branch ───────────────────────────── */}
+        <div className="grid-4" style={{ marginBottom: '24px' }}>
+          <StatsCard
+            label="Total Requests"
+            value={pagination.total || requests.length}
+            icon="📋"
+            color="blue"
+            loading={loading}
+            delay={0}
+          />
+          <StatsCard
+            label="Active Now"
+            value={activeCount}
+            icon="🚨"
+            color="orange"
+            loading={loading}
+            delay={100}
+          />
+          <StatsCard
+            label="Completed"
+            value={completedCount}
+            icon="✅"
+            color="green"
+            loading={loading}
+            delay={200}
+          />
+          <StatsCard
+            label="Cancelled"
+            value={cancelledCount}
+            icon="✕"
+            color="red"
+            loading={loading}
+            delay={300}
+          />
+        </div>
+
         {/* ── Success alert ─────────────────────────────────────────────── */}
         {successMsg && (
           <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
@@ -219,23 +256,18 @@ export default function MyRequests() {
                 fontWeight: 700,
                 fontSize: '14px',
               }}
-            >
-              ✕
-            </button>
+            >✕</button>
           </div>
         )}
 
         {/* ── Main card ─────────────────────────────────────────────────── */}
         <div className="card anim-fade-up delay-100">
           <div className="card-header">
-
-            {/* Status tabs + view toggle */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingBottom: '0',
                 flexWrap: 'wrap',
                 gap: '12px',
               }}
@@ -250,10 +282,10 @@ export default function MyRequests() {
           </div>
 
           <div className="card-body">
-            {/* ── Cards view ────────────────────────────────────────────── */}
+
+            {/* ── Cards view ──────────────────────────────────────────── */}
             {view === 'cards' && (
               <>
-                {/* Search + filters for card view */}
                 <div className="filter-bar">
                   <div className="search-input-wrap">
                     <span className="search-icon">🔍</span>
@@ -312,16 +344,13 @@ export default function MyRequests() {
                       ))}
                     </div>
 
-                    {/* Pagination for card view */}
                     {pagination.totalPages > 1 && (
                       <div className="pagination" style={{ marginTop: '24px' }}>
                         <button
                           className="page-btn"
                           disabled={pagination.page <= 1}
                           onClick={() => handlePageChange(pagination.page - 1)}
-                        >
-                          ‹
-                        </button>
+                        >‹</button>
                         {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
                           <button
                             key={p}
@@ -335,9 +364,7 @@ export default function MyRequests() {
                           className="page-btn"
                           disabled={pagination.page >= pagination.totalPages}
                           onClick={() => handlePageChange(pagination.page + 1)}
-                        >
-                          ›
-                        </button>
+                        >›</button>
                       </div>
                     )}
                   </>
@@ -345,7 +372,7 @@ export default function MyRequests() {
               </>
             )}
 
-            {/* ── Table view ────────────────────────────────────────────── */}
+            {/* ── Table view ──────────────────────────────────────────── */}
             {view === 'table' && (
               <RequestTable
                 requests={requests}

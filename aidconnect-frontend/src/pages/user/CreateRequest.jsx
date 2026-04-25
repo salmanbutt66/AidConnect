@@ -18,9 +18,9 @@ function StepIndicator({ steps, current }) {
       }}
     >
       {steps.map((step, i) => {
-        const isDone    = i < current;
-        const isActive  = i === current;
-        const isLast    = i === steps.length - 1;
+        const isDone   = i < current;
+        const isActive = i === current;
+        const isLast   = i === steps.length - 1;
 
         return (
           <React.Fragment key={step.label}>
@@ -53,7 +53,11 @@ function StepIndicator({ steps, current }) {
                 style={{
                   fontSize: '11px',
                   fontWeight: isActive ? 700 : 500,
-                  color: isActive ? 'var(--green-800)' : isDone ? 'var(--green-700)' : 'var(--text-muted)',
+                  color: isActive
+                    ? 'var(--green-800)'
+                    : isDone
+                      ? 'var(--green-700)'
+                      : 'var(--text-muted)',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -163,9 +167,9 @@ function SuccessScreen({ request, onViewRequests, onNewRequest }) {
           What happens next
         </div>
         {[
-          { icon: '🔍', text: 'We are matching you with nearby volunteers' },
-          { icon: '📱', text: 'You will be notified when someone accepts'  },
-          { icon: '🚨', text: 'For life-threatening emergencies, call 1122' },
+          { icon: '🔍', text: 'We are matching you with nearby volunteers'   },
+          { icon: '📱', text: 'You will be notified when someone accepts'    },
+          { icon: '🚨', text: 'For life-threatening emergencies, call 1122'  },
         ].map((item) => (
           <div
             key={item.text}
@@ -186,16 +190,10 @@ function SuccessScreen({ request, onViewRequests, onNewRequest }) {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button
-          className="btn btn-primary btn-lg"
-          onClick={onViewRequests}
-        >
+        <button className="btn btn-primary btn-lg" onClick={onViewRequests}>
           📋 View My Requests
         </button>
-        <button
-          className="btn btn-ghost btn-lg"
-          onClick={onNewRequest}
-        >
+        <button className="btn btn-ghost btn-lg" onClick={onNewRequest}>
           + New Request
         </button>
       </div>
@@ -215,18 +213,17 @@ export default function CreateRequest() {
   const navigate = useNavigate();
   const { submitRequest, loading, error, clearError } = useRequests();
 
-  const [step,        setStep]        = useState(1);
-  const [submitted,   setSubmitted]   = useState(false);
+  const [step,           setStep]           = useState(1);
+  const [submitted,      setSubmitted]      = useState(false);
   const [createdRequest, setCreatedRequest] = useState(null);
 
-  // HelpRequestForm calls this with the clean payload
   const handleSubmit = async (payload) => {
     clearError();
     try {
       const request = await submitRequest(payload);
       setCreatedRequest(request);
       setSubmitted(true);
-      setStep(3); // move to final step
+      setStep(3);
     } catch {
       // error already set in useRequests
     }
@@ -255,7 +252,7 @@ export default function CreateRequest() {
         {/* ── Step indicator ────────────────────────────────────────────── */}
         <StepIndicator steps={STEPS} current={submitted ? 3 : 1} />
 
-        {/* ── Main card ─────────────────────────────────────────────────── */}
+        {/* ── Main grid ─────────────────────────────────────────────────── */}
         <div
           style={{
             display: 'grid',
@@ -264,7 +261,7 @@ export default function CreateRequest() {
             alignItems: 'start',
           }}
         >
-          {/* Form / Success */}
+          {/* Form / Success card */}
           <div className="card anim-fade-up delay-200">
             <div className="card-body">
               {submitted ? (
@@ -280,7 +277,6 @@ export default function CreateRequest() {
                 />
               ) : (
                 <>
-                  {/* API error from useRequests */}
                   {error && (
                     <div className="alert alert-error" style={{ marginBottom: '20px' }}>
                       <span className="alert-icon">⚠️</span>
@@ -297,10 +293,10 @@ export default function CreateRequest() {
             </div>
           </div>
 
-          {/* Right sidebar — tips */}
+          {/* Right sidebar */}
           <div
-            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
             className="anim-fade-up delay-300"
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
             {/* Tips card */}
             <div className="card">
@@ -318,11 +314,11 @@ export default function CreateRequest() {
                   💡 Tips for faster help
                 </div>
                 {[
-                  { tip: 'Be specific about your location — include landmarks' },
-                  { tip: 'Describe the number of people affected'              },
-                  { tip: 'Mention any specific skills or equipment needed'      },
-                  { tip: 'Set urgency accurately — critical requests are prioritized' },
-                  { tip: 'Add a proof image if it helps describe the situation' },
+                  { tip: 'Be specific about your location — include landmarks'       },
+                  { tip: 'Describe the number of people affected'                    },
+                  { tip: 'Mention any specific skills or equipment needed'           },
+                  { tip: 'Set urgency accurately — critical requests are prioritized'},
+                  { tip: 'Add a proof image if it helps describe the situation'      },
                 ].map((item, i) => (
                   <div
                     key={i}
@@ -341,6 +337,29 @@ export default function CreateRequest() {
                     {item.tip}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Safety disclaimer — from Rabia's branch */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderRadius: 'var(--radius-lg)',
+                background: 'var(--green-50)',
+                border: '1px solid var(--green-100)',
+                display: 'flex',
+                gap: '12px',
+              }}
+            >
+              <span style={{ fontSize: '22px', flexShrink: 0 }}>🛡️</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-dark)', marginBottom: '4px' }}>
+                  Your Safety is Priority
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
+                  Your approximate location will be shared with verified responders only.
+                  Always move to a safe area while waiting for help to arrive.
+                </p>
               </div>
             </div>
 
@@ -389,14 +408,7 @@ export default function CreateRequest() {
                   <span style={{ fontSize: '13px', color: 'var(--text-mid)', fontWeight: 500 }}>
                     {contact.label}
                   </span>
-                  <span
-                    style={{
-                      fontSize: '15px',
-                      fontWeight: 800,
-                      color: 'var(--danger)',
-                      letterSpacing: '-0.3px',
-                    }}
-                  >
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--danger)', letterSpacing: '-0.3px' }}>
                     {contact.number}
                   </span>
                 </a>
@@ -404,6 +416,7 @@ export default function CreateRequest() {
             </div>
           </div>
         </div>
+
       </div>
     </Navbar>
   );

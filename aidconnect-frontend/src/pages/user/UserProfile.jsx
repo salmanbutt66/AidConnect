@@ -11,9 +11,9 @@ import { getInitials, formatRole, formatDate } from '../../utils/formatters.js';
 // ─── Section tab bar ──────────────────────────────────────────────────────────
 function SectionTabs({ active, onChange }) {
   const tabs = [
-    { value: 'profile',  icon: '👤', label: 'Profile'   },
-    { value: 'password', icon: '🔒', label: 'Password'  },
-    { value: 'danger',   icon: '⚠️', label: 'Account'   },
+    { value: 'profile',  icon: '👤', label: 'Profile'  },
+    { value: 'password', icon: '🔒', label: 'Password' },
+    { value: 'danger',   icon: '⚠️', label: 'Account'  },
   ];
   return (
     <div className="tabs">
@@ -33,8 +33,8 @@ function SectionTabs({ active, onChange }) {
 
 // ─── Change password form ─────────────────────────────────────────────────────
 function ChangePasswordForm({ onSuccess }) {
-  const [form, setForm]       = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [errors, setErrors]   = useState({});
+  const [form,    setForm]    = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [errors,  setErrors]  = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
@@ -109,9 +109,9 @@ function ChangePasswordForm({ onSuccess }) {
           {apiError}
         </div>
       )}
-      {passwordField('cp-current', 'currentPassword', 'Current Password', showCurrent, setShowCurrent, 'Enter current password', 'current-password')}
-      {passwordField('cp-new',     'newPassword',     'New Password',     showNew,     setShowNew,     'Min 8 chars, uppercase + number', 'new-password')}
-      {passwordField('cp-confirm', 'confirmPassword', 'Confirm New Password', showConfirm, setShowConfirm, 'Repeat new password', 'new-password')}
+      {passwordField('cp-current', 'currentPassword', 'Current Password',     showCurrent, setShowCurrent, 'Enter current password',          'current-password')}
+      {passwordField('cp-new',     'newPassword',     'New Password',         showNew,     setShowNew,     'Min 8 chars, uppercase + number', 'new-password'    )}
+      {passwordField('cp-confirm', 'confirmPassword', 'Confirm New Password', showConfirm, setShowConfirm, 'Repeat new password',             'new-password'    )}
       <button
         type="submit"
         className="btn btn-primary btn-lg"
@@ -135,8 +135,6 @@ function DangerZone({ onDeleteAccount }) {
           Please proceed with caution.
         </div>
       </div>
-
-      {/* Delete account */}
       <div
         style={{
           padding: '20px',
@@ -155,10 +153,7 @@ function DangerZone({ onDeleteAccount }) {
               Active requests will be cancelled. This cannot be undone.
             </div>
           </div>
-          <button
-            className="btn btn-danger"
-            onClick={onDeleteAccount}
-          >
+          <button className="btn btn-danger" onClick={onDeleteAccount}>
             🗑 Delete Account
           </button>
         </div>
@@ -171,11 +166,11 @@ function DangerZone({ onDeleteAccount }) {
 export default function UserProfile() {
   const { user, updateUser, logout } = useAuth();
 
-  const [activeTab,    setActiveTab]    = useState('profile');
-  const [profileLoad,  setProfileLoad]  = useState(false);
-  const [successMsg,   setSuccessMsg]   = useState('');
-  const [apiError,     setApiError]     = useState('');
-  const [showDelete,   setShowDelete]   = useState(false);
+  const [activeTab,     setActiveTab]     = useState('profile');
+  const [profileLoad,   setProfileLoad]   = useState(false);
+  const [successMsg,    setSuccessMsg]    = useState('');
+  const [apiError,      setApiError]      = useState('');
+  const [showDelete,    setShowDelete]    = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const showSuccess = (msg) => {
@@ -215,15 +210,14 @@ export default function UserProfile() {
     <Navbar title="My Profile">
       <div className="page-wrapper">
 
-        {/* ── Profile hero ──────────────────────────────────────────────── */}
+        {/* ── Profile hero — styled header from Rabia's branch ─────────── */}
         <div className="profile-hero">
-          {/* Avatar */}
           {user?.profilePicture ? (
             <img
               src={user.profilePicture}
               alt={user.name}
               className="avatar avatar-xl"
-              style={{ objectFit: 'cover', flexShrink: 0 }}
+              style={{ objectFit: 'cover', flexShrink: 0, border: '4px solid rgba(255,255,255,0.2)' }}
             />
           ) : (
             <div className="avatar avatar-xl" style={{ flexShrink: 0 }}>
@@ -237,22 +231,16 @@ export default function UserProfile() {
             <div className="profile-hero-role">{formatRole(user?.role)}</div>
             <div className="profile-hero-email">{user?.email}</div>
 
-            {/* Badges row */}
+            {/* Badges */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
               {user?.isVerified && (
-                <span className="badge badge-green" style={{ fontSize: '11px' }}>
-                  ✓ Verified
-                </span>
+                <span className="badge badge-green" style={{ fontSize: '11px' }}>✓ Verified</span>
               )}
               {user?.bloodGroup && (
-                <span className="badge badge-red" style={{ fontSize: '11px' }}>
-                  🩸 {user.bloodGroup}
-                </span>
+                <span className="badge badge-red" style={{ fontSize: '11px' }}>🩸 {user.bloodGroup}</span>
               )}
               {user?.location?.city && (
-                <span className="badge badge-stone" style={{ fontSize: '11px' }}>
-                  📍 {user.location.city}
-                </span>
+                <span className="badge badge-stone" style={{ fontSize: '11px' }}>📍 {user.location.city}</span>
               )}
               <span className="badge badge-stone" style={{ fontSize: '11px' }}>
                 📅 Joined {formatDate(user?.createdAt)}
@@ -261,29 +249,17 @@ export default function UserProfile() {
           </div>
 
           {/* Stats */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '24px',
-              flexShrink: 0,
-            }}
-          >
-            {[
-              { label: 'Requests',  value: user?.totalRequestsMade || 0 },
-            ].map((stat) => (
-              <div key={stat.label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: 'white', letterSpacing: '-1px' }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+          <div style={{ flexShrink: 0, textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', fontWeight: 800, color: 'white', letterSpacing: '-1px' }}>
+              {user?.totalRequestsMade || 0}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
+              Requests
+            </div>
           </div>
         </div>
 
-        {/* ── Success / error alerts ────────────────────────────────────── */}
+        {/* ── Alerts ────────────────────────────────────────────────────── */}
         {successMsg && (
           <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
             <span className="alert-icon">✅</span>
@@ -297,7 +273,7 @@ export default function UserProfile() {
           </div>
         )}
 
-        {/* ── Card with tabs ────────────────────────────────────────────── */}
+        {/* ── Main grid ─────────────────────────────────────────────────── */}
         <div
           style={{
             display: 'grid',
@@ -306,12 +282,11 @@ export default function UserProfile() {
             alignItems: 'start',
           }}
         >
-          {/* Main form card */}
+          {/* Form card with tabs */}
           <div className="card anim-fade-up delay-100">
             <div className="card-body">
               <SectionTabs active={activeTab} onChange={setActiveTab} />
 
-              {/* Profile tab */}
               {activeTab === 'profile' && (
                 <ProfileForm
                   user={user}
@@ -322,22 +297,20 @@ export default function UserProfile() {
                 />
               )}
 
-              {/* Password tab */}
               {activeTab === 'password' && (
                 <ChangePasswordForm onSuccess={showSuccess} />
               )}
 
-              {/* Danger zone tab */}
               {activeTab === 'danger' && (
                 <DangerZone onDeleteAccount={() => setShowDelete(true)} />
               )}
             </div>
           </div>
 
-          {/* Right sidebar — account info */}
+          {/* Right sidebar */}
           <div
-            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
             className="anim-fade-up delay-200"
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
             {/* Account info card */}
             <div className="card">
@@ -345,13 +318,12 @@ export default function UserProfile() {
                 <div className="section-title" style={{ marginBottom: '16px' }}>
                   Account Info
                 </div>
-
                 {[
-                  { icon: '📧', label: 'Email',    value: user?.email              },
-                  { icon: '📱', label: 'Phone',    value: user?.phone || 'Not set' },
-                  { icon: '🩸', label: 'Blood',    value: user?.bloodGroup || 'Not set' },
-                  { icon: '📍', label: 'City',     value: user?.location?.city || 'Not set' },
-                  { icon: '📅', label: 'Member since', value: formatDate(user?.createdAt) },
+                  { icon: '📧', label: 'Email',        value: user?.email                   },
+                  { icon: '📱', label: 'Phone',        value: user?.phone       || 'Not set' },
+                  { icon: '🩸', label: 'Blood Group',  value: user?.bloodGroup  || 'Not set' },
+                  { icon: '📍', label: 'City',         value: user?.location?.city || 'Not set' },
+                  { icon: '📅', label: 'Member Since', value: formatDate(user?.createdAt)    },
                 ].map((item) => (
                   <div
                     key={item.label}
@@ -386,7 +358,7 @@ export default function UserProfile() {
               </div>
             </div>
 
-            {/* Tips card */}
+            {/* Profile tips card */}
             <div
               style={{
                 padding: '16px 20px',
@@ -395,7 +367,16 @@ export default function UserProfile() {
                 border: '1px solid var(--green-100)',
               }}
             >
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--green-700)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px' }}>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--green-700)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.8px',
+                  marginBottom: '12px',
+                }}
+              >
                 💡 Profile Tips
               </div>
               {[
@@ -423,6 +404,7 @@ export default function UserProfile() {
             </div>
           </div>
         </div>
+
       </div>
 
       {/* ── Delete account modal ───────────────────────────────────────── */}
