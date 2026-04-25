@@ -2,11 +2,19 @@
 import HelpRequest from "../models/HelpRequest.model.js";
 import Match from "../models/Match.model.js";
 import Rating from "../models/Rating.model.js";
+import Volunteer from "../models/Volunteer.model.js";
+import Provider from "../models/Provider.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import { createGeoPoint, isValidCoordinates } from "../utils/geoHelper.js";
 import { findAndCreateMatches, handleVolunteerResponse } from "../services/matching.service.js";
 import { notifyRequestCompleted, notifyRequestCancelled } from "../services/notification.service.js";
+import ScoringService from "../services/scoring.service.js";
+
+const getProviderCredibilityScore = (averageRating, totalRatings) => {
+  if (!totalRatings) return 50;
+  return Math.round(Math.max(0, Math.min(100, (averageRating / 5) * 100)));
+};
 
 // ─────────────────────────────────────────
 // CREATE REQUEST
@@ -36,19 +44,18 @@ export const createRequest = asyncHandler(async (req, res) => {
   }
 
   const request = await HelpRequest.create({
-    requesterId: req.user.id,
+    requesterId:      req.user.id,
     emergencyType,
     urgencyLevel,
     description,
     bloodGroupNeeded: emergencyType === "blood" ? bloodGroupNeeded : null,
-    proofImage: proofImage || null,
-    address: address || null,
-    location: createGeoPoint(Number(longitude), Number(latitude)),
-    status: "posted",
-    postedAt: new Date(),
+    proofImage:       proofImage || null,
+    address:          address || null,
+    location:         createGeoPoint(Number(longitude), Number(latitude)),
+    status:           "posted",
+    postedAt:         new Date(),
   });
 
-  // Trigger matching engine in background
   findAndCreateMatches(request).catch((err) => {
     console.error("Matching engine failed for request:", request._id, err.message);
   });
@@ -79,7 +86,7 @@ export const getMyRequests = asyncHandler(async (req, res) => {
 
   return sendPaginated(res, "Your requests fetched successfully", requests, {
     total,
-    page: Number(page),
+    page:  Number(page),
     limit: Number(limit),
     pages: Math.ceil(total / Number(limit)),
   });
@@ -132,7 +139,7 @@ export const getNearbyRequests = asyncHandler(async (req, res) => {
 
   return sendPaginated(res, "Nearby requests fetched successfully", requests, {
     total,
-    page: Number(page),
+    page:  Number(page),
     limit: Number(limit),
     pages: Math.ceil(total / Number(limit)),
   });
@@ -169,7 +176,7 @@ export const cancelRequest = asyncHandler(async (req, res) => {
     return sendError(res, 400, `Cannot cancel a request that is already ${request.status}`);
   }
 
-  request.status = "cancelled";
+  request.status      = "cancelled";
   request.cancelledAt = new Date();
   await request.save();
 
@@ -217,7 +224,25 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
 
   if (!request) return sendError(res, 404, "Request not found");
 
-  if (request.assignedTo.toString() !== req.user.id) {
+  if (!request.assignedTo || !request.assignedType) {
+    return sendError(res, 400, "No responder is assigned to this request");
+  }
+
+  let isAssignedResponder = false;
+
+  if (request.assignedType === "Volunteer" && req.user.role === "volunteer") {
+    const volunteer = await Volunteer.findOne({ user: req.user.id }).select("_id");
+    isAssignedResponder =
+      !!volunteer && request.assignedTo.toString() === volunteer._id.toString();
+  }
+
+  if (request.assignedType === "Provider" && req.user.role === "provider") {
+    const provider = await Provider.findOne({ userId: req.user.id }).select("_id");
+    isAssignedResponder =
+      !!provider && request.assignedTo.toString() === provider._id.toString();
+  }
+
+  if (!isAssignedResponder) {
     return sendError(res, 403, "You are not assigned to this request");
   }
 
@@ -229,9 +254,14 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
   request.status = status;
 
   if (status === "completed") {
-    request.completedAt = new Date();
-    const diffMs = request.completedAt - request.postedAt;
+    request.completedAt    = new Date();
+    const diffMs           = request.completedAt - request.postedAt;
     request.resolutionTime = Math.round(diffMs / 1000 / 60);
+
+    if (request.assignedType === "Provider") {
+      await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
+    }
+
     await notifyRequestCompleted(request.requesterId, request);
   }
 
@@ -243,12 +273,14 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────
 // RATE REQUEST
 // POST /api/requests/:id/rate
+// FIX: frontend sends { score, comment } — was incorrectly reading { rating }
 // ─────────────────────────────────────────
 export const rateRequest = asyncHandler(async (req, res) => {
-  const { rating, comment } = req.body;
+  // FIX: destructure 'score' not 'rating'
+  const { score, comment } = req.body;
 
-  if (!rating || rating < 1 || rating > 5) {
-    return sendError(res, 400, "Rating must be between 1 and 5");
+  if (!score || score < 1 || score > 5) {
+    return sendError(res, 400, "Rating score must be between 1 and 5");
   }
 
   const request = await HelpRequest.findById(req.params.id);
@@ -267,20 +299,66 @@ export const rateRequest = asyncHandler(async (req, res) => {
     return sendError(res, 400, "No responder assigned to rate");
   }
 
+  const recipientType = request.assignedType;
+  if (!recipientType || !["Volunteer", "Provider"].includes(recipientType)) {
+    return sendError(res, 400, "This request cannot be rated");
+  }
+
+  let recipientUserId  = null;
+  let volunteerProfile = null;
+  let providerProfile  = null;
+
+  if (recipientType === "Volunteer") {
+    volunteerProfile = await Volunteer.findById(request.assignedTo);
+    if (!volunteerProfile) return sendError(res, 404, "Volunteer profile not found");
+    recipientUserId = volunteerProfile.user;
+  }
+
+  if (recipientType === "Provider") {
+    providerProfile = await Provider.findById(request.assignedTo);
+    if (!providerProfile) return sendError(res, 404, "Provider profile not found");
+    recipientUserId = providerProfile.userId;
+  }
+
   const existingRating = await Rating.findOne({
     helpRequest: request._id,
-    ratedBy: req.user.id,
+    ratedBy:     req.user.id,
   });
 
   if (existingRating) return sendError(res, 400, "You have already rated this request");
 
+  // FIX: use 'score' field, include 'recipientType' so analytics filters work
   const newRating = await Rating.create({
-    helpRequest: request._id,
-    ratedBy: req.user.id,
-    ratedTo: request.assignedTo,
-    score: rating,
-    comment: comment || null,
+    helpRequest:   request._id,
+    ratedBy:       req.user.id,
+    ratedTo:       recipientUserId,
+    recipientType,
+    score,
+    comment:       comment || null,
   });
+
+  // Update volunteer — addRating() recalculates averageRating inline
+  if (recipientType === "Volunteer") {
+    volunteerProfile.addRating(req.user.id, request._id, score, comment || "");
+    await volunteerProfile.save();
+
+    // FIX: trigger scoring service so reputationScore stays in sync
+    ScoringService.recalculate(volunteerProfile._id).catch((err) =>
+      console.error("Score recalculation failed:", err.message)
+    );
+  }
+
+  // Update provider — pull fresh average from Rating collection
+  if (recipientType === "Provider") {
+    const providerRatings        = await Rating.getAverageScore(recipientUserId, "Provider");
+    providerProfile.averageRating    = Number((providerRatings.averageScore || 0).toFixed(2));
+    providerProfile.totalRatings     = providerRatings.totalRatings || 0;
+    providerProfile.credibilityScore = getProviderCredibilityScore(
+      providerProfile.averageRating,
+      providerProfile.totalRatings
+    );
+    await providerProfile.save();
+  }
 
   return sendSuccess(res, 201, "Rating submitted successfully", newRating);
 });
@@ -297,7 +375,7 @@ export const getAllRequests = asyncHandler(async (req, res) => {
   } = req.query;
 
   const filter = {};
-  if (status) filter.status = status;
+  if (status)        filter.status        = status;
   if (emergencyType) filter.emergencyType = emergencyType;
 
   if (startDate || endDate) {
@@ -320,7 +398,7 @@ export const getAllRequests = asyncHandler(async (req, res) => {
 
   return sendPaginated(res, "All requests fetched successfully", requests, {
     total,
-    page: Number(page),
+    page:  Number(page),
     limit: Number(limit),
     pages: Math.ceil(total / Number(limit)),
   });

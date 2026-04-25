@@ -24,6 +24,7 @@ const UserProfile    = lazy(() => import('../pages/user/UserProfile.jsx'));
 
 // Volunteer
 const VolunteerDashboard = lazy(() => import('../pages/volunteer/VolunteerDashboard.jsx'));
+const VolunteerMatches   = lazy(() => import('../pages/volunteer/Matches.jsx'));
 const ActiveRequest      = lazy(() => import('../pages/volunteer/ActiveRequest.jsx'));
 const MyHistory          = lazy(() => import('../pages/volunteer/MyHistory.jsx'));
 const VolunteerProfile   = lazy(() => import('../pages/volunteer/VolunteerProfile.jsx'));
@@ -126,6 +127,11 @@ export default function AppRoutes() {
         <Route path="/volunteer/dashboard" element={
           <ProtectedRoute roles={['volunteer']}>
             <VolunteerDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/volunteer/matches" element={
+          <ProtectedRoute roles={['volunteer']}>
+            <VolunteerMatches />
           </ProtectedRoute>
         } />
         <Route path="/volunteer/active-request" element={

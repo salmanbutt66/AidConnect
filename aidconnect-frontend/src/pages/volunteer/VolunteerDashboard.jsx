@@ -368,6 +368,7 @@ export default function VolunteerDashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {[
                         { icon: '🚨', label: 'View Active Request', desc: 'Check and manage your current assignment', to: '/volunteer/active-request' },
+                        { icon: '📬', label: 'Incoming Matches',    desc: 'Review matches and accept a request',    to: '/volunteer/matches' },
                         { icon: '📋', label: 'Request History',     desc: 'Browse your past responses and ratings',  to: '/volunteer/history'        },
                         { icon: '👤', label: 'Edit Profile',         desc: 'Update your skills and service area',     to: '/volunteer/profile'        },
                       ].map((action) => (

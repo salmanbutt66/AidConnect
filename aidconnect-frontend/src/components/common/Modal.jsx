@@ -1,62 +1,6 @@
 // src/components/common/Modal.jsx
 import React, { useEffect, useCallback } from 'react';
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-/**
- * Modal — universal dialog component built on the design system's
- * .modal-overlay, .modal, .modal-header, .modal-body, .modal-footer
- * classes from index.css.
- *
- * Props:
- *   isOpen      {boolean}   controls visibility — required
- *   onClose     {fn}        called on overlay click, X button, or Escape key
- *   title       {string}    header title text
- *   icon        {string}    emoji shown before title e.g. "⚠️"
- *   children    {node}      modal body content
- *   footer      {node}      custom footer content — overrides confirm/cancel
- *
- *   Confirm/cancel shorthand (ignored if footer is provided):
- *   onConfirm       {fn}      confirm button handler
- *   confirmLabel    {string}  confirm button text       default: 'Confirm'
- *   confirmVariant  'primary' | 'danger'                default: 'primary'
- *   cancelLabel     {string}  cancel button text        default: 'Cancel'
- *   loading         {boolean} disables buttons + shows spinner on confirm
- *
- *   size        'sm' | 'md' | 'lg'    default: 'md'
- *   closeOnOverlay {boolean}          default: true
- *
- * USAGE:
- *
- * // Simple confirm/cancel — delete action
- * <Modal
- *   isOpen={showDelete}
- *   onClose={() => setShowDelete(false)}
- *   title="Delete Request"
- *   icon="🗑"
- *   onConfirm={handleDelete}
- *   confirmLabel="Delete"
- *   confirmVariant="danger"
- *   loading={actionLoading}
- * >
- *   Are you sure you want to delete this request? This cannot be undone.
- * </Modal>
- *
- * // Custom footer — rating form
- * <Modal
- *   isOpen={showRating}
- *   onClose={() => setShowRating(false)}
- *   title="Rate Volunteer"
- *   icon="⭐"
- *   footer={<button className="btn btn-primary" onClick={submitRating}>Submit</button>}
- * >
- *   <RatingForm ... />
- * </Modal>
- *
- * // Info only — no footer
- * <Modal isOpen={showInfo} onClose={closeInfo} title="How it works">
- *   <p>...</p>
- * </Modal>
- */
 export default function Modal({
   isOpen,
   onClose,
@@ -85,7 +29,6 @@ export default function Modal({
   useEffect(() => {
     if (!isOpen) return;
     document.addEventListener('keydown', handleKeyDown);
-    // Lock body scroll while modal is open
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -93,7 +36,6 @@ export default function Modal({
     };
   }, [isOpen, handleKeyDown]);
 
-  // ── Don't render anything when closed ─────────────────────────────────────
   if (!isOpen) return null;
 
   const maxWidths = { sm: '380px', md: '480px', lg: '600px' };
@@ -103,21 +45,21 @@ export default function Modal({
       ? 'btn btn-danger'
       : 'btn btn-primary';
 
-  // ── Determine footer content ───────────────────────────────────────────────
-  // If footer prop is passed → use it directly
-  // If onConfirm is passed  → render confirm + cancel buttons
-  // Otherwise               → no footer
   const hasFooter = footer !== undefined || typeof onConfirm === 'function';
 
   return (
     <div
       className="modal-overlay"
-      onClick={closeOnOverlay && !loading ? onClose : undefined}
+      onClick={(e) => {
+        // Only close if clicking the overlay itself, not its children
+        if (e.target === e.currentTarget && closeOnOverlay && !loading) {
+          onClose();
+        }
+      }}
     >
       <div
         className="modal"
         style={{ maxWidth: maxWidths[size] }}
-        onClick={(e) => e.stopPropagation()}
       >
 
         {/* ── Header ────────────────────────────────────────────────────── */}
@@ -163,7 +105,10 @@ export default function Modal({
                 </button>
                 <button
                   className={confirmBtnClass}
-                  onClick={onConfirm}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onConfirm) onConfirm();
+                  }}
                   disabled={loading}
                 >
                   {loading ? (

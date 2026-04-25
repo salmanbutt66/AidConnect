@@ -75,6 +75,9 @@ export default function ProviderCard({
     servicesOffered = [],
     contactNumber,
     address,
+    averageRating = 0,
+    totalRatings = 0,
+    credibilityScore = 50,
   } = provider;
 
   const serviceMeta = getServiceMeta(serviceType);
@@ -162,6 +165,10 @@ export default function ProviderCard({
           {address && (
             <InfoRow icon="📍" text={address} muted />
           )}
+          {(totalRatings > 0 || isAdmin) && (
+            <InfoRow icon="⭐" text={`${Number(averageRating || 0).toFixed(1)} / 5 (${totalRatings} ratings)`} muted />
+          )}
+          <InfoRow icon="🛡️" text={`Credibility: ${credibilityScore}/100`} muted />
           {operatingText && (
             <InfoRow icon="🕐" text={`Open: ${operatingText}`} muted />
           )}

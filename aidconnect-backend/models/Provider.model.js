@@ -30,6 +30,26 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    availabilityInitialized: {
+      type: Boolean,
+      default: true,
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
+    },
+    credibilityScore: {
+      type: Number,
+      default: 50,
+      min: 0,
+      max: 100,
+    },
     operatingHours: {
       open: { type: String, default: "00:00" },
       close: { type: String, default: "23:59" },

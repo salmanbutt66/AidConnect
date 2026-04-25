@@ -348,6 +348,7 @@ export default function MyRequests() {
                           variant="user"
                           onClick={(req) => navigate(`/user/requests/${req._id}`)}
                           onCancel={(id) => setCancelTarget(id)}
+                          onRate={(req) => navigate(`/user/requests/${req._id}?rate=1`)}
                           loading={actionLoading}
                         />
                       ))}

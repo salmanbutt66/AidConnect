@@ -210,7 +210,7 @@ export default function RequestCard({
           {/* USER: rate completed request */}
           {variant === 'user' && status === 'completed' && typeof onRate === 'function' && (
             <ActionBtn
-              label="Rate"
+              label={request.assignedType === 'Provider' ? 'Rate Service' : 'Rate'}
               icon="⭐"
               variant="secondary"
               loading={loading}

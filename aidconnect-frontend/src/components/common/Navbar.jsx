@@ -16,6 +16,7 @@ const NAV_LINKS = {
   ],
   volunteer: [
     { to: '/volunteer/dashboard',       icon: '🏠', label: 'Dashboard'      },
+    { to: '/volunteer/matches',         icon: '📬', label: 'Incoming Matches' },
     { to: '/volunteer/active-request',  icon: '🚨', label: 'Active Request' },
     { to: '/volunteer/history',         icon: '📋', label: 'My History'     },
     { to: '/volunteer/profile',         icon: '👤', label: 'Profile'        },
@@ -322,7 +323,7 @@ export default function Navbar({ title, children }) {
 
               {/* Notification dropdown */}
               {notifOpen && (
-                <div className="notif-dropdown">
+                <div className="notif-dropdown" style={{ overflow: 'hidden' }}>
                   <div className="notif-dropdown-header">
                     <h4>
                       Notifications
@@ -336,11 +337,11 @@ export default function Navbar({ title, children }) {
                       )}
                     </h4>
                     {notifications.length > 0 && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '100%' }}>
                         {hasUnread && (
                           <button
                             className="btn btn-ghost btn-sm"
-                            style={{ fontSize: '11px', padding: '4px 8px' }}
+                            style={{ fontSize: '11px', padding: '4px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}
                             onClick={markAllRead}
                           >
                             Mark all read
@@ -348,7 +349,7 @@ export default function Navbar({ title, children }) {
                         )}
                         <button
                           className="btn btn-ghost btn-sm"
-                          style={{ fontSize: '11px', padding: '4px 8px' }}
+                          style={{ fontSize: '11px', padding: '4px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}
                           onClick={clearAll}
                         >
                           Clear all

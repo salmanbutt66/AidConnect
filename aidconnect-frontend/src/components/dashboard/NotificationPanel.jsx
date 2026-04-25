@@ -136,24 +136,6 @@ function EmptyNotifications() {
 }
 
 // ─── NotificationPanel ────────────────────────────────────────────────────────
-/**
- * NotificationPanel — full notification list for dashboard pages.
- *
- * Renders inside a card on any dashboard page that needs a dedicated
- * notifications section (e.g. UserDashboard, VolunteerDashboard).
- * The Navbar already handles the dropdown bell — this is the full panel.
- *
- * Props:
- *   limit    {number}   max notifications to show     default: 10
- *   showHeader {boolean} show the panel header         default: true
- *
- * Usage:
- *   // Inside UserDashboard
- *   <NotificationPanel />
- *
- *   // Compact — no header, fewer items
- *   <NotificationPanel limit={5} showHeader={false} />
- */
 export default function NotificationPanel({ limit = 10, showHeader = true }) {
   const {
     notifications,
@@ -167,7 +149,6 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
     removeNotification,
   } = useNotifications();
 
-  // Fetch fresh on mount
   useEffect(() => {
     fetchNotifications({ limit });
   }, [limit]);
@@ -180,32 +161,46 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       {showHeader && (
         <div className="card-header">
-          <div className="section-header" style={{ marginBottom: 0 }}>
-            <div>
-              <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🔔 Notifications
-                {hasUnread && (
-                  <span className="badge badge-green" style={{ fontSize: '10px' }}>
-                    {unreadCount} new
-                  </span>
-                )}
-              </div>
-              <div className="section-subtitle">
-                {hasUnread
-                  ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
-                  : 'All caught up'
-                }
-              </div>
+
+          {/* Title row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🔔 Notifications
+              {hasUnread && (
+                <span className="badge badge-green" style={{ fontSize: '10px' }}>
+                  {unreadCount} new
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Subtitle + action buttons — separate row so they never fight */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              flexWrap: 'wrap',
+              marginTop: '2px',
+            }}
+          >
+            <div
+              className="section-subtitle"
+              style={{ minWidth: 0, flex: 1 }}
+            >
+              {hasUnread
+                ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
+                : 'All caught up'}
             </div>
 
-            {/* Actions */}
             {notifications.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                 {hasUnread && (
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={markAllRead}
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '11px', padding: '5px 10px', whiteSpace: 'nowrap' }}
                   >
                     Mark all read
                   </button>
@@ -213,20 +208,26 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={clearAll}
-                  style={{ fontSize: '12px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                  style={{
+                    fontSize: '11px',
+                    padding: '5px 10px',
+                    whiteSpace: 'nowrap',
+                    color: 'var(--danger)',
+                    borderColor: 'var(--danger)',
+                  }}
                 >
                   Clear all
                 </button>
               </div>
             )}
           </div>
+
         </div>
       )}
 
       {/* ── Body ────────────────────────────────────────────────────────── */}
       <div className="card-body" style={{ paddingTop: showHeader ? '16px' : '24px' }}>
         {loading ? (
-          // Skeleton rows while loading
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {Array.from({ length: 3 }).map((_, i) => (
               <div
@@ -263,7 +264,6 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
               />
             ))}
 
-            {/* Show more hint */}
             {notifications.length > limit && (
               <div
                 style={{

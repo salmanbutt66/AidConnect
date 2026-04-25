@@ -11,7 +11,6 @@ import asyncHandler from "../utils/asyncHandler.js";
 // 👥 USER MANAGEMENT
 // ─────────────────────────────────────────────
 
-// GET /api/admin/users
 export const getAllUsers = asyncHandler(async (req, res) => {
   const {
     role, isActive, isBanned, isVerified,
@@ -19,12 +18,12 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   } = req.query;
 
   const filter = {};
-  if (role) filter.role = role;
-  if (isActive !== undefined) filter.isActive = isActive === "true";
-  if (isBanned !== undefined) filter.isBanned = isBanned === "true";
-  if (isVerified !== undefined) filter.isVerified = isVerified === "true";
-  if (city) filter["location.city"] = city;
-  if (bloodGroup) filter.bloodGroup = bloodGroup;
+  if (role)                    filter.role               = role;
+  if (isActive !== undefined)  filter.isActive           = isActive === "true";
+  if (isBanned !== undefined)  filter.isBanned           = isBanned === "true";
+  if (isVerified !== undefined) filter.isVerified        = isVerified === "true";
+  if (city)                    filter["location.city"]   = city;
+  if (bloodGroup)              filter.bloodGroup         = bloodGroup;
   if (search) {
     filter.$or = [
       { name:  { $regex: search, $options: "i" } },
@@ -45,27 +44,22 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   return sendPaginated(res, "Users fetched successfully", users, {
     total,
-    page: parseInt(page),
+    page:  parseInt(page),
     limit: parseInt(limit),
     pages: Math.ceil(total / parseInt(limit)),
   });
 });
 
-// GET /api/admin/users/:id
 export const getUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id).select("-password -refreshToken");
-
   if (!user) return sendError(res, 404, "User not found");
-
   return sendSuccess(res, 200, "User fetched", user);
 });
 
-// PATCH /api/admin/users/:id/ban
 export const banUser = asyncHandler(async (req, res) => {
   const { reason } = req.body;
-
   const user = await User.findById(req.params.id);
-  if (!user) return sendError(res, 404, "User not found");
+  if (!user)             return sendError(res, 404, "User not found");
   if (user.role === "admin") return sendError(res, 403, "Cannot ban an admin");
 
   user.isBanned     = true;
@@ -76,7 +70,6 @@ export const banUser = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, "User banned successfully", user.toPublicJSON());
 });
 
-// PATCH /api/admin/users/:id/unban
 export const unbanUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return sendError(res, 404, "User not found");
@@ -89,7 +82,6 @@ export const unbanUser = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, "User unbanned successfully", user.toPublicJSON());
 });
 
-// PATCH /api/admin/users/:id/verify
 export const verifyUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return sendError(res, 404, "User not found");
@@ -100,14 +92,12 @@ export const verifyUser = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, "User verified successfully", user.toPublicJSON());
 });
 
-// DELETE /api/admin/users/:id
 export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
-  if (!user) return sendError(res, 404, "User not found");
+  if (!user)                 return sendError(res, 404, "User not found");
   if (user.role === "admin") return sendError(res, 403, "Cannot delete an admin");
 
   await User.findByIdAndDelete(req.params.id);
-
   return sendSuccess(res, 200, "User deleted successfully");
 });
 
@@ -115,7 +105,6 @@ export const deleteUser = asyncHandler(async (req, res) => {
 // 📋 REQUEST MANAGEMENT
 // ─────────────────────────────────────────────
 
-// GET /api/admin/requests
 export const getAllRequests = asyncHandler(async (req, res) => {
   const {
     status, emergencyType, urgencyLevel,
@@ -123,10 +112,10 @@ export const getAllRequests = asyncHandler(async (req, res) => {
   } = req.query;
 
   const filter = {};
-  if (status) filter.status = status;
+  if (status)        filter.status        = status;
   if (emergencyType) filter.emergencyType = emergencyType;
-  if (urgencyLevel) filter.urgencyLevel = urgencyLevel;
-  if (city) filter["location.city"] = city;
+  if (urgencyLevel)  filter.urgencyLevel  = urgencyLevel;
+  if (city)          filter["location.city"] = city;
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -141,13 +130,12 @@ export const getAllRequests = asyncHandler(async (req, res) => {
 
   return sendPaginated(res, "Requests fetched successfully", requests, {
     total,
-    page: parseInt(page),
+    page:  parseInt(page),
     limit: parseInt(limit),
     pages: Math.ceil(total / parseInt(limit)),
   });
 });
 
-// PATCH /api/admin/requests/:id/cancel
 export const cancelRequest = asyncHandler(async (req, res) => {
   const request = await HelpRequest.findById(req.params.id);
   if (!request) return sendError(res, 404, "Request not found");
@@ -166,8 +154,12 @@ export const cancelRequest = asyncHandler(async (req, res) => {
 // 📊 ANALYTICS
 // ─────────────────────────────────────────────
 
-// GET /api/admin/analytics/overview
 export const getAnalyticsOverview = asyncHandler(async (req, res) => {
+  const [responseTimeStats] = await HelpRequest.aggregate([
+    { $match: { responseTime: { $ne: null } } },
+    { $group: { _id: null, avgResponseTime: { $avg: "$responseTime" } } },
+  ]);
+
   const [
     totalUsers, totalVolunteers, totalProviders,
     activeVolunteers, verifiedProviders,
@@ -186,6 +178,16 @@ export const getAnalyticsOverview = asyncHandler(async (req, res) => {
     User.countDocuments({ isBanned: true }),
   ]);
 
+  const [providerCredibilityStats] = await Provider.aggregate([
+    {
+      $group: {
+        _id: null,
+        averageProviderCredibility: { $avg: "$credibilityScore" },
+        averageProviderRating:      { $avg: "$averageRating" },
+      },
+    },
+  ]);
+
   return sendSuccess(res, 200, "Analytics overview fetched", {
     totalUsers,
     totalVolunteers,
@@ -197,24 +199,25 @@ export const getAnalyticsOverview = asyncHandler(async (req, res) => {
     cancelledRequests,
     criticalRequests,
     bannedUsers,
+    avgResponseTime:            Math.round(responseTimeStats?.avgResponseTime || 0),
+    averageProviderCredibility: Math.round(providerCredibilityStats?.averageProviderCredibility || 0),
+    averageProviderRating:      Number((providerCredibilityStats?.averageProviderRating || 0).toFixed(1)),
     completionRate: totalRequests > 0
-      ? ((completedRequests / totalRequests) * 100).toFixed(1) + "%"
-      : "0%",
+      ? Number(((completedRequests / totalRequests) * 100).toFixed(1))
+      : 0,
   });
 });
 
-// GET /api/admin/analytics/emergency-types
 export const getEmergencyTypeStats = asyncHandler(async (req, res) => {
   const stats = await HelpRequest.aggregate([
     { $group: { _id: "$emergencyType", count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-    { $project: { emergencyType: "$_id", count: 1, _id: 0 } },
+    { $sort:  { count: -1 } },
+    { $project: { _id: 1, count: 1 } },
   ]);
 
   return sendSuccess(res, 200, "Emergency type stats fetched", stats);
 });
 
-// GET /api/admin/analytics/monthly-trends
 export const getMonthlyTrends = asyncHandler(async (req, res) => {
   const trends = await HelpRequest.aggregate([
     {
@@ -223,7 +226,7 @@ export const getMonthlyTrends = asyncHandler(async (req, res) => {
           year:  { $year:  "$createdAt" },
           month: { $month: "$createdAt" },
         },
-        totalRequests: { $sum: 1 },
+        totalRequests:     { $sum: 1 },
         completedRequests: {
           $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
         },
@@ -233,7 +236,7 @@ export const getMonthlyTrends = asyncHandler(async (req, res) => {
     { $limit: 12 },
     {
       $project: {
-        _id: 0,
+        _id:               0,
         year:              "$_id.year",
         month:             "$_id.month",
         totalRequests:     1,
@@ -242,34 +245,54 @@ export const getMonthlyTrends = asyncHandler(async (req, res) => {
     },
   ]);
 
-  return sendSuccess(res, 200, "Monthly trends fetched", trends);
+  const enrichedTrends = trends.map((trend) => ({
+    ...trend,
+    completionRate: trend.totalRequests > 0
+      ? Number(((trend.completedRequests / trend.totalRequests) * 100).toFixed(1))
+      : 0,
+  }));
+
+  return sendSuccess(res, 200, "Monthly trends fetched", enrichedTrends);
 });
 
-// GET /api/admin/analytics/top-volunteers
 export const getTopVolunteers = asyncHandler(async (req, res) => {
   const topVolunteers = await Rating.getTopVolunteers(10);
-
   return sendSuccess(res, 200, "Top volunteers fetched", topVolunteers);
 });
 
-// GET /api/admin/analytics/high-risk-areas
+export const getTopProviders = asyncHandler(async (req, res) => {
+  const providers = await Provider.find({ isVerified: true })
+    .populate("userId", "name email phone")
+    .sort({ credibilityScore: -1, averageRating: -1, totalRatings: -1 })
+    .limit(10);
+
+  return sendSuccess(res, 200, "Top providers fetched", providers);
+});
+
+// FIX: use $nin to exclude null, undefined, and empty string ""
+// Previously only excluded null — empty string city values slipped through
+// and caused the aggregation to return no meaningful grouped results.
 export const getHighRiskAreas = asyncHandler(async (req, res) => {
   const areas = await HelpRequest.aggregate([
-    { $match: { "location.city": { $exists: true, $ne: null } } },
+    {
+      $match: {
+        "location.city": { $exists: true, $nin: [null, "", undefined] },
+      },
+    },
     {
       $group: {
-        _id: "$location.city",
-        totalRequests: { $sum: 1 },
+        _id:               "$location.city",
+        totalRequests:     { $sum: 1 },
         completedRequests: {
           $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
         },
       },
     },
-    { $sort: { totalRequests: -1 } },
+    { $sort:  { totalRequests: -1 } },
     { $limit: 10 },
     {
       $project: {
-        _id: 0,
+        _id:               0,
         city:              "$_id",
         totalRequests:     1,
         completedRequests: 1,
@@ -277,5 +300,13 @@ export const getHighRiskAreas = asyncHandler(async (req, res) => {
     },
   ]);
 
-  return sendSuccess(res, 200, "High risk areas fetched", areas);
+  const enrichedAreas = areas.map((area) => ({
+    ...area,
+    count: area.totalRequests,
+    completionRate: area.totalRequests > 0
+      ? Number(((area.completedRequests / area.totalRequests) * 100).toFixed(1))
+      : 0,
+  }));
+
+  return sendSuccess(res, 200, "High risk areas fetched", enrichedAreas);
 });

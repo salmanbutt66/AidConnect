@@ -11,6 +11,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
+import Provider from "./models/Provider.model.js";
 import {
   globalErrorHandler,
   notFound,
@@ -80,6 +81,20 @@ app.use(globalErrorHandler);
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Normalize legacy provider documents so existing accounts start available.
+    await Provider.updateMany(
+      { availabilityInitialized: { $ne: true } },
+      {
+        $set: {
+          isAvailable: true,
+          availabilityInitialized: true,
+          averageRating: 0,
+          totalRatings: 0,
+          credibilityScore: 50,
+        },
+      }
+    );
 
     const server = app.listen(env.PORT, () => {
       console.log("─────────────────────────────────────────");

@@ -47,9 +47,11 @@ export default function ManageAvailability() {
     setToggling(true);
     setError('');
     try {
-      const data = await toggleAvailability();
+      const nextAvailability = !profile?.isAvailable;
+      const data = await toggleAvailability({ isAvailable: nextAvailability });
       const updated = data.provider || data.data || data;
       setProfile((prev) => ({ ...prev, isAvailable: updated.isAvailable }));
+      await fetchProfile();
       showSuccess(
         updated.isAvailable
           ? 'You are now available for requests.'
@@ -60,7 +62,7 @@ export default function ManageAvailability() {
     } finally {
       setToggling(false);
     }
-  }, []);
+  }, [profile?.isAvailable, fetchProfile]);
 
   // ── Save operating hours ───────────────────────────────────────────────────
   const handleSaveHours = useCallback(async () => {
@@ -71,8 +73,11 @@ export default function ManageAvailability() {
     setSaving(true);
     setError('');
     try {
-      await toggleAvailability({ operatingHours: hours });
-      setProfile((prev) => ({ ...prev, operatingHours: hours }));
+      await toggleAvailability({
+        operatingHours: hours,
+        isAvailable: profile?.isAvailable,
+      });
+      await fetchProfile();
       setEditHours(false);
       showSuccess('Operating hours updated successfully.');
     } catch (err) {
@@ -80,7 +85,7 @@ export default function ManageAvailability() {
     } finally {
       setSaving(false);
     }
-  }, [hours]);
+  }, [hours, profile?.isAvailable, fetchProfile]);
 
   if (loading) {
     return (

@@ -47,6 +47,15 @@ export const getRelevantRequests = async () => {
 };
 
 // ─────────────────────────────────────────
+// GET /api/providers/requests/active
+// Get currently assigned active request
+// ─────────────────────────────────────────
+export const getActiveRequest = async () => {
+  const response = await axiosInstance.get("/providers/requests/active");
+  return response.data;
+};
+
+// ─────────────────────────────────────────
 // PUT /api/providers/requests/:id/accept
 // Accept a help request
 // ─────────────────────────────────────────

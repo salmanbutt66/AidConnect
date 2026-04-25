@@ -1,6 +1,6 @@
 // src/pages/user/RequestDetail.jsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import Modal from '../../components/common/Modal.jsx';
@@ -182,6 +182,7 @@ function RatingForm({ onSubmit, loading }) {
 export default function RequestDetail() {
   const { id }    = useParams();
   const navigate  = useNavigate();
+  const location  = useLocation();
   const { user }  = useAuth();
 
   const {
@@ -209,10 +210,16 @@ export default function RequestDetail() {
 
   useEffect(() => {
     const handleRefresh = () => fetchRequestById(id);
-
     window.addEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(REQUEST_STATUS_REFRESH_EVENT, handleRefresh);
   }, [id, fetchRequestById]);
+
+  useEffect(() => {
+    const shouldOpenRating = new URLSearchParams(location.search).get('rate') === '1';
+    if (shouldOpenRating && request?.status === 'completed' && !ratingDone) {
+      setShowRating(true);
+    }
+  }, [location.search, request?.status, ratingDone]);
 
   // ── Cancel ─────────────────────────────────────────────────────────────────
   const handleCancelConfirm = useCallback(async () => {
@@ -294,14 +301,15 @@ export default function RequestDetail() {
   const isActive = ['posted', 'accepted', 'in_progress'].includes(status);
   const canCancel = isOwner && status === 'posted';
   const canRate   = isOwner && status === 'completed' && !ratingDone;
+  const rateLabel = assignedType === 'Provider' ? 'Rate Service' : 'Rate Responder';
 
   // Build timeline events
   const timeline = [
-    { icon: '📋', label: 'Request Posted',   time: postedAt,    color: 'var(--info)'        },
-    { icon: '✅', label: 'Request Accepted',  time: acceptedAt,  color: 'var(--warning)'     },
-    { icon: '🚨', label: 'Responder En Route', time: acceptedAt, color: 'var(--warning)'     },
-    { icon: '🎉', label: 'Request Completed', time: completedAt, color: 'var(--green-600)'   },
-    { icon: '❌', label: 'Request Cancelled', time: cancelledAt, color: 'var(--danger)'      },
+    { icon: '📋', label: 'Request Posted',    time: postedAt,    color: 'var(--info)'      },
+    { icon: '✅', label: 'Request Accepted',  time: acceptedAt,  color: 'var(--warning)'   },
+    { icon: '🚨', label: 'Responder En Route', time: acceptedAt, color: 'var(--warning)'   },
+    { icon: '🎉', label: 'Request Completed', time: completedAt, color: 'var(--green-600)' },
+    { icon: '❌', label: 'Request Cancelled', time: cancelledAt, color: 'var(--danger)'    },
   ].filter((t) => !!t.time);
 
   return (
@@ -339,7 +347,7 @@ export default function RequestDetail() {
               )}
               {canRate && (
                 <button className="btn btn-primary" onClick={() => setShowRating(true)}>
-                  ⭐ Rate Responder
+                  ⭐ {rateLabel}
                 </button>
               )}
               {ratingDone && (
@@ -359,16 +367,16 @@ export default function RequestDetail() {
           </div>
         )}
 
-        {/* ── Main content ──────────────────────────────────────────────── */}
+        {/* ── Main two-column grid ───────────────────────────────────────── */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 320px',
+            gridTemplateColumns: '1fr 1fr',
             gap: '24px',
             alignItems: 'start',
           }}
         >
-          {/* Left — details */}
+          {/* ── Left column — details ─────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* Description card */}
@@ -381,7 +389,6 @@ export default function RequestDetail() {
                   {description}
                 </p>
 
-                {/* Blood group needed */}
                 {bloodGroupNeeded && (
                   <div
                     style={{
@@ -402,7 +409,6 @@ export default function RequestDetail() {
                   </div>
                 )}
 
-                {/* Proof image */}
                 {proofImage && (
                   <div style={{ marginTop: '16px' }}>
                     <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -438,16 +444,8 @@ export default function RequestDetail() {
                 <DetailRow icon="✅" label="Accepted At"    value={acceptedAt ? formatDateTime(acceptedAt) : null} />
                 <DetailRow icon="🎉" label="Completed At"   value={completedAt ? formatDateTime(completedAt) : null} />
                 <DetailRow icon="❌" label="Cancelled At"   value={cancelledAt ? formatDateTime(cancelledAt) : null} />
-                <DetailRow
-                  icon="⚡"
-                  label="Response Time"
-                  value={responseTime ? formatDuration(responseTime) : null}
-                />
-                <DetailRow
-                  icon="⏱"
-                  label="Resolution Time"
-                  value={resolutionTime ? formatDuration(resolutionTime) : null}
-                />
+                <DetailRow icon="⚡" label="Response Time"  value={responseTime ? formatDuration(responseTime) : null} />
+                <DetailRow icon="⏱" label="Resolution Time" value={resolutionTime ? formatDuration(resolutionTime) : null} />
               </div>
             </div>
 
@@ -484,7 +482,7 @@ export default function RequestDetail() {
             )}
           </div>
 
-          {/* Right — timeline + status */}
+          {/* ── Right column — status + timeline ──────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* Status card */}
@@ -572,7 +570,7 @@ export default function RequestDetail() {
       <Modal
         isOpen={showRating}
         onClose={() => setShowRating(false)}
-        title="Rate Your Responder"
+        title={assignedType === 'Provider' ? 'Rate Your Service Provider' : 'Rate Your Responder'}
         icon="⭐"
         size="md"
         footer={<span />}

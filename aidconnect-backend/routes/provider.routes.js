@@ -5,6 +5,7 @@ import {
   updateProviderProfile,
   toggleAvailability,
   getRelevantRequests,
+  getActiveRequest,
   acceptRequest,
   getAllProviders,
   verifyProvider,
@@ -20,6 +21,7 @@ router.get("/profile", protect, restrictTo("provider"), getProviderProfile);
 router.put("/profile", protect, restrictTo("provider"), updateProviderProfile);
 router.put("/availability", protect, restrictTo("provider"), toggleAvailability);
 router.get("/requests", protect, restrictTo("provider"), getRelevantRequests);
+router.get("/requests/active", protect, restrictTo("provider"), getActiveRequest);
 router.put("/requests/:id/accept", protect, restrictTo("provider"), acceptRequest);
 // Admin only 
 router.get("/", protect, restrictTo("admin"), getAllProviders);

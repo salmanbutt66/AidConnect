@@ -179,8 +179,8 @@ export const getMyRatings = async (req, res, next) => {
       totalRatings:  profile.totalRatings,
       ratings:       sortedRatings,
       pagination: {
-        currentPage: page,
-        totalPages:  Math.ceil(profile.totalRatings / limit),
+        currentPage:  page,
+        totalPages:   Math.ceil(profile.totalRatings / limit),
         totalRatings: profile.totalRatings,
       },
     });
@@ -192,13 +192,26 @@ export const getMyRatings = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   GET /api/volunteers/history
 // @access  Private (volunteer only)
+//
+// FIX: was filtering by { assignedTo: req.user.id } which is the User _id.
+// HelpRequest.assignedTo stores the Volunteer profile _id, not the User _id.
+// This caused the history to always return an empty array.
+// Fix: resolve the Volunteer profile first, then filter by profile._id.
 // ─────────────────────────────────────────────────────────────────────────────
 export const getVolunteerHistory = async (req, res, next) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const filter = { assignedTo: req.user.id };
+    // FIX: look up the volunteer profile to get the correct _id
+    const profile = await Volunteer.findOne({ user: req.user.id }).select("_id");
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Volunteer profile not found" });
+    }
+
+    // FIX: filter by profile._id (Volunteer doc id), not req.user.id (User doc id)
+    const filter = { assignedTo: profile._id };
     if (status) filter.status = status;
 
     const [requests, total] = await Promise.all([
@@ -452,6 +465,10 @@ export const markInProgress = async (req, res, next) => {
 
     const profile = await Volunteer.findOne({ user: req.user.id });
 
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Volunteer profile not found" });
+    }
+
     if (request.assignedTo?.toString() !== profile._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -488,9 +505,9 @@ export const getAvailableVolunteers = async (req, res, next) => {
     const { city, emergencyType, bloodGroup, minScore = 0 } = req.query;
 
     const filter = {
-      isAvailable:    true,
-      isApproved:     true,
-      isSuspended:    false,
+      isAvailable:     true,
+      isApproved:      true,
+      isSuspended:     false,
       reputationScore: { $gte: parseInt(minScore) },
     };
 

@@ -40,6 +40,7 @@ export const registerProvider = asyncHandler(async (req, res) => {
     contactNumber,
     address,
     location,
+    isAvailable: true,
   });
 
   await User.findByIdAndUpdate(userId, { role: "provider" });
@@ -123,7 +124,13 @@ export const toggleAvailability = asyncHandler(async (req, res) => {
     throw new AppError("Provider profile not found", 404);
   }
 
-  provider.isAvailable = !provider.isAvailable;
+  // If the client sends an explicit state, use it.
+  // Otherwise preserve the old toggle behavior for simple button clicks.
+  if (typeof req.body.isAvailable === "boolean") {
+    provider.isAvailable = req.body.isAvailable;
+  } else {
+    provider.isAvailable = !provider.isAvailable;
+  }
 
   if (req.body.operatingHours) {
     provider.operatingHours = req.body.operatingHours;
@@ -160,6 +167,15 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
     throw new AppError("Your account is not verified yet. Please wait for admin approval.", 403);
   }
 
+  if (!provider.isAvailable) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      data: [],
+      message: "You are currently unavailable, so no new requests are shown.",
+    });
+  }
+
   const typeMap = {
     ambulance:  ["medical", "accident"],
     hospital:   ["medical", "accident"],
@@ -182,6 +198,35 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
     success: true,
     count: requests.length,
     data: requests,
+  });
+});
+
+// ─────────────────────────────────────────
+// GET /api/providers/requests/active
+// Access: Private (provider only)
+// ─────────────────────────────────────────
+export const getActiveRequest = asyncHandler(async (req, res) => {
+  const provider = await Provider.findOne({ userId: req.user.id });
+
+  if (!provider) {
+    return res.status(404).json({
+      success: false,
+      message: "Provider profile not found. Please register as a provider first.",
+      code: "PROVIDER_PROFILE_MISSING",
+    });
+  }
+
+  const activeRequest = await HelpRequest.findOne({
+    assignedTo: provider._id,
+    assignedType: "Provider",
+    status: { $in: ["accepted", "in_progress"] },
+  })
+    .sort({ acceptedAt: -1, createdAt: -1 })
+    .populate("requesterId", "name phone");
+
+  res.status(200).json({
+    success: true,
+    activeRequest: activeRequest || null,
   });
 });
 

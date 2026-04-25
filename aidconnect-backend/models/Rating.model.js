@@ -17,6 +17,14 @@ const ratingSchema = new mongoose.Schema(
       required: [true, "Recipient is required"],
     },
 
+    // What kind of responder was rated
+    recipientType: {
+      type: String,
+      enum: ["Volunteer", "Provider"],
+      required: [true, "Recipient type is required"],
+      default: "Volunteer",
+    },
+
     // Which help request this rating is about
     helpRequest: {
       type: mongoose.Schema.Types.ObjectId,
@@ -59,16 +67,22 @@ ratingSchema.index(
 
 // ─── For fast lookup of all ratings given to a volunteer ─────────────────────
 ratingSchema.index({ ratedTo: 1 });
+ratingSchema.index({ recipientType: 1, ratedTo: 1 });
 
 // ─── For analytics: ratings over time ────────────────────────────────────────
 ratingSchema.index({ createdAt: -1 });
 
-// ─── Static: Get average score for a volunteer ───────────────────────────────
-ratingSchema.statics.getAverageScore = async function (volunteerId) {
+// ─── Static: Get average score for a recipient type ──────────────────────────
+ratingSchema.statics.getAverageScore = async function (recipientId, recipientType = "Volunteer") {
+  const recipientFilter = recipientType === "Volunteer"
+    ? { $or: [{ recipientType: "Volunteer" }, { recipientType: { $exists: false } }] }
+    : { recipientType };
+
   const result = await this.aggregate([
     {
       $match: {
-        ratedTo: new mongoose.Types.ObjectId(volunteerId),
+        ratedTo: new mongoose.Types.ObjectId(recipientId),
+        ...recipientFilter,
         isDeleted: false,
       },
     },
@@ -84,10 +98,14 @@ ratingSchema.statics.getAverageScore = async function (volunteerId) {
   return result[0] || { averageScore: 0, totalRatings: 0 };
 };
 
-// ─── Static: Get top rated volunteers (for admin analytics) ──────────────────
-ratingSchema.statics.getTopVolunteers = async function (limit = 5) {
+// ─── Static: Get top rated recipients (for admin analytics) ──────────────────
+ratingSchema.statics.getTopRecipients = async function (recipientType = "Volunteer", limit = 5) {
+  const recipientFilter = recipientType === "Volunteer"
+    ? { $or: [{ recipientType: "Volunteer" }, { recipientType: { $exists: false } }] }
+    : { recipientType };
+
   return await this.aggregate([
-    { $match: { isDeleted: false } },
+    { $match: { isDeleted: false, ...recipientFilter } },
     {
       $group: {
         _id: "$ratedTo",
@@ -102,20 +120,28 @@ ratingSchema.statics.getTopVolunteers = async function (limit = 5) {
         from: "users",
         localField: "_id",
         foreignField: "_id",
-        as: "volunteerInfo",
+        as: "recipientInfo",
       },
     },
-    { $unwind: "$volunteerInfo" },
+    { $unwind: "$recipientInfo" },
     {
       $project: {
         averageScore: 1,
         totalRatings: 1,
-        "volunteerInfo.name": 1,
-        "volunteerInfo.email": 1,
-        "volunteerInfo.location": 1,
+        "recipientInfo.name": 1,
+        "recipientInfo.email": 1,
+        "recipientInfo.location": 1,
       },
     },
   ]);
+};
+
+ratingSchema.statics.getTopVolunteers = async function (limit = 5) {
+  return this.getTopRecipients("Volunteer", limit);
+};
+
+ratingSchema.statics.getTopProviders = async function (limit = 5) {
+  return this.getTopRecipients("Provider", limit);
 };
 
 const Rating = mongoose.model("Rating", ratingSchema);

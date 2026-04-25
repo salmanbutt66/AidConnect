@@ -165,6 +165,7 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
     ratedBy: req.user.id,
     ratedTo: volunteerId,
     helpRequest: helpRequestId,
+    recipientType: "Volunteer",
     score,
     comment: comment || null,
   });

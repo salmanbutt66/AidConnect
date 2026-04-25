@@ -123,6 +123,7 @@ export default function ProviderProfile() {
   }, [form]);
 
   const serviceTypeLabel = SERVICE_TYPES.find((s) => s.value === profile?.serviceType);
+  const credibilityScore = profile?.credibilityScore ?? 50;
 
   if (loading) {
     return (
@@ -299,6 +300,9 @@ export default function ProviderProfile() {
                         <Badge color={profile?.isAvailable ? 'green' : 'stone'}>
                           {profile?.isAvailable ? 'Available' : 'Unavailable'}
                         </Badge>
+                        <Badge color={credibilityScore >= 85 ? 'green' : credibilityScore >= 70 ? 'blue' : credibilityScore >= 55 ? 'orange' : 'red'}>
+                          Credibility {credibilityScore}/100
+                        </Badge>
                         {serviceTypeLabel && (
                           <Badge color="blue">{serviceTypeLabel.emoji} {serviceTypeLabel.label}</Badge>
                         )}
@@ -349,6 +353,25 @@ export default function ProviderProfile() {
                         { label: 'Closes At', value: profile?.operatingHours?.close || '—', icon: '🌙' },
                       ].map((item) => (
                         <div key={item.label} style={{ flex: 1, minWidth: '120px', padding: '14px 18px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--stone-200)' }}>
+                          <div style={{ fontSize: '20px', marginBottom: '6px' }}>{item.icon}</div>
+                          <div className="stat-label">{item.label}</div>
+                          <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-dark)' }}>{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-body">
+                    <div className="section-title" style={{ marginBottom: '16px' }}>Credibility</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                      {[
+                        { label: 'Average Rating', value: profile?.averageRating ? Number(profile.averageRating).toFixed(1) : '—', icon: '⭐' },
+                        { label: 'Total Ratings', value: profile?.totalRatings ?? 0, icon: '🧮' },
+                        { label: 'Credibility Score', value: `${credibilityScore}/100`, icon: '🛡️' },
+                      ].map((item) => (
+                        <div key={item.label} style={{ padding: '14px 18px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--stone-200)' }}>
                           <div style={{ fontSize: '20px', marginBottom: '6px' }}>{item.icon}</div>
                           <div className="stat-label">{item.label}</div>
                           <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-dark)' }}>{item.value}</div>

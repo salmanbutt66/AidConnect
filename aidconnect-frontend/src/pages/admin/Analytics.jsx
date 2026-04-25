@@ -7,6 +7,7 @@ import {
   getAnalyticsOverview,
   getEmergencyTypeStats,
   getMonthlyTrends,
+  getTopProviders,
   getHighRiskAreas,
 } from '../../api/admin.api.js';
 import { formatNumber } from '../../utils/formatters.js';
@@ -21,28 +22,31 @@ export default function Analytics() {
     emergencyTypes: [],
     trends:         [],
     highRisk:       [],
+    topProviders:   [],
   });
 
   const fetchAnalytics = async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const [overviewRes, typesRes, trendsRes, risksRes] = await Promise.all([
+      const [overviewRes, typesRes, trendsRes, risksRes, providersRes] = await Promise.all([
         getAnalyticsOverview(),
         getEmergencyTypeStats(),
         getMonthlyTrends(),
         getHighRiskAreas(),
+        getTopProviders(),
       ]);
 
-      // FIX: safe extraction consistent with rest of admin pages
+      // Each api function returns response.data which is { success, message, data: [...] }
+      // So we unwrap one level: res.data to get the actual payload.
       setData({
-        overview:       overviewRes.data  || overviewRes,
-        emergencyTypes: typesRes.data     || typesRes     || [],
-        trends:         trendsRes.data    || trendsRes    || [],
-        highRisk:       risksRes.data     || risksRes     || [],
+        overview:       overviewRes.data       || null,
+        emergencyTypes: typesRes.data          || [],
+        trends:         trendsRes.data         || [],
+        highRisk:       risksRes.data          || [],  // FIX: was risksRes.data || risksRes — risksRes IS already .data from axios, so risksRes.data is the payload array
+        topProviders:   providersRes.data      || [],
       });
     } catch (err) {
-      // FIX: local error state instead of console.error
       setError('Failed to load analytics data. Please refresh.');
     } finally {
       if (!silent) setLoading(false);
@@ -77,8 +81,16 @@ export default function Analytics() {
 
   const totalRequests = data.overview?.totalRequests || 0;
   const maxTrend      = data.trends.length > 0
-    ? Math.max(...data.trends.map((t) => t.count), 1)
+    ? Math.max(...data.trends.map((t) => t.totalRequests ?? t.count ?? 0), 1)
     : 1;
+
+  const formatMonthLabel = (monthNumber, year) => {
+    if (!monthNumber || !year) return '—';
+    return new Date(year, monthNumber - 1, 1).toLocaleString('en-PK', {
+      month: 'short',
+      year: '2-digit',
+    });
+  };
 
   return (
     <Navbar title="Analytics">
@@ -149,10 +161,16 @@ export default function Analytics() {
             color="orange"
             delay={300}
           />
+          <StatsCard
+            label="Provider Credibility"
+            value={data.overview?.averageProviderCredibility ?? 0}
+            icon="🏥"
+            color="blue"
+            delay={400}
+          />
         </div>
 
         {/* ── Two column grid ───────────────────────────────────────────── */}
-        {/* FIX: use grid-2 class instead of inline style */}
         <div className="grid-2" style={{ marginBottom: '24px' }}>
 
           {/* Emergency type distribution */}
@@ -160,7 +178,6 @@ export default function Analytics() {
             <div className="card-header">
               <div className="section-header" style={{ marginBottom: 0 }}>
                 <div>
-                  {/* FIX: section-title on div not h3 */}
                   <div className="section-title">Emergency Distribution</div>
                   <div className="section-subtitle">Breakdown by emergency type</div>
                 </div>
@@ -193,7 +210,6 @@ export default function Analytics() {
                           style={{
                             height: '8px',
                             background: 'var(--stone-200)',
-                            // FIX: hardcoded 4px → var(--radius-sm)
                             borderRadius: 'var(--radius-sm)',
                             overflow: 'hidden',
                           }}
@@ -247,10 +263,10 @@ export default function Analytics() {
                       {data.highRisk.map((area, i) => (
                         <tr key={i}>
                           <td style={{ fontWeight: 500 }}>{area.city || '—'}</td>
-                          <td>{area.count}</td>
+                          <td>{area.totalRequests ?? area.count ?? 0}</td>
                           <td>
-                            <span className={`badge ${area.count > 50 ? 'badge-red' : 'badge-orange'}`}>
-                              {area.count > 50 ? 'Critical' : 'High'}
+                            <span className={`badge ${(area.totalRequests ?? area.count ?? 0) > 50 ? 'badge-red' : 'badge-orange'}`}>
+                              {(area.totalRequests ?? area.count ?? 0) > 50 ? 'Critical' : 'High'}
                             </span>
                           </td>
                         </tr>
@@ -260,6 +276,52 @@ export default function Analytics() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* ── Top Providers ─────────────────────────────────────────────── */}
+        <div className="card anim-fade-up delay-300" style={{ marginBottom: '24px' }}>
+          <div className="card-header">
+            <div className="section-header" style={{ marginBottom: 0 }}>
+              <div>
+                <div className="section-title">Top Providers</div>
+                <div className="section-subtitle">Highest credibility service providers on the platform</div>
+              </div>
+            </div>
+          </div>
+          <div className="card-body">
+            {data.topProviders.length === 0 ? (
+              <div className="empty-state" style={{ padding: '24px 16px' }}>
+                <div className="empty-state-icon">🏥</div>
+                <h3>No provider ratings yet</h3>
+                <p>Provider credibility will appear once users rate completed services.</p>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Provider</th>
+                      <th>Rating</th>
+                      <th>Credibility</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topProviders.map((provider, index) => (
+                      <tr key={provider._id || index}>
+                        <td style={{ fontWeight: 500 }}>{provider.organizationName || provider.userId?.name || '—'}</td>
+                        <td>{Number(provider.averageRating || 0).toFixed(1)} / 5</td>
+                        <td>
+                          <span className={`badge ${provider.credibilityScore >= 85 ? 'badge-green' : provider.credibilityScore >= 70 ? 'badge-blue' : provider.credibilityScore >= 55 ? 'badge-orange' : 'badge-red'}`}>
+                            {provider.credibilityScore ?? 0}/100
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
@@ -292,9 +354,10 @@ export default function Analytics() {
                 }}
               >
                 {data.trends.map((month, i) => {
-                  const heightPct = maxTrend > 0
-                    ? (month.count / maxTrend) * 150
-                    : 0;
+                  const monthRequests  = month.totalRequests ?? month.count ?? 0;
+                  const monthCompleted = month.completedRequests ?? 0;
+                  const completionRate = month.completionRate ?? 0;
+                  const heightPct      = maxTrend > 0 ? (monthRequests / maxTrend) * 150 : 0;
                   return (
                     <div
                       key={i}
@@ -306,33 +369,40 @@ export default function Analytics() {
                         gap: '6px',
                       }}
                     >
-                      {/* Count label */}
                       <span
                         style={{
                           fontSize: '10px',
                           fontWeight: 600,
                           color: 'var(--text-muted)',
-                          visibility: month.count > 0 ? 'visible' : 'hidden',
+                          visibility: monthRequests > 0 ? 'visible' : 'hidden',
                         }}
                       >
-                        {month.count}
+                        {monthRequests}
                       </span>
 
-                      {/* Bar — FIX: plain div with transition, not .skeleton class */}
                       <div
                         style={{
                           width: '100%',
                           height: `${heightPct}px`,
                           minHeight: '4px',
-                          // FIX: var(--blue-500) doesn't exist → var(--info)
                           background: 'var(--info)',
                           borderRadius: 'var(--radius-sm)',
                           transition: 'height 0.6s var(--ease)',
-                          opacity: month.count > 0 ? 1 : 0.2,
+                          opacity: monthRequests > 0 ? 1 : 0.2,
                         }}
                       />
 
-                      {/* Month label */}
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          color: 'var(--text-muted)',
+                          textAlign: 'center',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {monthCompleted}/{monthRequests}
+                      </span>
+
                       <span
                         style={{
                           fontSize: '11px',
@@ -341,7 +411,11 @@ export default function Analytics() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {month.month}
+                        {formatMonthLabel(month.month, month.year)}
+                      </span>
+
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {completionRate}% done
                       </span>
                     </div>
                   );

@@ -14,13 +14,7 @@ function EmergencyTypeSelector({ value, onChange, disabled }) {
   return (
     <div className="form-group">
       <label className="form-label">Emergency Type <span style={{ color: 'var(--danger)' }}>*</span></label>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '8px',
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
         {EMERGENCY_TYPES.map((type) => {
           const isSelected = value === type.value;
           return (
@@ -41,13 +35,7 @@ function EmergencyTypeSelector({ value, onChange, disabled }) {
               }}
             >
               <div style={{ fontSize: '22px', marginBottom: '4px' }}>{type.emoji}</div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: isSelected ? 'var(--green-800)' : 'var(--text-dark)',
-                }}
-              >
+              <div style={{ fontSize: '11px', fontWeight: 700, color: isSelected ? 'var(--green-800)' : 'var(--text-dark)' }}>
                 {type.label}
               </div>
             </button>
@@ -61,10 +49,10 @@ function EmergencyTypeSelector({ value, onChange, disabled }) {
 // ─── Urgency level selector ───────────────────────────────────────────────────
 function UrgencySelector({ value, onChange, disabled }) {
   const styles = {
-    low:      { border: 'var(--green-400)',  bg: 'var(--green-50)',   text: 'var(--green-800)'  },
-    medium:   { border: 'var(--warning)',    bg: 'var(--warning-bg)', text: 'var(--warning)'    },
-    high:     { border: 'var(--danger)',     bg: 'var(--danger-bg)',  text: 'var(--danger)'     },
-    critical: { border: '#7a1f1f',           bg: '#4a0f0f',           text: '#ff6b6b'           },
+    low:      { border: 'var(--green-400)',  bg: 'var(--green-50)',   text: 'var(--green-800)' },
+    medium:   { border: 'var(--warning)',    bg: 'var(--warning-bg)', text: 'var(--warning)'   },
+    high:     { border: 'var(--danger)',     bg: 'var(--danger-bg)',  text: 'var(--danger)'    },
+    critical: { border: '#7a1f1f',           bg: '#4a0f0f',           text: '#ff6b6b'          },
   };
 
   return (
@@ -91,13 +79,7 @@ function UrgencySelector({ value, onChange, disabled }) {
                 opacity: disabled ? 0.6 : 1,
               }}
             >
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: isSelected ? s.text : 'var(--text-dark)',
-                }}
-              >
+              <div style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? s.text : 'var(--text-dark)' }}>
                 {level.label}
               </div>
             </button>
@@ -166,7 +148,6 @@ function LocationSection({ form, errors, onChange, disabled }) {
         )}
       </button>
 
-      {/* Geo success confirmation */}
       {geoSuccess && form.latitude && form.longitude && (
         <div className="alert alert-success" style={{ marginBottom: '10px', padding: '8px 12px' }}>
           <span className="alert-icon">✅</span>
@@ -176,7 +157,6 @@ function LocationSection({ form, errors, onChange, disabled }) {
         </div>
       )}
 
-      {/* Geo error */}
       {geoError && (
         <div className="alert alert-warning" style={{ marginBottom: '10px', padding: '8px 12px' }}>
           <span className="alert-icon">⚠️</span>
@@ -184,15 +164,16 @@ function LocationSection({ form, errors, onChange, disabled }) {
         </div>
       )}
 
-      {/* Divider */}
       <div className="divider-text" style={{ margin: '10px 0', fontSize: '12px' }}>
         or enter manually
       </div>
 
-      {/* City + Area dropdowns */}
+      {/* City + Area — FIX: city is now required for matching */}
       <div className="form-row cols-2">
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label" htmlFor="city">City</label>
+          <label className="form-label" htmlFor="city">
+            City <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
           <select
             id="city"
             className={`form-select ${errors.city ? 'error' : ''}`}
@@ -205,7 +186,10 @@ function LocationSection({ form, errors, onChange, disabled }) {
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
-          {errors.city && <div className="form-error">{errors.city}</div>}
+          {errors.city
+            ? <div className="form-error">{errors.city}</div>
+            : <div className="form-hint">Used to find volunteers in your city</div>
+          }
         </div>
 
         <div className="form-group" style={{ marginBottom: 0 }}>
@@ -223,7 +207,6 @@ function LocationSection({ form, errors, onChange, disabled }) {
         </div>
       </div>
 
-      {/* Full address */}
       <div className="form-group" style={{ marginTop: '10px', marginBottom: 0 }}>
         <label className="form-label" htmlFor="address">Full Address (optional)</label>
         <input
@@ -238,7 +221,6 @@ function LocationSection({ form, errors, onChange, disabled }) {
         <div className="form-hint">Helps responders find you faster</div>
       </div>
 
-      {/* Location validation error */}
       {errors.location && (
         <div className="form-error" style={{ marginTop: '6px' }}>{errors.location}</div>
       )}
@@ -247,73 +229,49 @@ function LocationSection({ form, errors, onChange, disabled }) {
 }
 
 // ─── HelpRequestForm ──────────────────────────────────────────────────────────
-/**
- * HelpRequestForm — controlled form for creating a help request.
- *
- * Props:
- *   onSubmit   {fn}      — async (payload) => void   called with clean payload
- *   onCancel   {fn}      — () => void                optional cancel button
- *   loading    {boolean} — disables form during submission
- *
- * The parent page (CreateRequest.jsx) owns the API call:
- *
- *   const { submitRequest } = useRequests();
- *
- *   const handleSubmit = async (payload) => {
- *     try {
- *       await submitRequest(payload);
- *       navigate('/user/my-requests');
- *     } catch (err) {
- *       // error already set in useRequests
- *     }
- *   };
- *
- *   <HelpRequestForm onSubmit={handleSubmit} onCancel={() => navigate(-1)} loading={loading} />
- */
 export default function HelpRequestForm({ onSubmit, onCancel, loading = false }) {
   const [form, setForm] = useState({
-    emergencyType: '',
-    urgencyLevel:  '',
-    description:   '',
+    emergencyType:    '',
+    urgencyLevel:     '',
+    description:      '',
     bloodGroupNeeded: '',
-    latitude:      null,
-    longitude:     null,
-    city:          '',
-    area:          '',
-    address:       '',
-    proofImage:    '',
+    latitude:         null,
+    longitude:        null,
+    city:             '',
+    area:             '',
+    address:          '',
+    proofImage:       '',
   });
 
   const [errors,   setErrors]   = useState({});
   const [apiError, setApiError] = useState('');
 
-  // ── Single field updater ───────────────────────────────────────────────────
   const handleChange = useCallback((name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
-    // Clear location error when any location field changes
     if (['latitude', 'longitude', 'city', 'area'].includes(name)) {
       setErrors((prev) => ({ ...prev, location: '' }));
     }
   }, [errors]);
 
-  // ── Input element onChange adaptor ────────────────────────────────────────
   const handleInputChange = useCallback((e) => {
     handleChange(e.target.name, e.target.value);
   }, [handleChange]);
 
-  // ── Validate ──────────────────────────────────────────────────────────────
   const validate = useCallback(() => {
     const errs = validateHelpRequest({
       emergencyType: form.emergencyType,
       urgencyLevel:  form.urgencyLevel,
       description:   form.description,
-      // Location is valid if we have GPS coords OR a city selected
-      longitude: form.longitude ?? (form.city ? 0 : null),
-      latitude:  form.latitude  ?? (form.city ? 0 : null),
+      longitude:     form.longitude ?? (form.city ? 0 : null),
+      latitude:      form.latitude  ?? (form.city ? 0 : null),
     });
 
-    // Blood group required for blood requests
+    // FIX: city is now required — matching depends on it
+    if (!form.city) {
+      errs.city = 'Please select your city so we can find nearby volunteers';
+    }
+
     if (form.emergencyType === 'blood' && !form.bloodGroupNeeded) {
       errs.bloodGroupNeeded = 'Please select the required blood group';
     }
@@ -321,7 +279,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
     return errs;
   }, [form]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
@@ -329,29 +286,34 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
     const clientErrors = validate();
     if (hasErrors(clientErrors)) {
       setErrors(clientErrors);
-      // Scroll to first error
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    // Build clean payload
+    // ── Build payload ──────────────────────────────────────────────────────
     const payload = {
       emergencyType: form.emergencyType,
       urgencyLevel:  form.urgencyLevel,
       description:   sanitizeString(form.description),
+      // FIX: city sent as its own field — matching.service.js reads request.city
+      city:          form.city,
     };
 
-    // Location — prefer GPS coords, fall back to city/area string
+    // GPS coords — only include if actually captured
     if (form.latitude != null && form.longitude != null) {
       payload.latitude  = form.latitude;
       payload.longitude = form.longitude;
+    } else {
+      // Fallback coords so backend GeoJSON validation passes
+      // Matching now uses city, not coordinates, so [0,0] is fine here
+      payload.latitude  = 0;
+      payload.longitude = 0;
     }
 
-    // Address string — build from fields if not manually entered
+    // Build address string from fields if not manually entered
     payload.address = form.address.trim() ||
       [form.area, form.city].filter(Boolean).join(', ');
 
-    // Optional fields
     if (form.bloodGroupNeeded) payload.bloodGroupNeeded = form.bloodGroupNeeded;
     if (form.proofImage.trim()) payload.proofImage = form.proofImage.trim();
 
@@ -361,9 +323,7 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
       const backendErrors = err.response?.data?.errors;
       if (backendErrors && Array.isArray(backendErrors)) {
         const mapped = {};
-        backendErrors.forEach(({ field, message }) => {
-          mapped[field] = message;
-        });
+        backendErrors.forEach(({ field, message }) => { mapped[field] = message; });
         setErrors(mapped);
         setApiError('Please fix the errors below.');
       } else {
@@ -377,7 +337,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
   return (
     <form onSubmit={handleSubmit} noValidate>
 
-      {/* API error */}
       {apiError && (
         <div className="alert alert-error" style={{ marginBottom: '20px' }}>
           <span className="alert-icon">⚠️</span>
@@ -385,7 +344,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         </div>
       )}
 
-      {/* ── Emergency type ──────────────────────────────────────────────── */}
       <EmergencyTypeSelector
         value={form.emergencyType}
         onChange={(v) => handleChange('emergencyType', v)}
@@ -397,7 +355,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         </div>
       )}
 
-      {/* ── Urgency level ───────────────────────────────────────────────── */}
       <UrgencySelector
         value={form.urgencyLevel}
         onChange={(v) => handleChange('urgencyLevel', v)}
@@ -409,7 +366,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         </div>
       )}
 
-      {/* ── Blood group (blood requests only) ───────────────────────────── */}
       {form.emergencyType === 'blood' && (
         <div className="form-group">
           <label className="form-label" htmlFor="bloodGroupNeeded">
@@ -434,7 +390,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         </div>
       )}
 
-      {/* ── Description ─────────────────────────────────────────────────── */}
       <div className="form-group">
         <label className="form-label" htmlFor="description">
           Description <span style={{ color: 'var(--danger)' }}>*</span>
@@ -450,32 +405,17 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
           rows={4}
           maxLength={1000}
         />
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '4px',
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
           {errors.description
             ? <div className="form-error">{errors.description}</div>
             : <div className="form-hint">Minimum 10 characters</div>
           }
-          <div
-            style={{
-              fontSize: '11px',
-              color: form.description.length > 900
-                ? 'var(--danger)'
-                : 'var(--text-light)',
-            }}
-          >
+          <div style={{ fontSize: '11px', color: form.description.length > 900 ? 'var(--danger)' : 'var(--text-light)' }}>
             {form.description.length}/1000
           </div>
         </div>
       </div>
 
-      {/* ── Location ────────────────────────────────────────────────────── */}
       <LocationSection
         form={form}
         errors={errors}
@@ -483,13 +423,10 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         disabled={loading}
       />
 
-      {/* ── Proof image URL (optional) ───────────────────────────────────── */}
       <div className="form-group">
         <label className="form-label" htmlFor="proofImage">
           Proof Image URL
-          <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
-            (optional)
-          </span>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>(optional)</span>
         </label>
         <input
           id="proofImage"
@@ -504,7 +441,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         <div className="form-hint">Upload your image elsewhere and paste the link here</div>
       </div>
 
-      {/* ── Critical urgency warning ─────────────────────────────────────── */}
       {form.urgencyLevel === 'critical' && (
         <div className="alert alert-error" style={{ marginBottom: '20px' }}>
           <span className="alert-icon">🚨</span>
@@ -515,7 +451,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
         </div>
       )}
 
-      {/* ── Actions ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
         {typeof onCancel === 'function' && (
           <button
@@ -534,11 +469,10 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
           disabled={loading}
           style={{ flex: 2 }}
         >
-          {loading ? (
-            <><span className="spinner" /> Submitting request…</>
-          ) : (
-            '🆘 Submit Request →'
-          )}
+          {loading
+            ? <><span className="spinner" /> Submitting request…</>
+            : '🆘 Submit Request →'
+          }
         </button>
       </div>
 
