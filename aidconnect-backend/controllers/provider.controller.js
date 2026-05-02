@@ -216,13 +216,13 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
 
   // Map service type → relevant emergency types
   const typeMap = {
-    ambulance:  ["medical", "accident"],
-    hospital:   ["medical", "accident"],
-    blood_bank: ["blood"],
-    rescue:     ["disaster", "accident"],
-    ngo:        ["disaster", "other"],
-    other:      ["medical", "blood", "accident", "disaster", "other"],
-  };
+  ambulance:  ["medical", "accident", "disaster", "other"],
+  hospital:   ["medical", "accident", "disaster", "other"],
+  blood_bank: ["blood"],
+  rescue:     ["accident", "disaster", "other"],
+  ngo:        ["accident", "disaster", "other"],
+  other:      ["medical", "blood", "accident", "disaster", "other"],
+};
 
   const relevantTypes = typeMap[provider.serviceType] || [];
 
