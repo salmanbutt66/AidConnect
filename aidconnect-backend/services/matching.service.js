@@ -90,6 +90,15 @@
         .populate("user", "name phone bloodGroup")
         .sort({ reputationScore: -1 });
 
+      // Keep matching practical: if a volunteer selected emergency types,
+      // only match requests that they opted into. Empty list means "any type".
+      volunteers = volunteers.filter((v) => {
+        if (!Array.isArray(v.emergencyTypes) || v.emergencyTypes.length === 0) {
+          return true;
+        }
+        return v.emergencyTypes.includes(request.emergencyType);
+      });
+
     } catch (error) {
       console.error("[Matching] Error finding volunteers:", error.message);
     }

@@ -3,6 +3,10 @@ import Volunteer from "../models/Volunteer.model.js";
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import ScoringService from "../services/scoring.service.js";
+import {
+  notifyRequestAccepted,
+  notifyRequestCompleted,
+} from "../services/notification.service.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   GET /api/volunteers/profile
@@ -349,6 +353,8 @@ export const acceptRequest = async (req, res, next) => {
 
     await profile.save();
 
+    await notifyRequestAccepted(request.requesterId, request);
+
     await ScoringService.recalculate(profile._id);
 
     res.status(200).json({
@@ -401,6 +407,8 @@ export const completeRequest = async (req, res, next) => {
     profile.freeUp();
     profile.totalCompleted += 1;
     await profile.save();
+
+    await notifyRequestCompleted(request.requesterId, request);
 
     await ScoringService.recalculate(profile._id);
 

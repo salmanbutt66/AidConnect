@@ -41,26 +41,15 @@ const userSchema = new mongoose.Schema(
     },
 
     // ── LOCATION ─────────────────────────────────────────────────────────────
-    // FIX (CRITICAL): The previous schema defaulted coordinates to [0, 0],
-    // which meant every single user document was saved with a GeoJSON point
-    // in the middle of the ocean. The 2dsphere index indexed all of them,
-    // which caused index bloat and — more importantly — caused issues when
-    // other collections (HelpRequest, Volunteer) with the same default were
-    // also indexed. The fix: remove all defaults from the geo sub-fields so
-    // the location field is only stored when real data is provided.
-    // The sparse:true index below skips documents with no location entirely.
-    //
-    // city and area are the only fields guaranteed to be present — they are
-    // set at registration time and used by HelpRequestForm as defaultCity.
+    // City-based matching only. Coordinates are optional and NOT indexed.
+    // No 2dsphere index on User — matching is done by city string comparison.
     location: {
       type: {
         type: String,
         enum: ["Point"],
-        // no default — only set when coordinates are provided
       },
       coordinates: {
         type: [Number],
-        // no default — omitting this keeps the document out of the geo index
         validate: {
           validator: function (coords) {
             if (!coords || coords.length === 0) return true;
@@ -113,9 +102,7 @@ const userSchema = new mongoose.Schema(
 // ─── Indexes ──────────────────────────────────────────────────────────────────
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ bloodGroup: 1 });
-// FIX: sparse:true so users without coordinates (i.e. most users)
-// are not indexed by the 2dsphere index — prevents the [0,0] poisoning
-userSchema.index({ location: "2dsphere" }, { sparse: true });
+userSchema.index({ "location.city": 1 }); // city-based matching index
 
 // ─── Pre-save Hook: Hash password ─────────────────────────────────────────────
 userSchema.pre("save", async function () {
@@ -125,14 +112,11 @@ userSchema.pre("save", async function () {
 });
 
 // ─── Pre-save Hook: Strip empty coordinates ───────────────────────────────────
-// FIX: if location has no meaningful coordinates, remove the geo sub-fields
-// entirely so the 2dsphere index is not triggered. city and area are kept.
 userSchema.pre("save", function () {
   if (!this.location) return;
   const coords = this.location.coordinates;
   if (!coords || coords.length !== 2 ||
       (coords[0] === 0 && coords[1] === 0)) {
-    // Keep city/area, strip the GeoJSON fields
     const city = this.location.city;
     const area = this.location.area;
     this.location = { city, area };

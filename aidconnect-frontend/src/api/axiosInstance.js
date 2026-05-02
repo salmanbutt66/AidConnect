@@ -6,8 +6,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
+  validateStatus: (status) => status >= 200 && status < 400,
   headers: {
     "Content-Type": "application/json",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
   },
 });
 

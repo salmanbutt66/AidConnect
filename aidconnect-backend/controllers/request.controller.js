@@ -4,6 +4,7 @@ import Match from "../models/Match.model.js";
 import Rating from "../models/Rating.model.js";
 import Volunteer from "../models/Volunteer.model.js";
 import Provider from "../models/Provider.model.js";
+import User from "../models/User.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import { createGeoPoint, isValidCoordinates } from "../utils/geoHelper.js";
@@ -105,10 +106,35 @@ export const getNearbyRequests = asyncHandler(async (req, res) => {
   const { emergencyType, page = 1, limit = 10 } = req.query;
 
   const volunteer = await Volunteer.findOne({ user: req.user.id })
-    .select("serviceArea.city")
-    .lean();
+    .select("serviceArea.city isApproved isSuspended isAvailable")
+    .exec();
 
-  const volunteerCity = volunteer?.serviceArea?.city;
+  if (!volunteer) {
+    return sendError(res, 404, "Volunteer profile not found");
+  }
+
+  if (!volunteer.isApproved) {
+    return sendError(res, 403, "Your volunteer account is awaiting admin approval");
+  }
+
+  if (volunteer.isSuspended) {
+    return sendError(res, 403, "Your volunteer account is currently suspended");
+  }
+
+  let volunteerCity = volunteer?.serviceArea?.city?.trim();
+
+  // Legacy fallback: older accounts may have city on User but not on Volunteer.
+  // Auto-heal once so city-based request sync works consistently.
+  if (!volunteerCity) {
+    const user = await User.findById(req.user.id).select("location.city").lean();
+    const fallbackCity = user?.location?.city?.trim();
+    if (fallbackCity && volunteer) {
+      volunteer.serviceArea = volunteer.serviceArea || {};
+      volunteer.serviceArea.city = fallbackCity;
+      await volunteer.save({ validateBeforeSave: false });
+      volunteerCity = fallbackCity;
+    }
+  }
 
   if (!volunteerCity) {
     return sendError(

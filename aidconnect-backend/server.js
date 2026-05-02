@@ -30,6 +30,7 @@ import userRoutes         from "./routes/user.routes.js";
 
 // ─── App Setup ────────────────────────────────────────────────────────────────
 const app = express();
+app.set("etag", false); // Avoid 304 responses for API JSON payloads
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const getAllowedOrigins = () => {
@@ -75,6 +76,14 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Ensure frontend always receives fresh API payloads.
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {

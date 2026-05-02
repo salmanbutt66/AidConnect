@@ -5,6 +5,8 @@ import Navbar from '../../components/common/Navbar.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import { acceptRequest } from '../../api/request.api.js';
+import { getNearbyRequests } from '../../api/request.api.js';
+import { acceptRequest as acceptVolunteerRequest } from '../../api/volunteer.api.js';
 import { declineMatch, getMyMatches } from '../../api/match.api.js';
 import { formatTimeAgo, formatEmergencyType, getEmergencyEmoji } from '../../utils/formatters.js';
 
@@ -155,6 +157,7 @@ export default function Matches() {
   const navigate = useNavigate();
 
   const [matches,     setMatches]     = useState([]);
+  const [nearbyRequests, setNearbyRequests] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState('');
   const [successMsg,  setSuccessMsg]  = useState('');
@@ -172,20 +175,45 @@ export default function Matches() {
   // from firing two simultaneous API calls for the same match.
   const actionInFlight = useRef(false);
 
+  const withTimeout = useCallback((promise, ms = 10000) => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), ms)
+      ),
+    ]);
+  }, []);
+
   // ── Load only pending (notified) matches ───────────────────────────────────
   const loadMatches = useCallback(async () => {
     if (mountedRef.current) { setLoading(true); setError(''); }
     try {
-      const res = await getMyMatches({ status: 'notified' });
-      if (mountedRef.current)
-        setMatches(Array.isArray(res.data) ? res.data : []);
+      const [matchRes, nearbyRes] = await Promise.allSettled([
+        withTimeout(getMyMatches({ status: 'notified' })),
+        withTimeout(getNearbyRequests({ limit: 10 })),
+      ]);
+
+      if (!mountedRef.current) return;
+
+      if (matchRes.status === 'fulfilled') {
+        setMatches(Array.isArray(matchRes.value.data) ? matchRes.value.data : []);
+      } else {
+        setMatches([]);
+      }
+
+      if (nearbyRes.status === 'fulfilled') {
+        const requests = nearbyRes.value?.data ?? nearbyRes.value?.requests ?? [];
+        setNearbyRequests(Array.isArray(requests) ? requests : []);
+      } else {
+        setNearbyRequests([]);
+      }
     } catch (err) {
       if (mountedRef.current)
         setError(err.response?.data?.message || 'Failed to load your matches.');
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [withTimeout]);
 
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
@@ -253,6 +281,27 @@ export default function Matches() {
     }
   }, [showSuccess]);
 
+  const handleAcceptNearby = useCallback(async (requestId) => {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
+    if (mountedRef.current) { setAcceptingId(requestId); setError(''); }
+
+    try {
+      await acceptVolunteerRequest(requestId);
+      showSuccess('Request accepted! Heading to active request…');
+      setTimeout(() => {
+        navigate('/volunteer/active-request');
+      }, 800);
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err.response?.data?.message || 'Failed to accept request.');
+      }
+    } finally {
+      actionInFlight.current = false;
+      if (mountedRef.current) setAcceptingId('');
+    }
+  }, [navigate, showSuccess]);
+
   return (
     <Navbar title="Incoming Matches">
       <div className="page-wrapper">
@@ -298,19 +347,56 @@ export default function Matches() {
           <div className="card anim-fade-up">
             <div className="empty-state">
               <div className="empty-state-icon">📭</div>
-              <h3>No pending matches</h3>
-              <p>
-                You will be notified here when a request in your city matches your profile.
-                Make sure you are marked as <strong>available</strong> in your dashboard.
-              </p>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
-                <button className="btn btn-primary" onClick={() => navigate('/volunteer/dashboard')}>
-                  ← Back to Dashboard
-                </button>
-                <button className="btn btn-ghost" onClick={() => navigate('/volunteer/profile')}>
-                  Update Profile
-                </button>
-              </div>
+              <h3>No pending match notifications</h3>
+              {nearbyRequests.length > 0 ? (
+                <>
+                  <p>Open requests in your city are available below. You can accept directly.</p>
+                  <div style={{ width: '100%', maxWidth: '900px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {nearbyRequests.map((req) => (
+                      <div key={req._id} className="card" style={{ textAlign: 'left' }}>
+                        <div className="card-body" style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div>
+                              <div style={{ fontWeight: 700, marginBottom: '6px' }}>
+                                {formatEmergencyType(req.emergencyType)} — {req.description}
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <Badge urgency={req.urgencyLevel} />
+                                {req.city && <Badge color="stone">📍 {req.city}</Badge>}
+                                <Badge color="blue">{formatTimeAgo(req.postedAt || req.createdAt)}</Badge>
+                              </div>
+                            </div>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleAcceptNearby(req._id)}
+                              disabled={acceptingId === req._id || decliningId === req._id}
+                            >
+                              {acceptingId === req._id
+                                ? <><span className="spinner" /> Accepting…</>
+                                : '✓ Accept'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>
+                    You will be notified here when a request in your city matches your profile.
+                    Make sure you are marked as <strong>available</strong> in your dashboard.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
+                    <button className="btn btn-primary" onClick={() => navigate('/volunteer/dashboard')}>
+                      ← Back to Dashboard
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => navigate('/volunteer/profile')}>
+                      Update Profile
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -330,6 +416,38 @@ export default function Matches() {
                 />
               ))}
             </div>
+
+            {/* Keep a direct city-requests fallback visible even when matches exist */}
+            {nearbyRequests.length > 0 && (
+              <div className="card anim-fade-up" style={{ marginTop: '18px' }}>
+                <div className="card-header">
+                  <div className="section-title">Open City Requests (Direct Accept)</div>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {nearbyRequests.slice(0, 5).map((req) => (
+                    <div key={req._id} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', border: '1px solid var(--stone-200)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+                          {formatEmergencyType(req.emergencyType)} — {req.description}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          {req.city ? `📍 ${req.city}` : ''} · {formatTimeAgo(req.postedAt || req.createdAt)}
+                        </div>
+                      </div>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleAcceptNearby(req._id)}
+                        disabled={acceptingId === req._id || decliningId === req._id}
+                      >
+                        {acceptingId === req._id
+                          ? <><span className="spinner" /> Accepting…</>
+                          : '✓ Accept'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
 

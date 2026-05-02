@@ -1,6 +1,6 @@
 // src/pages/volunteer/ActiveRequest.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import Modal from '../../components/common/Modal.jsx';
@@ -8,10 +8,12 @@ import Loader from '../../components/common/Loader.jsx';
 import useAuth from '../../hooks/useAuth.js';
 import {
   getActiveRequest,
+  acceptRequest as acceptVolunteerRequest,
   markInProgress,
   completeRequest,
   cancelRequest,
 } from '../../api/volunteer.api.js';
+import { getRequestById, getNearbyRequests } from '../../api/request.api.js';
 import {
   formatTimeAgo,
   formatEmergencyType,
@@ -90,9 +92,13 @@ function TimelineStep({ icon, label, done, active, isLast }) {
 // ─── ActiveRequest ────────────────────────────────────────────────────────────
 export default function ActiveRequest() {
   const navigate    = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedId = searchParams.get('requestId');
   const { user }    = useAuth();
 
   const [request,       setRequest]       = useState(null);
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const [availableRequests, setAvailableRequests] = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [actionLoading, setActionLoading] = useState('');
   const [error,         setError]         = useState('');
@@ -120,17 +126,58 @@ export default function ActiveRequest() {
     setTimeout(() => { if (mountedRef.current) setSuccessMsg(''); }, 3000);
   };
 
+  const withTimeout = useCallback((promise, ms = 10000) => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), ms)
+      ),
+    ]);
+  }, []);
+
   // ── Load active request ────────────────────────────────────────────────────
   const loadRequest = useCallback(async () => {
     try {
-      const res = await getActiveRequest();
-      if (mountedRef.current) setRequest(res.activeRequest);
+      const res = await withTimeout(getActiveRequest());
+      if (!mountedRef.current) return;
+
+      const active = res.activeRequest || null;
+      setRequest(active);
+
+      // If volunteer opened this page from dashboard with ?requestId=...
+      // and they don't have an active assignment yet, preload that request
+      // so they can accept directly from here.
+      if (!active && requestedId) {
+        try {
+          const reqRes = await withTimeout(getRequestById(requestedId));
+          const fetched = reqRes?.data || null;
+          setPendingRequest(fetched && fetched.status === 'posted' ? fetched : null);
+        } catch {
+          setPendingRequest(null);
+        }
+      } else {
+        setPendingRequest(null);
+      }
+
+      // Additional fallback feed: keep this page actionable even without
+      // an active assignment or explicit requestId query param.
+      if (!active) {
+        try {
+          const nearbyRes = await withTimeout(getNearbyRequests({ limit: 8 }));
+          const requests = nearbyRes?.data ?? nearbyRes?.requests ?? [];
+          setAvailableRequests(Array.isArray(requests) ? requests : []);
+        } catch {
+          setAvailableRequests([]);
+        }
+      } else {
+        setAvailableRequests([]);
+      }
     } catch {
       if (mountedRef.current) setError('Failed to load active request.');
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [requestedId, withTimeout]);
 
   useEffect(() => { loadRequest(); }, [loadRequest]);
 
@@ -170,6 +217,50 @@ export default function ActiveRequest() {
     } catch (err) {
       if (mountedRef.current)
         setError(err.response?.data?.message || 'Action failed. Please try again.');
+    } finally {
+      actionInFlight.current = false;
+      if (mountedRef.current) setActionLoading('');
+    }
+  };
+
+  // ── Accept from pending request preview ────────────────────────────────────
+  const handleAcceptPending = async () => {
+    if (!pendingRequest?._id || actionInFlight.current || actionLoading) return;
+    actionInFlight.current = true;
+
+    if (mountedRef.current) { setActionLoading('accept'); setError(''); }
+    try {
+      const res = await acceptVolunteerRequest(pendingRequest._id);
+      if (!mountedRef.current) return;
+      setRequest(res.request || null);
+      setPendingRequest(null);
+      showSuccess('Request accepted successfully. You can now update its status.');
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err.response?.data?.message || 'Could not accept this request.');
+      }
+    } finally {
+      actionInFlight.current = false;
+      if (mountedRef.current) setActionLoading('');
+    }
+  };
+
+  const handleAcceptById = async (requestId) => {
+    if (!requestId || actionInFlight.current || actionLoading) return;
+    actionInFlight.current = true;
+
+    if (mountedRef.current) { setActionLoading('accept'); setError(''); }
+    try {
+      const res = await acceptVolunteerRequest(requestId);
+      if (!mountedRef.current) return;
+      setRequest(res.request || null);
+      setPendingRequest(null);
+      setAvailableRequests((prev) => prev.filter((r) => r._id !== requestId));
+      showSuccess('Request accepted successfully. You can now update its status.');
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err.response?.data?.message || 'Could not accept this request.');
+      }
     } finally {
       actionInFlight.current = false;
       if (mountedRef.current) setActionLoading('');
@@ -290,18 +381,88 @@ export default function ActiveRequest() {
             {!request ? (
               <div className="card anim-fade-up">
                 <div className="empty-state">
-                  <div className="empty-state-icon">🟢</div>
-                  <h3>No Active Request</h3>
-                  <p>
-                    You're not assigned to any request right now. Make sure
-                    you're marked as available to receive new assignments.
-                  </p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => safeNavigate('/volunteer/dashboard')}
-                  >
-                    ← Back to Dashboard
-                  </button>
+                  {pendingRequest ? (
+                    <>
+                      <div className="empty-state-icon">📬</div>
+                      <h3>Request Ready to Accept</h3>
+                      <p style={{ maxWidth: '720px', margin: '0 auto 14px' }}>
+                        {pendingRequest.description}
+                      </p>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <Badge urgency={pendingRequest.urgencyLevel} />
+                        <Badge color="blue">{formatEmergencyType(pendingRequest.emergencyType)}</Badge>
+                        {pendingRequest.city && <Badge color="stone">📍 {pendingRequest.city}</Badge>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          className="btn btn-primary"
+                          onClick={handleAcceptPending}
+                          disabled={!!actionLoading}
+                        >
+                          {actionLoading === 'accept'
+                            ? <><span className="spinner" /> Accepting…</>
+                            : '✓ Accept Request'}
+                        </button>
+                        <button
+                          className="btn btn-ghost"
+                          onClick={() => safeNavigate('/volunteer/dashboard')}
+                          disabled={!!actionLoading}
+                        >
+                          ← Back to Dashboard
+                        </button>
+                      </div>
+                    </>
+                  ) : availableRequests.length > 0 ? (
+                    <>
+                      <div className="empty-state-icon">📌</div>
+                      <h3>No Active Request Yet</h3>
+                      <p style={{ marginBottom: '14px' }}>
+                        You can accept an open request from your city directly below.
+                      </p>
+                      <div style={{ width: '100%', maxWidth: '900px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {availableRequests.map((req) => (
+                          <div key={req._id} className="card" style={{ textAlign: 'left' }}>
+                            <div className="card-body" style={{ padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div>
+                                  <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+                                    {formatEmergencyType(req.emergencyType)} — {req.description}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                    {req.city ? `📍 ${req.city}` : ''} {req.address ? `· ${req.address}` : ''}
+                                  </div>
+                                </div>
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  disabled={!!actionLoading}
+                                  onClick={() => handleAcceptById(req._id)}
+                                >
+                                  {actionLoading === 'accept'
+                                    ? <><span className="spinner" /> Accepting…</>
+                                    : '✓ Accept'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="empty-state-icon">🟢</div>
+                      <h3>No Active Request</h3>
+                      <p>
+                        You're not assigned to any request right now. Make sure
+                        you're marked as available to receive new assignments.
+                      </p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => safeNavigate('/volunteer/dashboard')}
+                      >
+                        ← Back to Dashboard
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
