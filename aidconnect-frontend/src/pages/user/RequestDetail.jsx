@@ -130,7 +130,6 @@ function RatingForm({ onSubmit, loading, error: externalError }) {
 
   return (
     <div>
-      {/* External error (from API) shown at top of form */}
       {externalError && (
         <div className="alert alert-error" style={{ marginBottom: '14px' }}>
           <span className="alert-icon">⚠️</span>
@@ -138,7 +137,6 @@ function RatingForm({ onSubmit, loading, error: externalError }) {
         </div>
       )}
 
-      {/* Stars */}
       <div className="form-group">
         <label className="form-label">
           Rating <span style={{ color: 'var(--danger)' }}>*</span>
@@ -156,7 +154,6 @@ function RatingForm({ onSubmit, loading, error: externalError }) {
         )}
       </div>
 
-      {/* Comment */}
       <div className="form-group" style={{ marginBottom: 0 }}>
         <label className="form-label">
           Comment <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
@@ -179,7 +176,6 @@ function RatingForm({ onSubmit, loading, error: externalError }) {
         </div>
       </div>
 
-      {/* Submit */}
       <button
         className="btn btn-primary btn-full"
         style={{ marginTop: '16px' }}
@@ -218,19 +214,18 @@ export default function RequestDetail() {
   const [successMsg,  setSuccessMsg]  = useState('');
   const [ratingDone,  setRatingDone]  = useState(false);
 
-  // FIX: local rating state — decoupled from the hook's shared actionLoading.
-  // This prevents the modal from being frozen by any other concurrent action.
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingError,      setRatingError]      = useState('');
-
-  // FIX: local cancel loading state — same reason
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
   // ── Fetch on mount ─────────────────────────────────────────────────────────
+  // FIX: added fetchRequestById and clearCurrentRequest to dependency array.
+  // Previously missing deps caused React lint warnings and potential stale
+  // closure issues if the hook reference ever changed between renders.
   useEffect(() => {
     fetchRequestById(id);
     return () => clearCurrentRequest();
-  }, [id]);
+  }, [id, fetchRequestById, clearCurrentRequest]);
 
   useEffect(() => {
     const handleRefresh = () => fetchRequestById(id);
@@ -254,7 +249,6 @@ export default function RequestDetail() {
       setSuccessMsg('Request cancelled successfully.');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch {
-      // error is shown via hook's error state
       setShowCancel(false);
     } finally {
       setCancelSubmitting(false);
@@ -262,10 +256,6 @@ export default function RequestDetail() {
   }, [id, cancelMyRequest]);
 
   // ── Rating ─────────────────────────────────────────────────────────────────
-  // FIX: uses local ratingSubmitting state instead of hook's actionLoading.
-  // On error: stays open, shows error inside modal so user can retry.
-  // On success: closes modal, marks as rated.
-  // finally: always unblocks the submit button.
   const handleRatingSubmit = useCallback(async (ratingData) => {
     setRatingSubmitting(true);
     setRatingError('');
@@ -281,14 +271,13 @@ export default function RequestDetail() {
         err?.message ||
         'Failed to submit rating. Please try again.';
       setRatingError(msg);
-      // Modal stays open on error — user can fix and resubmit
     } finally {
       setRatingSubmitting(false);
     }
   }, [id, submitRating]);
 
   const handleCloseRatingModal = useCallback(() => {
-    if (ratingSubmitting) return; // block close during active submission
+    if (ratingSubmitting) return;
     setShowRating(false);
     setRatingError('');
   }, [ratingSubmitting]);
@@ -304,7 +293,6 @@ export default function RequestDetail() {
     );
   }
 
-  // ── Not found ──────────────────────────────────────────────────────────────
   if (!loading && !request && error) {
     return (
       <Navbar title="Request Detail">
@@ -351,7 +339,6 @@ export default function RequestDetail() {
   const canRate   = isOwner && status === 'completed' && !ratingDone;
   const rateLabel = assignedType === 'Provider' ? 'Rate Service' : 'Rate Responder';
 
-  // Build timeline
   const timeline = [
     { icon: '📋', label: 'Request Posted',     time: postedAt,    color: 'var(--info)'      },
     { icon: '✅', label: 'Request Accepted',   time: acceptedAt,  color: 'var(--warning)'   },
@@ -386,7 +373,6 @@ export default function RequestDetail() {
               </div>
             </div>
 
-            {/* Actions */}
             <div style={{ display: 'flex', gap: '10px' }}>
               {canCancel && (
                 <button className="btn btn-danger" onClick={() => setShowCancel(true)}>
@@ -407,7 +393,6 @@ export default function RequestDetail() {
           </div>
         </div>
 
-        {/* ── Success alert ─────────────────────────────────────────────── */}
         {successMsg && (
           <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
             <span className="alert-icon">✅</span>
@@ -415,13 +400,11 @@ export default function RequestDetail() {
           </div>
         )}
 
-        {/* ── Two-column grid ───────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
 
-          {/* ── Left — details ────────────────────────────────────────── */}
+          {/* ── Left ──────────────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* Description */}
             <div className="card anim-fade-up delay-100">
               <div className="card-header">
                 <div className="section-title">Description</div>
@@ -461,7 +444,6 @@ export default function RequestDetail() {
               </div>
             </div>
 
-            {/* Details */}
             <div className="card anim-fade-up delay-200">
               <div className="card-header">
                 <div className="section-title">Request Details</div>
@@ -478,7 +460,6 @@ export default function RequestDetail() {
               </div>
             </div>
 
-            {/* Assigned responder */}
             {assignedTo && (
               <div className="card anim-fade-up delay-300">
                 <div className="card-header">
@@ -499,7 +480,6 @@ export default function RequestDetail() {
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {assignedType === 'Volunteer' ? 'Volunteer Responder' : 'Service Provider'}
                       </div>
-                      {/* Show provider credibility if available */}
                       {assignedType === 'Provider' && assignedTo.totalRatings > 0 && (
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                           ⭐ {assignedTo.averageRating?.toFixed(1)} · {assignedTo.totalRatings} ratings
@@ -518,10 +498,9 @@ export default function RequestDetail() {
             )}
           </div>
 
-          {/* ── Right — status + timeline ──────────────────────────────── */}
+          {/* ── Right ─────────────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* Status card */}
             <div className="card anim-fade-up delay-100">
               <div className="card-body">
                 <div style={{ textAlign: 'center', padding: '8px 0' }}>
@@ -545,7 +524,6 @@ export default function RequestDetail() {
                     {status === 'completed'   && 'Your request has been resolved. We hope you received the help you needed.'}
                     {status === 'cancelled'   && 'This request was cancelled.'}
                   </p>
-                  {/* Rate prompt when completed and not yet rated */}
                   {canRate && (
                     <button
                       className="btn btn-primary btn-sm"
@@ -559,7 +537,6 @@ export default function RequestDetail() {
               </div>
             </div>
 
-            {/* Timeline */}
             {timeline.length > 0 && (
               <div className="card anim-fade-up delay-200">
                 <div className="card-header">
@@ -577,7 +554,6 @@ export default function RequestDetail() {
               </div>
             )}
 
-            {/* Posted time */}
             <div style={{
               padding: '14px 16px', background: 'var(--green-50)',
               borderRadius: 'var(--radius-md)', border: '1px solid var(--green-100)',

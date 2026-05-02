@@ -25,7 +25,6 @@ function StepIndicator({ steps, current }) {
 
         return (
           <React.Fragment key={step.label}>
-            {/* Step circle */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <div
                 style={{
@@ -66,7 +65,6 @@ function StepIndicator({ steps, current }) {
               </span>
             </div>
 
-            {/* Connector line */}
             {!isLast && (
               <div
                 style={{
@@ -99,7 +97,6 @@ function SuccessScreen({ request, onViewRequests, onNewRequest }) {
         animation: 'scaleIn var(--t-base) var(--ease) both',
       }}
     >
-      {/* Success icon */}
       <div
         style={{
           width: '80px',
@@ -142,7 +139,6 @@ function SuccessScreen({ request, onViewRequests, onNewRequest }) {
         responders are being notified right now.
       </p>
 
-      {/* What happens next */}
       <div
         style={{
           background: 'var(--green-50)',
@@ -189,7 +185,6 @@ function SuccessScreen({ request, onViewRequests, onNewRequest }) {
         ))}
       </div>
 
-      {/* Actions */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button className="btn btn-primary btn-lg" onClick={onViewRequests}>
           📋 View My Requests
@@ -211,15 +206,15 @@ const STEPS = [
 ];
 
 export default function CreateRequest() {
-  const navigate                                    = useNavigate();
-  const { submitRequest, loading, error, clearError } = useRequests();
+  const navigate                                        = useNavigate();
+  const { submitRequest, loading, error, clearError }   = useRequests();
 
-  // FIX: pull the logged-in user's saved city so the form can pre-fill it.
-  // user.location.city is populated from the User schema after login/getMe.
-  const { user } = useAuth();
-  const defaultCity = user?.location?.city || '';
+  // Pre-fill city from the logged-in user's saved location
+  const { user }      = useAuth();
+  const defaultCity   = user?.location?.city || '';
 
-  const [step,           setStep]           = useState(1);
+  // FIX: removed unused `step` state — StepIndicator uses submitted flag only.
+  // HelpRequestForm drives its own internal step progression.
   const [submitted,      setSubmitted]      = useState(false);
   const [createdRequest, setCreatedRequest] = useState(null);
 
@@ -229,7 +224,6 @@ export default function CreateRequest() {
       const request = await submitRequest(payload);
       setCreatedRequest(request);
       setSubmitted(true);
-      setStep(3);
     } catch {
       // error already set in useRequests
     }
@@ -276,7 +270,6 @@ export default function CreateRequest() {
                   onViewRequests={() => navigate('/user/my-requests')}
                   onNewRequest={() => {
                     setSubmitted(false);
-                    setStep(1);
                     setCreatedRequest(null);
                     clearError();
                   }}
@@ -289,8 +282,6 @@ export default function CreateRequest() {
                       {error}
                     </div>
                   )}
-                  {/* FIX: pass defaultCity so the form pre-selects the user's
-                      saved city — they can still change it if needed */}
                   <HelpRequestForm
                     onSubmit={handleSubmit}
                     onCancel={() => navigate('/user/dashboard')}
@@ -323,11 +314,11 @@ export default function CreateRequest() {
                   💡 Tips for faster help
                 </div>
                 {[
-                  { tip: 'Be specific about your location — include landmarks'       },
-                  { tip: 'Describe the number of people affected'                    },
-                  { tip: 'Mention any specific skills or equipment needed'           },
-                  { tip: 'Set urgency accurately — critical requests are prioritized'},
-                  { tip: 'Add a proof image if it helps describe the situation'      },
+                  { tip: 'Be specific about your location — include landmarks'        },
+                  { tip: 'Describe the number of people affected'                     },
+                  { tip: 'Mention any specific skills or equipment needed'            },
+                  { tip: 'Set urgency accurately — critical requests are prioritized' },
+                  { tip: 'Add a proof image if it helps describe the situation'       },
                 ].map((item, i) => (
                   <div
                     key={i}
@@ -372,7 +363,7 @@ export default function CreateRequest() {
               </div>
             </div>
 
-            {/* Emergency contacts card */}
+            {/* Emergency contacts */}
             <div
               style={{
                 background: 'var(--danger-bg)',

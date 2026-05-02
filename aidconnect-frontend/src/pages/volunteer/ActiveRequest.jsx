@@ -1,5 +1,5 @@
 // src/pages/volunteer/ActiveRequest.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import Badge from '../../components/common/Badge.jsx';
@@ -89,8 +89,8 @@ function TimelineStep({ icon, label, done, active, isLast }) {
 
 // ─── ActiveRequest ────────────────────────────────────────────────────────────
 export default function ActiveRequest() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const navigate    = useNavigate();
+  const { user }    = useAuth();
 
   const [request,       setRequest]       = useState(null);
   const [loading,       setLoading]       = useState(true);
@@ -102,20 +102,33 @@ export default function ActiveRequest() {
   const [showCancel,   setShowCancel]   = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
+  // FIX: track whether component is still mounted before calling setState
+  // after async operations. Prevents "state update on unmounted component"
+  // which caused the React warning and contributed to the frozen overlay.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // FIX: track in-flight action to prevent double-clicks from firing
+  // two simultaneous API calls (complete + complete, etc.)
+  const actionInFlight = useRef(false);
+
   const showSuccess = (msg) => {
+    if (!mountedRef.current) return;
     setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(''), 3000);
+    setTimeout(() => { if (mountedRef.current) setSuccessMsg(''); }, 3000);
   };
 
   // ── Load active request ────────────────────────────────────────────────────
   const loadRequest = useCallback(async () => {
     try {
       const res = await getActiveRequest();
-      setRequest(res.activeRequest);
+      if (mountedRef.current) setRequest(res.activeRequest);
     } catch {
-      setError('Failed to load active request.');
+      if (mountedRef.current) setError('Failed to load active request.');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -127,51 +140,87 @@ export default function ActiveRequest() {
     return () => clearInterval(interval);
   }, [loadRequest]);
 
+  // ── Safe navigate: cleans up body overflow before navigating ─────────────
+  // FIX: always restore body overflow before navigating away. If a modal is
+  // open when navigate() is called, the Modal cleanup effect may not fire
+  // in time, leaving body locked as overflow:hidden on the next page.
+  const safeNavigate = useCallback((path, delay = 0) => {
+    const go = () => {
+      document.body.style.overflow = '';  // always clean up
+      setShowCancel(false);               // close modal if open
+      navigate(path);
+    };
+    if (delay > 0) setTimeout(go, delay);
+    else go();
+  }, [navigate]);
+
   // ── Mark in progress ───────────────────────────────────────────────────────
   const handleMarkInProgress = async () => {
-    setActionLoading('progress');
-    setError('');
+    // FIX: guard against double-clicks
+    if (actionInFlight.current || actionLoading) return;
+    actionInFlight.current = true;
+
+    if (mountedRef.current) { setActionLoading('progress'); setError(''); }
     try {
       const res = await markInProgress(request._id);
-      setRequest(res.request);
-      showSuccess('Request marked as in progress!');
+      if (mountedRef.current) {
+        setRequest(res.request);
+        showSuccess('Request marked as in progress!');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Action failed. Please try again.');
+      if (mountedRef.current)
+        setError(err.response?.data?.message || 'Action failed. Please try again.');
     } finally {
-      setActionLoading('');
+      actionInFlight.current = false;
+      if (mountedRef.current) setActionLoading('');
     }
   };
 
   // ── Complete ───────────────────────────────────────────────────────────────
   const handleComplete = async () => {
-    setActionLoading('complete');
-    setError('');
+    // FIX: guard against double-clicks
+    if (actionInFlight.current || actionLoading) return;
+    actionInFlight.current = true;
+
+    if (mountedRef.current) { setActionLoading('complete'); setError(''); }
     try {
       await completeRequest(request._id);
       showSuccess('Request completed! Great work 🎉');
-      setTimeout(() => navigate('/volunteer/dashboard'), 2000);
+      // FIX: use safeNavigate so body overflow is cleaned up before leaving
+      safeNavigate('/volunteer/dashboard', 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Action failed. Please try again.');
+      if (mountedRef.current)
+        setError(err.response?.data?.message || 'Action failed. Please try again.');
     } finally {
-      setActionLoading('');
+      actionInFlight.current = false;
+      if (mountedRef.current) setActionLoading('');
     }
   };
 
   // ── Cancel ─────────────────────────────────────────────────────────────────
   const handleCancelConfirm = async () => {
-    setActionLoading('cancel');
-    setError('');
+    // FIX: guard against double-clicks inside the modal confirm button
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
+
+    if (mountedRef.current) { setActionLoading('cancel'); setError(''); }
     try {
       await cancelRequest(request._id, cancelReason);
-      setShowCancel(false);
-      setCancelReason('');
-      showSuccess('Request cancelled and re-posted for other volunteers.');
-      setTimeout(() => navigate('/volunteer/dashboard'), 2000);
+      if (mountedRef.current) {
+        setCancelReason('');
+        showSuccess('Request cancelled and re-posted for other volunteers.');
+      }
+      // FIX: use safeNavigate — this closes the modal AND restores overflow
+      // before navigating, preventing the frozen dark screen
+      safeNavigate('/volunteer/dashboard', 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Action failed. Please try again.');
-      setShowCancel(false);
+      if (mountedRef.current) {
+        setError(err.response?.data?.message || 'Action failed. Please try again.');
+        setShowCancel(false);
+      }
     } finally {
-      setActionLoading('');
+      actionInFlight.current = false;
+      if (mountedRef.current) setActionLoading('');
     }
   };
 
@@ -187,11 +236,10 @@ export default function ActiveRequest() {
 
   const tl = request ? getTimelineState(request.status) : null;
 
-  // ── FIX: build location string from top-level city field ──────────────────
-  // request.city is the primary field (always present when request was posted)
-  // request.location is GeoJSON { type:"Point", coordinates:[] } — city is NOT
-  // nested inside it. The old code read request.location.city which is always
-  // undefined. Now we read request.city directly.
+  // FIX: read request.city (top-level string field) — NOT request.location.city
+  // request.location is a GeoJSON point { type, coordinates } — city is never
+  // nested inside it. The old code read request.location?.city which is always
+  // undefined, causing the location row to never render.
   const locationValue = request
     ? [request.city, request.address].filter(Boolean).join(' · ') || null
     : null;
@@ -205,7 +253,7 @@ export default function ActiveRequest() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={() => navigate('/volunteer/dashboard')}
+              onClick={() => safeNavigate('/volunteer/dashboard')}
             >
               ← Dashboard
             </button>
@@ -250,7 +298,7 @@ export default function ActiveRequest() {
                   </p>
                   <button
                     className="btn btn-primary"
-                    onClick={() => navigate('/volunteer/dashboard')}
+                    onClick={() => safeNavigate('/volunteer/dashboard')}
                   >
                     ← Back to Dashboard
                   </button>
@@ -275,7 +323,6 @@ export default function ActiveRequest() {
                     </div>
                     <div className="card-body" style={{ paddingTop: '20px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
-                        {/* Connector line */}
                         <div style={{
                           position: 'absolute', top: '17px',
                           left: '16%', right: '16%',
@@ -306,12 +353,10 @@ export default function ActiveRequest() {
                     <div className="card-body" style={{ paddingTop: '8px' }}>
                       <InfoRow icon="🚨" label="Emergency Type" value={formatEmergencyType(request.emergencyType)} />
                       <InfoRow icon="📝" label="Description"    value={request.description} />
-
-                      {/* FIX: use request.city (top-level) not request.location.city */}
-                      <InfoRow icon="📍" label="Location" value={locationValue} />
-
-                      <InfoRow icon="🕐" label="Posted"   value={formatTimeAgo(request.postedAt   || request.createdAt)} />
-                      <InfoRow icon="✅" label="Accepted" value={formatTimeAgo(request.acceptedAt)} />
+                      {/* FIX: request.city is the top-level field — not request.location.city */}
+                      <InfoRow icon="📍" label="Location"       value={locationValue} />
+                      <InfoRow icon="🕐" label="Posted"         value={formatTimeAgo(request.postedAt   || request.createdAt)} />
+                      <InfoRow icon="✅" label="Accepted"       value={formatTimeAgo(request.acceptedAt)} />
                       {request.bloodGroupNeeded && (
                         <InfoRow icon="🩸" label="Blood Group Needed" value={request.bloodGroupNeeded} />
                       )}
@@ -341,7 +386,7 @@ export default function ActiveRequest() {
                           </button>
                         )}
 
-                        {/* Complete — available from both accepted and in_progress */}
+                        {/* Complete */}
                         {['accepted', 'in_progress'].includes(request.status) && (
                           <button
                             className="btn btn-primary"
@@ -368,7 +413,6 @@ export default function ActiveRequest() {
                         )}
                       </div>
 
-                      {/* Reputation warning */}
                       <div style={{
                         marginTop: '14px', padding: '10px 14px',
                         background: 'var(--warning-bg)', border: '1px solid #fce4b3',
@@ -491,7 +535,11 @@ export default function ActiveRequest() {
       {/* ── Cancel modal ──────────────────────────────────────────────────── */}
       <Modal
         isOpen={showCancel}
-        onClose={() => { setShowCancel(false); setCancelReason(''); }}
+        onClose={() => {
+          if (actionLoading === 'cancel') return; // don't close mid-action
+          setShowCancel(false);
+          setCancelReason('');
+        }}
         title="Cancel Request?"
         icon="⚠️"
         onConfirm={handleCancelConfirm}

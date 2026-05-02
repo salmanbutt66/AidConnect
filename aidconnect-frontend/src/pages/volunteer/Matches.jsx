@@ -1,5 +1,5 @@
 // src/pages/volunteer/Matches.jsx
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import Badge from '../../components/common/Badge.jsx';
@@ -57,7 +57,6 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
                 {match.matchScore > 0 && (
                   <Badge color="stone">Score {Math.round(match.matchScore)}</Badge>
                 )}
-                {/* FIX: show blood group if this is a blood request */}
                 {request.bloodGroupNeeded && (
                   <span className="badge badge-red" style={{ fontSize: '10px' }}>
                     🩸 {request.bloodGroupNeeded}
@@ -67,7 +66,6 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
             </div>
           </div>
 
-          {/* Distance — only show if we actually have coordinates */}
           {match.distanceKm > 0 && (
             <span className="badge badge-green" style={{ flexShrink: 0 }}>
               {Number(match.distanceKm).toFixed(1)} km away
@@ -110,8 +108,8 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
               Location
             </div>
+            {/* FIX: request.city is the primary top-level field — always present */}
             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)' }}>
-              {/* FIX: show city first (always present), then address if available */}
               {request.city || 'Unknown city'}
             </div>
             {request.address && request.address !== request.city && (
@@ -163,62 +161,95 @@ export default function Matches() {
   const [acceptingId, setAcceptingId] = useState('');
   const [decliningId, setDecliningId] = useState('');
 
+  // FIX: track mount state to prevent setState on unmounted component.
+  // Without this, if the user accepts and navigates to active-request
+  // before the 800ms delay fires, the finally block tries to call
+  // setAcceptingId('') on an already-unmounted component.
+  const mountedRef    = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+
+  // FIX: in-flight guard prevents double-clicking Accept or Decline
+  // from firing two simultaneous API calls for the same match.
+  const actionInFlight = useRef(false);
+
   // ── Load only pending (notified) matches ───────────────────────────────────
   const loadMatches = useCallback(async () => {
-    setLoading(true);
-    setError('');
+    if (mountedRef.current) { setLoading(true); setError(''); }
     try {
-      // FIX: pass status=notified so accepted/declined/expired matches
-      // don't clutter the list — volunteers only need to act on pending ones
       const res = await getMyMatches({ status: 'notified' });
-      // res is { success, message, data: [...], pagination: {...} }
-      setMatches(Array.isArray(res.data) ? res.data : []);
+      if (mountedRef.current)
+        setMatches(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load your matches.');
+      if (mountedRef.current)
+        setError(err.response?.data?.message || 'Failed to load your matches.');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
   const showSuccess = useCallback((message) => {
+    if (!mountedRef.current) return;
     setSuccessMsg(message);
-    window.setTimeout(() => setSuccessMsg(''), 3000);
+    setTimeout(() => { if (mountedRef.current) setSuccessMsg(''); }, 3000);
   }, []);
 
   // ── Accept ─────────────────────────────────────────────────────────────────
+  // Flow: acceptRequest(requestId, matchId)
+  //   → PUT /api/requests/:id/accept { matchId }
+  //   → handleVolunteerResponse in matching.service.js
+  //   → marks request accepted, locks volunteer, expires other matches
   const handleAccept = useCallback(async (match) => {
+    if (actionInFlight.current) return;
+
     const requestId = match.requestId?._id || match.requestId;
     if (!requestId || !match?._id) {
-      setError('Match data is incomplete. Please refresh and try again.');
+      if (mountedRef.current)
+        setError('Match data is incomplete. Please refresh and try again.');
       return;
     }
-    setAcceptingId(match._id);
-    setError('');
+
+    actionInFlight.current = true;
+    if (mountedRef.current) { setAcceptingId(match._id); setError(''); }
+
     try {
       await acceptRequest(requestId, match._id);
       showSuccess('Match accepted! Heading to your active request…');
-      // Small delay so the user sees the success message
-      setTimeout(() => navigate('/volunteer/active-request'), 800);
+      // Small delay so the user sees the success message before navigating
+      setTimeout(() => {
+        document.body.style.overflow = ''; // safety cleanup
+        navigate('/volunteer/active-request');
+      }, 800);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to accept match.');
-      setAcceptingId('');
+      if (mountedRef.current)
+        setError(err.response?.data?.message || 'Failed to accept match. The request may have already been taken.');
+    } finally {
+      // FIX: always clear acceptingId in finally, not just on error.
+      // Previously the spinner stayed forever on success until navigation.
+      actionInFlight.current = false;
+      if (mountedRef.current) setAcceptingId('');
     }
   }, [navigate, showSuccess]);
 
   // ── Decline ────────────────────────────────────────────────────────────────
   const handleDecline = useCallback(async (match) => {
-    setDecliningId(match._id);
-    setError('');
+    if (actionInFlight.current) return;
+
+    actionInFlight.current = true;
+    if (mountedRef.current) { setDecliningId(match._id); setError(''); }
+
     try {
       await declineMatch(match._id);
-      setMatches((prev) => prev.filter((m) => m._id !== match._id));
+      if (mountedRef.current)
+        setMatches((prev) => prev.filter((m) => m._id !== match._id));
       showSuccess('Match declined.');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to decline match.');
+      if (mountedRef.current)
+        setError(err.response?.data?.message || 'Failed to decline match.');
     } finally {
-      setDecliningId('');
+      actionInFlight.current = false;
+      if (mountedRef.current) setDecliningId('');
     }
   }, [showSuccess]);
 

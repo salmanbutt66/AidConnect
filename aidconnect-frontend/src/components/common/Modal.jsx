@@ -17,8 +17,8 @@ export default function Modal({
   loading        = false,
 
   // Config
-  size            = 'md',
-  closeOnOverlay  = true,
+  size           = 'md',
+  closeOnOverlay = true,
 }) {
 
   // ── Close on Escape key ────────────────────────────────────────────────────
@@ -30,11 +30,25 @@ export default function Modal({
     if (!isOpen) return;
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
+
+    // FIX: always restore body overflow on cleanup, even if the parent
+    // component unmounts mid-action (e.g. navigate() called while modal
+    // is open). Without this guard the body stays locked as overflow:hidden
+    // permanently — which is what caused the dark/frozen screen bug.
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
   }, [isOpen, handleKeyDown]);
+
+  // FIX: also restore overflow whenever isOpen flips to false while the
+  // effect is still alive (covers the case where parent sets isOpen=false
+  // externally without unmounting the Modal component).
+  useEffect(() => {
+    if (!isOpen) {
+      document.body.style.overflow = '';
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -51,7 +65,6 @@ export default function Modal({
     <div
       className="modal-overlay"
       onClick={(e) => {
-        // Only close if clicking the overlay itself, not its children
         if (e.target === e.currentTarget && closeOnOverlay && !loading) {
           onClose();
         }

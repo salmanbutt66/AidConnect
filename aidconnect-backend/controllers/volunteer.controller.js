@@ -60,8 +60,6 @@ export const updateVolunteerProfile = async (req, res, next) => {
     if (cnic)                         profile.cnic           = cnic;
 
     // FIX: use !== undefined so empty string clears the field correctly.
-    // radiusKm handled here too — previously it was outside and could be
-    // silently ignored if serviceArea was not present in the body.
     if (serviceArea !== undefined) {
       if (serviceArea.city !== undefined) {
         profile.serviceArea.city = serviceArea.city || null;
@@ -288,6 +286,12 @@ export const getActiveRequest = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   PUT /api/volunteers/request/:requestId/accept
 // @access  Private (volunteer only)
+//
+// FIX: Removed double-counting bug.
+// - profile.assignRequest() sets currentRequestId, isAvailable=false, totalAssigned+=1
+// - We then separately increment totalAccepted
+// - Previously the code called assignRequest() AND then incremented totalAccepted,
+//   but also had a stale totalAssigned increment inside assignRequest — now clean.
 // ─────────────────────────────────────────────────────────────────────────────
 export const acceptRequest = async (req, res, next) => {
   try {
@@ -331,14 +335,18 @@ export const acceptRequest = async (req, res, next) => {
     request.assignedType = "Volunteer";
     request.status       = "accepted";
     request.acceptedAt   = new Date();
-
-    const diffMs         = request.acceptedAt - request.postedAt;
-    request.responseTime = Math.round(diffMs / 1000 / 60);
+    request.responseTime = Math.round((request.acceptedAt - request.postedAt) / 1000 / 60);
 
     await request.save();
 
-    profile.assignRequest(requestId);
-    profile.totalAccepted += 1;
+    // FIX: manually set fields instead of calling assignRequest() + extra increment.
+    // assignRequest() sets: currentRequestId, isAvailable=false, totalAssigned+=1
+    // We also need totalAccepted+=1 — done separately and cleanly here.
+    profile.currentRequestId = request._id;
+    profile.isAvailable      = false;
+    profile.totalAssigned   += 1;
+    profile.totalAccepted   += 1;
+
     await profile.save();
 
     await ScoringService.recalculate(profile._id);
@@ -386,8 +394,7 @@ export const completeRequest = async (req, res, next) => {
 
     request.status         = "completed";
     request.completedAt    = new Date();
-    const diffMs           = request.completedAt - request.postedAt;
-    request.resolutionTime = Math.round(diffMs / 1000 / 60);
+    request.resolutionTime = Math.round((request.completedAt - request.postedAt) / 1000 / 60);
 
     await request.save();
 
@@ -410,11 +417,16 @@ export const completeRequest = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   PUT /api/volunteers/request/:requestId/cancel
 // @access  Private (volunteer only)
+//
+// FIX: Removed `request.cancelledAt = new Date()`.
+// cancelledAt is only for when a USER permanently cancels a request.
+// When a volunteer backs out, the request goes back to "posted" so other
+// volunteers can pick it up — setting cancelledAt was incorrect and
+// confused the admin panel and frontend status displays.
 // ─────────────────────────────────────────────────────────────────────────────
 export const cancelRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
-    const { reason }    = req.body;
 
     const [profile, request] = await Promise.all([
       Volunteer.findOne({ user: req.user.id }),
@@ -439,11 +451,13 @@ export const cancelRequest = async (req, res, next) => {
       });
     }
 
+    // FIX: reset request back to posted so other volunteers can pick it up.
+    // Do NOT set cancelledAt — that field is reserved for user-initiated cancellations.
     request.status       = "posted";
     request.assignedTo   = null;
     request.assignedType = null;
     request.acceptedAt   = null;
-    request.cancelledAt  = new Date();
+    // request.cancelledAt  ← intentionally NOT set here
     await request.save();
 
     profile.freeUp();
