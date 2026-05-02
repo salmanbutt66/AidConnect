@@ -14,8 +14,18 @@ import {
   getActiveRequest,
 } from '../../api/volunteer.api.js';
 import { getNearbyRequests } from '../../api/request.api.js';
-import { formatScore, formatTimeAgo, getUrgencyClass } from '../../utils/formatters.js';
+import { formatScore, formatTimeAgo } from '../../utils/formatters.js';
 import { EMERGENCY_TYPES } from '../../utils/constants.js';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+// GET /api/volunteers/active-request → { success, activeRequest }
+const unwrapActive  = (res) => res?.activeRequest ?? null;
+// sendPaginated      → { success, message, data: [...], pagination: { city, total } }
+const unwrapNearby  = (res) => ({
+  requests: Array.isArray(res?.data) ? res.data : [],
+  total:    res?.pagination?.total ?? 0,
+  city:     res?.pagination?.city  ?? '',
+});
 
 // ─── Availability toggle card ─────────────────────────────────────────────────
 function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onToggle }) {
@@ -94,11 +104,8 @@ function ActiveRequestBanner({ request, onView }) {
         background: 'var(--danger-bg)',
         border: '1.5px solid #f5c6c2',
         borderRadius: 'var(--radius-lg)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        marginBottom: '24px',
-        flexWrap: 'wrap',
+        display: 'flex', alignItems: 'center', gap: '14px',
+        marginBottom: '24px', flexWrap: 'wrap',
       }}
     >
       <div style={{
@@ -126,7 +133,7 @@ function ActiveRequestBanner({ request, onView }) {
   );
 }
 
-// ─── FIX: Incoming request card (was completely missing from dashboard) ────────
+// ─── Incoming request card ────────────────────────────────────────────────────
 function IncomingRequestCard({ request, onView }) {
   const emergencyEmojis = {
     medical: '🏥', blood: '🩸', accident: '🚗', disaster: '🌊', other: '🆘',
@@ -149,7 +156,6 @@ function IncomingRequestCard({ request, onView }) {
     >
       <div className="card-body" style={{ padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          {/* Emoji icon */}
           <div style={{
             width: '40px', height: '40px', flexShrink: 0,
             background: 'var(--green-50)',
@@ -159,24 +165,19 @@ function IncomingRequestCard({ request, onView }) {
           }}>
             {emergencyEmojis[request.emergencyType] || '🆘'}
           </div>
-
-          {/* Content */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-dark)', textTransform: 'capitalize' }}>
                 {request.emergencyType?.replace('_', ' ')} Emergency
               </span>
-              <span
-                style={{
-                  fontSize: '10px', fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  background: urgencyColors[request.urgencyLevel] + '20',
-                  color: urgencyColors[request.urgencyLevel],
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+              <span style={{
+                fontSize: '10px', fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: urgencyColors[request.urgencyLevel] + '20',
+                color: urgencyColors[request.urgencyLevel],
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+              }}>
                 {request.urgencyLevel}
               </span>
               {request.bloodGroupNeeded && (
@@ -185,21 +186,17 @@ function IncomingRequestCard({ request, onView }) {
                 </span>
               )}
             </div>
-
             <div style={{
-              fontSize: '13px', color: 'var(--text-muted)',
-              lineHeight: 1.5, marginBottom: '8px',
+              fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '8px',
               display: '-webkit-box', WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
               {request.description}
             </div>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               {request.city && (
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  📍 {request.city}
-                  {request.address ? ` · ${request.address}` : ''}
+                  📍 {request.city}{request.address ? ` · ${request.address}` : ''}
                 </span>
               )}
               <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>
@@ -207,8 +204,6 @@ function IncomingRequestCard({ request, onView }) {
               </span>
             </div>
           </div>
-
-          {/* Arrow */}
           <span style={{ color: 'var(--text-light)', fontSize: '18px', flexShrink: 0, alignSelf: 'center' }}>›</span>
         </div>
       </div>
@@ -218,22 +213,19 @@ function IncomingRequestCard({ request, onView }) {
 
 // ─── VolunteerDashboard ───────────────────────────────────────────────────────
 export default function VolunteerDashboard() {
-  const { user }   = useAuth();
-  const navigate   = useNavigate();
+  const { user }  = useAuth();
+  const navigate  = useNavigate();
 
   const [profile,        setProfile]        = useState(null);
   const [stats,          setStats]          = useState(null);
   const [activeRequest,  setActiveRequest]  = useState(null);
-
-  // FIX: incoming requests state — was completely missing
   const [nearbyRequests, setNearbyRequests] = useState([]);
   const [requestsCity,   setRequestsCity]   = useState('');
   const [requestsTotal,  setRequestsTotal]  = useState(0);
   const [filterType,     setFilterType]     = useState('');
-
-  const [loading,  setLoading]  = useState(true);
-  const [toggling, setToggling] = useState(false);
-  const [error,    setError]    = useState('');
+  const [loading,        setLoading]        = useState(true);
+  const [toggling,       setToggling]       = useState(false);
+  const [error,          setError]          = useState('');
 
   // ── Load all data on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -243,22 +235,21 @@ export default function VolunteerDashboard() {
           getMyVolunteerProfile(),
           getVolunteerStats(),
           getActiveRequest(),
-          // FIX: fetch nearby requests for the dashboard feed
           getNearbyRequests({ limit: 5 }),
         ]);
 
         if (profileRes.status === 'fulfilled') setProfile(profileRes.value.profile);
         if (statsRes.status   === 'fulfilled') setStats(statsRes.value.stats);
-        if (activeRes.status  === 'fulfilled') setActiveRequest(activeRes.value.activeRequest);
 
-        // FIX: handle the nearby requests response
+        if (activeRes.status === 'fulfilled') {
+          setActiveRequest(unwrapActive(activeRes.value));
+        }
+
         if (nearbyRes.status === 'fulfilled') {
-          const data = nearbyRes.value;
-          // Handle both { data: [...] } and { requests: [...] } shapes
-          const requests = data?.data ?? data?.requests ?? [];
-          setNearbyRequests(Array.isArray(requests) ? requests : []);
-          setRequestsTotal(data?.pagination?.total ?? requests.length);
-          setRequestsCity(data?.pagination?.city || data?.city || '');
+          const { requests, total, city } = unwrapNearby(nearbyRes.value);
+          setNearbyRequests(requests);
+          setRequestsTotal(total);
+          setRequestsCity(city);
         }
 
         if (
@@ -281,9 +272,10 @@ export default function VolunteerDashboard() {
       const params = { limit: 5 };
       if (type) params.emergencyType = type;
       const data = await getNearbyRequests(params);
-      const requests = data?.data ?? data?.requests ?? [];
-      setNearbyRequests(Array.isArray(requests) ? requests : []);
-      setRequestsTotal(data?.pagination?.total ?? requests.length);
+      const { requests, total, city } = unwrapNearby(data);
+      setNearbyRequests(requests);
+      setRequestsTotal(total);
+      if (city) setRequestsCity(city);
     } catch {
       // fail silently — city may not be set yet
     }
@@ -315,8 +307,8 @@ export default function VolunteerDashboard() {
   const scoreMeta       = formatScore(reputationScore);
   const firstName       = user?.name?.split(' ')[0] || 'there';
 
-  // FIX: navigate to a request detail — volunteers view via matches or
-  // a dedicated volunteer request view. Adjust route as needed.
+  // FIX: navigate to active-request page with the requestId so the volunteer
+  // can preview and accept. Route: /volunteer/active-request?requestId=<id>
   const handleViewRequest = (requestId) => {
     navigate(`/volunteer/active-request?requestId=${requestId}`);
   };
@@ -325,7 +317,6 @@ export default function VolunteerDashboard() {
     <Navbar title="Dashboard">
       <div className="page-wrapper">
 
-        {/* ── Page header ───────────────────────────────────────────────── */}
         <div className="page-header">
           <h1>Welcome back, {firstName} 👋</h1>
           <p>Here's your volunteer activity and performance overview.</p>
@@ -335,7 +326,6 @@ export default function VolunteerDashboard() {
 
         {!loading && (
           <>
-            {/* ── Error alert ─────────────────────────────────────────────── */}
             {error && (
               <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
                 <span className="alert-icon">⚠️</span>
@@ -347,16 +337,15 @@ export default function VolunteerDashboard() {
               </div>
             )}
 
-            {/* ── Status banners ────────────────────────────────────────── */}
             {!isApproved && (
               <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px' }}>
                 <span className="alert-icon">⏳</span>
                 <div>
-                  <strong>Pending Approval</strong> — Your volunteer profile is awaiting
-                  admin review. You'll be notified once approved.
+                  <strong>Pending Approval</strong> — Your volunteer profile is awaiting admin review. You'll be notified once approved.
                 </div>
               </div>
             )}
+
             {isSuspended && (
               <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
                 <span className="alert-icon">⛔</span>
@@ -367,7 +356,6 @@ export default function VolunteerDashboard() {
               </div>
             )}
 
-            {/* ── Active request banner ────────────────────────────────── */}
             {activeRequest && (
               <ActiveRequestBanner
                 request={activeRequest}
@@ -375,7 +363,7 @@ export default function VolunteerDashboard() {
               />
             )}
 
-            {/* ── Stats row ─────────────────────────────────────────────── */}
+            {/* Stats row */}
             <div className="grid-4" style={{ marginBottom: '28px' }}>
               <StatsCard label="Completed"       value={stats?.totalCompleted ?? 0} icon="✅" color="green" sub="Total resolved" delay={0} />
               <StatsCard label="Acceptance Rate" value={stats?.acceptanceRate ?? 0} icon="⚡" color="blue"  format="percent"   delay={100} />
@@ -389,13 +377,13 @@ export default function VolunteerDashboard() {
               <StatsCard label="Reputation" value={reputationScore} icon="🏅" color="green" sub={scoreMeta.label} delay={300} />
             </div>
 
-            {/* ── Main content grid ──────────────────────────────────────── */}
+            {/* Main grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }}>
 
               {/* Left column */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                {/* ── FIX: Incoming Requests Feed ───────────────────────── */}
+                {/* Incoming Requests Feed */}
                 <div className="card anim-fade-up delay-100">
                   <div className="card-header">
                     <div>
@@ -484,12 +472,14 @@ export default function VolunteerDashboard() {
                     )}
                   </div>
 
-                  {/* View all link */}
+                  {/* FIX: "View all" now goes to /volunteer/active-request (not /volunteer/matches
+                      which doesn't exist). The active-request page shows all nearby requests
+                      when there's no active assignment. */}
                   {nearbyRequests.length > 0 && (
                     <div style={{ padding: '0 16px 16px', textAlign: 'center' }}>
                       <button
                         className="btn btn-ghost btn-sm"
-                        onClick={() => navigate('/volunteer/matches')}
+                        onClick={() => navigate('/volunteer/active-request')}
                       >
                         View all {requestsTotal} requests →
                       </button>
@@ -497,7 +487,7 @@ export default function VolunteerDashboard() {
                   )}
                 </div>
 
-                {/* Performance summary card */}
+                {/* Performance summary */}
                 <div className="card anim-fade-up delay-200">
                   <div className="card-header">
                     <div className="section-header" style={{ marginBottom: 0 }}>
@@ -530,7 +520,7 @@ export default function VolunteerDashboard() {
                   </div>
                 </div>
 
-                {/* Quick actions card */}
+                {/* Quick actions */}
                 <div className="card anim-fade-up delay-300">
                   <div className="card-header">
                     <div className="section-title">Quick Actions</div>
@@ -538,10 +528,9 @@ export default function VolunteerDashboard() {
                   <div className="card-body" style={{ paddingTop: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {[
-                        { icon: '🚨', label: 'View Active Request', desc: 'Check and manage your current assignment', to: '/volunteer/active-request' },
-                        { icon: '📬', label: 'Incoming Matches',    desc: 'Review matches and accept a request',    to: '/volunteer/matches'        },
-                        { icon: '📋', label: 'Request History',     desc: 'Browse your past responses and ratings',  to: '/volunteer/history'        },
-                        { icon: '👤', label: 'Edit Profile',         desc: 'Update your skills and service area',     to: '/volunteer/profile'        },
+                        { icon: '🚨', label: 'View Active Request', desc: 'Check and manage your current assignment',  to: '/volunteer/active-request' },
+                        { icon: '📋', label: 'Request History',     desc: 'Browse your past responses and ratings',   to: '/volunteer/history'        },
+                        { icon: '👤', label: 'Edit Profile',        desc: 'Update your skills and service area',      to: '/volunteer/profile'        },
                       ].map((action) => (
                         <button
                           key={action.to}

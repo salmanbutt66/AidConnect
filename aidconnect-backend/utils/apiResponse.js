@@ -35,6 +35,10 @@ const sendPaginated = (res, message = "Success", data = [], pagination = {}) => 
       page: pagination.page || 1,
       limit: pagination.limit || 10,
       pages: pagination.pages || 1,
+      // Preserve any additional custom fields (e.g., city, filters, etc.)
+      ...Object.keys(pagination)
+        .filter(key => !['total', 'page', 'limit', 'pages'].includes(key))
+        .reduce((acc, key) => ({ ...acc, [key]: pagination[key] }), {}),
     },
   });
 };

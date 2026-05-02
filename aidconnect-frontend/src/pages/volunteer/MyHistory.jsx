@@ -214,7 +214,7 @@ export default function MyHistory() {
       const params = { page: pageNum, limit: 10 };
       if (statusFilter !== 'all') params.status = statusFilter;
       const res = await getVolunteerHistory(params);
-      setRequests(res.requests || []);
+      setRequests(res.data || []);
       setPagination(res.pagination || null);
     } catch {
       setError('Failed to load history. Please try again.');
@@ -323,7 +323,7 @@ export default function MyHistory() {
             )}
 
             {/* Pagination */}
-            {!loading && pagination && pagination.totalPages > 1 && (
+            {!loading && pagination && pagination.pages > 1 && (
               <div style={{ marginTop: '24px' }}>
                 <div className="pagination">
                   <button
@@ -332,7 +332,7 @@ export default function MyHistory() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >‹</button>
 
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  {Array.from({ length: pagination.pages }, (_, i) => i + 1)
                     .filter((p) => Math.abs(p - page) <= 2)
                     .map((p) => (
                       <button
@@ -347,13 +347,13 @@ export default function MyHistory() {
 
                   <button
                     className="page-btn"
-                    disabled={page >= pagination.totalPages}
-                    onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                    disabled={page >= pagination.pages}
+                    onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
                   >›</button>
                 </div>
 
                 <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Page {page} of {pagination.totalPages}
+                  Page {page} of {pagination.pages}
                   {pagination.total ? ` · ${pagination.total} total requests` : ''}
                 </div>
               </div>

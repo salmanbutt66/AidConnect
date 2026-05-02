@@ -2,7 +2,9 @@
 import Volunteer from "../models/Volunteer.model.js";
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
+import Match from "../models/Match.model.js";
 import ScoringService from "../services/scoring.service.js";
+import { sendPaginated, sendError, sendSuccess } from "../utils/apiResponse.js";
 import {
   notifyRequestAccepted,
   notifyRequestCompleted,
@@ -31,13 +33,6 @@ export const getMyVolunteerProfile = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   PUT /api/volunteers/profile
 // @access  Private (volunteer only)
-//
-// FIX: the old code used `if (serviceArea.city)` which silently ignored
-//      empty strings — a volunteer could never clear their city once set.
-//      Now we use `!== undefined` so empty string ("") is a valid value
-//      that correctly overwrites the stored city.
-//      radiusKm is also now handled inside the serviceArea block so it
-//      is always saved together with city/area.
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateVolunteerProfile = async (req, res, next) => {
   try {
@@ -63,7 +58,6 @@ export const updateVolunteerProfile = async (req, res, next) => {
     if (lastDonationDate)             profile.lastDonationDate = lastDonationDate;
     if (cnic)                         profile.cnic           = cnic;
 
-    // FIX: use !== undefined so empty string clears the field correctly.
     if (serviceArea !== undefined) {
       if (serviceArea.city !== undefined) {
         profile.serviceArea.city = serviceArea.city || null;
@@ -181,8 +175,8 @@ export const getMyRatings = async (req, res, next) => {
 
     const profile = await Volunteer.findOne({ user: req.user.id })
       .select("ratings averageRating totalRatings")
-      .populate("ratings.givenBy",    "name profilePicture")
-      .populate("ratings.requestId",  "emergencyType");
+      .populate("ratings.givenBy",   "name profilePicture")
+      .populate("ratings.requestId", "emergencyType");
 
     if (!profile) {
       return res.status(404).json({ success: false, message: "Volunteer profile not found" });
@@ -192,16 +186,12 @@ export const getMyRatings = async (req, res, next) => {
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(skip, skip + limit);
 
-    res.status(200).json({
-      success: true,
+    return sendPaginated(res, "Volunteer ratings fetched successfully", sortedRatings, {
+      total: profile.totalRatings,
+      page,
+      limit,
+      pages: Math.ceil(profile.totalRatings / limit),
       averageRating: profile.averageRating,
-      totalRatings:  profile.totalRatings,
-      ratings:       sortedRatings,
-      pagination: {
-        currentPage:  page,
-        totalPages:   Math.ceil(profile.totalRatings / limit),
-        totalRatings: profile.totalRatings,
-      },
     });
   } catch (error) {
     next(error);
@@ -211,15 +201,13 @@ export const getMyRatings = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   GET /api/volunteers/history
 // @access  Private (volunteer only)
-//
-// FIX: was filtering by { assignedTo: req.user.id } which is the User _id.
-// HelpRequest.assignedTo stores the Volunteer profile _id, not the User _id.
-// Fix: resolve the Volunteer profile first, then filter by profile._id.
 // ─────────────────────────────────────────────────────────────────────────────
 export const getVolunteerHistory = async (req, res, next) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip     = (parseInt(page)  - 1) * parseInt(limit);
+    const pageNum  = parseInt(page);
+    const limitNum = parseInt(limit);
 
     const profile = await Volunteer.findOne({ user: req.user.id }).select("_id");
 
@@ -235,18 +223,15 @@ export const getVolunteerHistory = async (req, res, next) => {
         .populate("requesterId", "name phone location")
         .sort({ updatedAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit)),
+        .limit(limitNum),
       HelpRequest.countDocuments(filter),
     ]);
 
-    res.status(200).json({
-      success: true,
-      requests,
-      pagination: {
-        currentPage:   parseInt(page),
-        totalPages:    Math.ceil(total / parseInt(limit)),
-        totalRequests: total,
-      },
+    return sendPaginated(res, "Request history fetched successfully", requests, {
+      total,
+      page:  pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum),
     });
   } catch (error) {
     next(error);
@@ -275,9 +260,25 @@ export const getActiveRequest = async (req, res, next) => {
 
     if (!profile.currentRequestId) {
       return res.status(200).json({
-        success: true,
+        success:       true,
         activeRequest: null,
-        message: "No active request at the moment",
+        message:       "No active request at the moment",
+      });
+    }
+
+    // FIX: if the stored request is completed or cancelled, clear the stale
+    // currentRequestId so the volunteer isn't permanently stuck. This covers
+    // edge cases where freeUp() wasn't called (e.g. admin force-cancel).
+    const req_ = profile.currentRequestId;
+    if (req_ && ["completed", "cancelled"].includes(req_.status)) {
+      await Volunteer.findOneAndUpdate(
+        { user: req.user.id },
+        { currentRequestId: null, isAvailable: true }
+      );
+      return res.status(200).json({
+        success:       true,
+        activeRequest: null,
+        message:       "No active request at the moment",
       });
     }
 
@@ -291,11 +292,15 @@ export const getActiveRequest = async (req, res, next) => {
 // @route   PUT /api/volunteers/request/:requestId/accept
 // @access  Private (volunteer only)
 //
-// FIX: Removed double-counting bug.
-// - profile.assignRequest() sets currentRequestId, isAvailable=false, totalAssigned+=1
-// - We then separately increment totalAccepted
-// - Previously the code called assignRequest() AND then incremented totalAccepted,
-//   but also had a stale totalAssigned increment inside assignRequest — now clean.
+// FIX: Changed the availability guard from `!profile.isAvailable` to
+// `profile.currentRequestId`. The isAvailable toggle is a preference flag
+// for the matching engine — it tells the system who to notify about new
+// requests. It must NOT block a volunteer from manually accepting a request
+// they can see in their dashboard.
+//
+// The real "are you busy?" check is currentRequestId. A volunteer who just
+// got approved has isAvailable:false by default and would hit a 400 on every
+// accept attempt under the old logic, with no obvious reason why.
 // ─────────────────────────────────────────────────────────────────────────────
 export const acceptRequest = async (req, res, next) => {
   try {
@@ -314,6 +319,7 @@ export const acceptRequest = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Request not found" });
     }
 
+    // Must be approved and not suspended
     if (!profile.isApproved || profile.isSuspended) {
       return res.status(403).json({
         success: false,
@@ -321,10 +327,11 @@ export const acceptRequest = async (req, res, next) => {
       });
     }
 
-    if (!profile.isAvailable) {
+    // FIX: check for an existing active assignment, not the availability toggle
+    if (profile.currentRequestId) {
       return res.status(400).json({
         success: false,
-        message: "You are currently unavailable or handling another request",
+        message: "You are already handling an active request. Complete or cancel it first.",
       });
     }
 
@@ -335,26 +342,32 @@ export const acceptRequest = async (req, res, next) => {
       });
     }
 
+    // ── Update the request ────────────────────────────────────────────────
     request.assignedTo   = profile._id;
     request.assignedType = "Volunteer";
     request.status       = "accepted";
     request.acceptedAt   = new Date();
     request.responseTime = Math.round((request.acceptedAt - request.postedAt) / 1000 / 60);
-
     await request.save();
 
-    // FIX: manually set fields instead of calling assignRequest() + extra increment.
-    // assignRequest() sets: currentRequestId, isAvailable=false, totalAssigned+=1
-    // We also need totalAccepted+=1 — done separately and cleanly here.
+    // ── Update volunteer profile ──────────────────────────────────────────
     profile.currentRequestId = request._id;
     profile.isAvailable      = false;
     profile.totalAssigned   += 1;
     profile.totalAccepted   += 1;
-
     await profile.save();
 
-    await notifyRequestAccepted(request.requesterId, request);
+    // ── Update Match documents ────────────────────────────────────────────
+    await Match.findOneAndUpdate(
+      { requestId: request._id, matchedTo: profile._id, status: "notified" },
+      { status: "accepted", respondedAt: new Date() }
+    );
+    await Match.updateMany(
+      { requestId: request._id, matchedTo: { $ne: profile._id }, status: "notified" },
+      { status: "expired" }
+    );
 
+    await notifyRequestAccepted(request.requesterId, request);
     await ScoringService.recalculate(profile._id);
 
     res.status(200).json({
@@ -401,7 +414,6 @@ export const completeRequest = async (req, res, next) => {
     request.status         = "completed";
     request.completedAt    = new Date();
     request.resolutionTime = Math.round((request.completedAt - request.postedAt) / 1000 / 60);
-
     await request.save();
 
     profile.freeUp();
@@ -409,7 +421,6 @@ export const completeRequest = async (req, res, next) => {
     await profile.save();
 
     await notifyRequestCompleted(request.requesterId, request);
-
     await ScoringService.recalculate(profile._id);
 
     res.status(200).json({
@@ -425,12 +436,6 @@ export const completeRequest = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   PUT /api/volunteers/request/:requestId/cancel
 // @access  Private (volunteer only)
-//
-// FIX: Removed `request.cancelledAt = new Date()`.
-// cancelledAt is only for when a USER permanently cancels a request.
-// When a volunteer backs out, the request goes back to "posted" so other
-// volunteers can pick it up — setting cancelledAt was incorrect and
-// confused the admin panel and frontend status displays.
 // ─────────────────────────────────────────────────────────────────────────────
 export const cancelRequest = async (req, res, next) => {
   try {
@@ -459,14 +464,18 @@ export const cancelRequest = async (req, res, next) => {
       });
     }
 
-    // FIX: reset request back to posted so other volunteers can pick it up.
-    // Do NOT set cancelledAt — that field is reserved for user-initiated cancellations.
+    // Reset request back to posted so other volunteers can pick it up
     request.status       = "posted";
     request.assignedTo   = null;
     request.assignedType = null;
     request.acceptedAt   = null;
-    // request.cancelledAt  ← intentionally NOT set here
     await request.save();
+
+    // Re-open any expired matches so other volunteers can still respond
+    await Match.updateMany(
+      { requestId: request._id, status: "expired" },
+      { status: "notified" }
+    );
 
     profile.freeUp();
     profile.totalCancelled += 1;

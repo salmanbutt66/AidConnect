@@ -2,7 +2,7 @@
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import Rating from "../models/Rating.model.js";
-import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 // ─────────────────────────────────────────────
@@ -106,14 +106,11 @@ export const getMyRequests = asyncHandler(async (req, res) => {
     HelpRequest.countDocuments(filter),
   ]);
 
-  return sendSuccess(res, 200, "Your requests fetched successfully", {
-    requests,
-    pagination: {
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit)),
-    },
+  return sendPaginated(res, "Your requests fetched successfully", requests, {
+    total,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    pages: Math.ceil(total / parseInt(limit)),
   });
 });
 
@@ -188,16 +185,13 @@ export const getVolunteerRatings = asyncHandler(async (req, res) => {
     Rating.getAverageScore(req.params.id),
   ]);
 
-  return sendSuccess(res, 200, "Volunteer ratings fetched", {
+  return sendPaginated(res, "Volunteer ratings fetched", ratings, {
+    total,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    pages: Math.ceil(total / parseInt(limit)),
     averageScore: avgData.averageScore,
     totalRatings: avgData.totalRatings,
-    ratings,
-    pagination: {
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit)),
-    },
   });
 });
 

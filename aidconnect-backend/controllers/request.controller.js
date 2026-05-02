@@ -123,8 +123,6 @@ export const getNearbyRequests = asyncHandler(async (req, res) => {
 
   let volunteerCity = volunteer?.serviceArea?.city?.trim();
 
-  // Legacy fallback: older accounts may have city on User but not on Volunteer.
-  // Auto-heal once so city-based request sync works consistently.
   if (!volunteerCity) {
     const user = await User.findById(req.user.id).select("location.city").lean();
     const fallbackCity = user?.location?.city?.trim();
@@ -215,9 +213,17 @@ export const cancelRequest = asyncHandler(async (req, res) => {
     { status: "expired" }
   );
 
-  // FIX: if a provider was assigned, free them up when request is cancelled
   if (request.assignedType === "Provider" && request.assignedTo) {
     await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
+  }
+
+  // FIX: free up the volunteer if they were assigned when user cancels
+  if (request.assignedType === "Volunteer" && request.assignedTo) {
+    const volunteerProfile = await Volunteer.findById(request.assignedTo);
+    if (volunteerProfile) {
+      volunteerProfile.freeUp();
+      await volunteerProfile.save();
+    }
   }
 
   return sendSuccess(res, 200, "Request cancelled successfully", request);
@@ -242,13 +248,10 @@ export const acceptRequest = asyncHandler(async (req, res) => {
 // PUT /api/requests/:id/status
 // Access: assigned volunteer or provider only
 //
-// Valid transitions:
-//   accepted    → in_progress
-//   in_progress → completed
-//
-// FIX: provider.isAvailable restored BEFORE request.save() so a save
-// failure can never leave the provider permanently locked as unavailable.
-// Also frees provider on cancellation (handled in cancelRequest above).
+// FIX: on completion, free the volunteer profile (currentRequestId → null,
+// isAvailable → true, totalCompleted += 1) in addition to freeing the provider.
+// Previously only providers were freed here — volunteers stayed locked as
+// unavailable permanently after their first completed request via this path.
 // ─────────────────────────────────────────
 export const updateRequestStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
@@ -291,8 +294,7 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
   const allowedNextStatuses = validTransitions[request.status] || [];
   if (!allowedNextStatuses.includes(status)) {
     return sendError(
-      res,
-      400,
+      res, 400,
       `Cannot transition from "${request.status}" to "${status}". ` +
       `Allowed next status: ${allowedNextStatuses.join(", ") || "none"}`
     );
@@ -307,9 +309,26 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
       (request.completedAt - request.postedAt) / 1000 / 60
     );
 
-    // Free provider BEFORE save so a save failure doesn't lock them unavailable
+    // FIX: free provider BEFORE save so a save failure doesn't lock them
     if (request.assignedType === "Provider") {
       await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
+    }
+
+    // FIX: free volunteer — was completely missing from this path.
+    // volunteer.controller completeRequest() does this correctly but
+    // updateRequestStatus (used by providers AND as a fallback path)
+    // never freed the volunteer. Result: volunteer stays locked as
+    // unavailable with currentRequestId set forever.
+    if (request.assignedType === "Volunteer") {
+      const volunteerProfile = await Volunteer.findById(request.assignedTo);
+      if (volunteerProfile) {
+        volunteerProfile.freeUp();          // currentRequestId → null, isAvailable → true
+        volunteerProfile.totalCompleted += 1;
+        await volunteerProfile.save();
+        ScoringService.recalculate(volunteerProfile._id).catch((err) =>
+          console.error("Score recalculation failed:", err.message)
+        );
+      }
     }
 
     await notifyRequestCompleted(request.requesterId, request);
@@ -463,4 +482,4 @@ export const deleteRequest = asyncHandler(async (req, res) => {
   await HelpRequest.findByIdAndDelete(req.params.id);
 
   return sendSuccess(res, 200, "Request and related matches deleted successfully");
-}); 
+});

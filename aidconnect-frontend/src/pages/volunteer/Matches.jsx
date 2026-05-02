@@ -33,7 +33,7 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
     >
       <div className="card-body" style={{ padding: '18px' }}>
 
-        {/* ── Header row ────────────────────────────────────────────────── */}
+        {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <div style={{
@@ -75,15 +75,12 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
           )}
         </div>
 
-        {/* ── Detail grid ───────────────────────────────────────────────── */}
+        {/* Detail grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '12px',
-          marginBottom: '16px',
-          padding: '14px',
-          background: 'var(--green-50)',
-          borderRadius: 'var(--radius-md)',
+          gap: '12px', marginBottom: '16px', padding: '14px',
+          background: 'var(--green-50)', borderRadius: 'var(--radius-md)',
         }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
@@ -110,7 +107,6 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
               Location
             </div>
-            {/* FIX: request.city is the primary top-level field — always present */}
             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)' }}>
               {request.city || 'Unknown city'}
             </div>
@@ -122,7 +118,7 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
           </div>
         </div>
 
-        {/* ── Action buttons ─────────────────────────────────────────────── */}
+        {/* Action buttons */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             className="btn btn-primary"
@@ -156,24 +152,18 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId }) {
 export default function Matches() {
   const navigate = useNavigate();
 
-  const [matches,     setMatches]     = useState([]);
+  const [matches,        setMatches]        = useState([]);
   const [nearbyRequests, setNearbyRequests] = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState('');
-  const [successMsg,  setSuccessMsg]  = useState('');
-  const [acceptingId, setAcceptingId] = useState('');
-  const [decliningId, setDecliningId] = useState('');
+  const [loading,        setLoading]        = useState(true);
+  const [error,          setError]          = useState('');
+  const [successMsg,     setSuccessMsg]     = useState('');
+  const [acceptingId,    setAcceptingId]    = useState('');
+  const [decliningId,    setDecliningId]    = useState('');
 
-  // FIX: track mount state to prevent setState on unmounted component.
-  // Without this, if the user accepts and navigates to active-request
-  // before the 800ms delay fires, the finally block tries to call
-  // setAcceptingId('') on an already-unmounted component.
-  const mountedRef    = useRef(true);
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
-
-  // FIX: in-flight guard prevents double-clicking Accept or Decline
-  // from firing two simultaneous API calls for the same match.
+  const mountedRef     = useRef(true);
   const actionInFlight = useRef(false);
+
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const withTimeout = useCallback((promise, ms = 10000) => {
     return Promise.race([
@@ -184,7 +174,7 @@ export default function Matches() {
     ]);
   }, []);
 
-  // ── Load only pending (notified) matches ───────────────────────────────────
+  // ── Load matches + nearby ──────────────────────────────────────────────────
   const loadMatches = useCallback(async () => {
     if (mountedRef.current) { setLoading(true); setError(''); }
     try {
@@ -196,14 +186,18 @@ export default function Matches() {
       if (!mountedRef.current) return;
 
       if (matchRes.status === 'fulfilled') {
-        setMatches(Array.isArray(matchRes.value.data) ? matchRes.value.data : []);
+        // getMyMatches returns response.data which is sendPaginated shape:
+        // { success, message, data: [...], pagination }
+        const raw = matchRes.value;
+        setMatches(Array.isArray(raw?.data) ? raw.data : []);
       } else {
         setMatches([]);
       }
 
       if (nearbyRes.status === 'fulfilled') {
-        const requests = nearbyRes.value?.data ?? nearbyRes.value?.requests ?? [];
-        setNearbyRequests(Array.isArray(requests) ? requests : []);
+        // getNearbyRequests also returns sendPaginated shape
+        const raw = nearbyRes.value;
+        setNearbyRequests(Array.isArray(raw?.data) ? raw.data : []);
       } else {
         setNearbyRequests([]);
       }
@@ -223,11 +217,20 @@ export default function Matches() {
     setTimeout(() => { if (mountedRef.current) setSuccessMsg(''); }, 3000);
   }, []);
 
-  // ── Accept ─────────────────────────────────────────────────────────────────
-  // Flow: acceptRequest(requestId, matchId)
-  //   → PUT /api/requests/:id/accept { matchId }
-  //   → handleVolunteerResponse in matching.service.js
-  //   → marks request accepted, locks volunteer, expires other matches
+  // ── Navigate to active-request after accept ────────────────────────────────
+  // FIX: same race condition pattern as ActiveRequest.jsx — the server needs
+  // time to complete all DB writes before getActiveRequest() returns the
+  // active request. We delay navigation by 800ms so the Mongo writes
+  // (request + profile + match updates) are committed before the
+  // ActiveRequest page calls getActiveRequest().
+  const navigateToActive = useCallback(() => {
+    document.body.style.overflow = '';
+    navigate('/volunteer/active-request');
+  }, [navigate]);
+
+  // ── Accept via match notification ──────────────────────────────────────────
+  // Uses PUT /api/requests/:id/accept { matchId }
+  // → matching.service.handleVolunteerResponse()
   const handleAccept = useCallback(async (match) => {
     if (actionInFlight.current) return;
 
@@ -244,23 +247,21 @@ export default function Matches() {
     try {
       await acceptRequest(requestId, match._id);
       showSuccess('Match accepted! Heading to your active request…');
-      // Small delay so the user sees the success message before navigating
-      setTimeout(() => {
-        document.body.style.overflow = ''; // safety cleanup
-        navigate('/volunteer/active-request');
-      }, 800);
+      // FIX: 800ms delay so DB writes complete before ActiveRequest polls
+      setTimeout(navigateToActive, 800);
     } catch (err) {
       if (mountedRef.current)
-        setError(err.response?.data?.message || 'Failed to accept match. The request may have already been taken.');
+        setError(
+          err.response?.data?.message ||
+          'Failed to accept. The request may have already been taken.'
+        );
     } finally {
-      // FIX: always clear acceptingId in finally, not just on error.
-      // Previously the spinner stayed forever on success until navigation.
       actionInFlight.current = false;
       if (mountedRef.current) setAcceptingId('');
     }
-  }, [navigate, showSuccess]);
+  }, [showSuccess, navigateToActive]);
 
-  // ── Decline ────────────────────────────────────────────────────────────────
+  // ── Decline match ──────────────────────────────────────────────────────────
   const handleDecline = useCallback(async (match) => {
     if (actionInFlight.current) return;
 
@@ -281,6 +282,9 @@ export default function Matches() {
     }
   }, [showSuccess]);
 
+  // ── Accept directly from nearby list (no match document) ──────────────────
+  // Uses PUT /api/volunteers/request/:id/accept
+  // → volunteer.controller.acceptRequest()
   const handleAcceptNearby = useCallback(async (requestId) => {
     if (actionInFlight.current) return;
     actionInFlight.current = true;
@@ -289,18 +293,16 @@ export default function Matches() {
     try {
       await acceptVolunteerRequest(requestId);
       showSuccess('Request accepted! Heading to active request…');
-      setTimeout(() => {
-        navigate('/volunteer/active-request');
-      }, 800);
+      // FIX: same 800ms delay
+      setTimeout(navigateToActive, 800);
     } catch (err) {
-      if (mountedRef.current) {
+      if (mountedRef.current)
         setError(err.response?.data?.message || 'Failed to accept request.');
-      }
     } finally {
       actionInFlight.current = false;
       if (mountedRef.current) setAcceptingId('');
     }
-  }, [navigate, showSuccess]);
+  }, [showSuccess, navigateToActive]);
 
   return (
     <Navbar title="Incoming Matches">
@@ -312,17 +314,12 @@ export default function Matches() {
               <h1>Incoming Matches</h1>
               <p>Review requests matched to you and accept the one you can handle.</p>
             </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={loadMatches}
-              disabled={loading}
-            >
+            <button className="btn btn-ghost btn-sm" onClick={loadMatches} disabled={loading}>
               ↻ Refresh
             </button>
           </div>
         </div>
 
-        {/* ── Alerts ──────────────────────────────────────────────────────── */}
         {error && (
           <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
             <span className="alert-icon">⚠️</span>
@@ -333,6 +330,7 @@ export default function Matches() {
             >✕</button>
           </div>
         )}
+
         {successMsg && (
           <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
             <span className="alert-icon">✅</span>
@@ -340,7 +338,6 @@ export default function Matches() {
           </div>
         )}
 
-        {/* ── Content ─────────────────────────────────────────────────────── */}
         {loading ? (
           <Loader variant="card" message="Loading matches…" />
         ) : matches.length === 0 ? (
@@ -358,7 +355,7 @@ export default function Matches() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <div>
                               <div style={{ fontWeight: 700, marginBottom: '6px' }}>
-                                {formatEmergencyType(req.emergencyType)} — {req.description}
+                                {formatEmergencyType(req.emergencyType)} — {req.description?.slice(0, 80)}{req.description?.length > 80 ? '…' : ''}
                               </div>
                               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 <Badge urgency={req.urgencyLevel} />
@@ -369,11 +366,12 @@ export default function Matches() {
                             <button
                               className="btn btn-primary btn-sm"
                               onClick={() => handleAcceptNearby(req._id)}
-                              disabled={acceptingId === req._id || decliningId === req._id}
+                              disabled={acceptingId === req._id}
                             >
                               {acceptingId === req._id
                                 ? <><span className="spinner" /> Accepting…</>
-                                : '✓ Accept'}
+                                : '✓ Accept'
+                              }
                             </button>
                           </div>
                         </div>
@@ -417,7 +415,6 @@ export default function Matches() {
               ))}
             </div>
 
-            {/* Keep a direct city-requests fallback visible even when matches exist */}
             {nearbyRequests.length > 0 && (
               <div className="card anim-fade-up" style={{ marginTop: '18px' }}>
                 <div className="card-header">
@@ -428,7 +425,7 @@ export default function Matches() {
                     <div key={req._id} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', border: '1px solid var(--stone-200)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
                       <div>
                         <div style={{ fontWeight: 700, marginBottom: '4px' }}>
-                          {formatEmergencyType(req.emergencyType)} — {req.description}
+                          {formatEmergencyType(req.emergencyType)} — {req.description?.slice(0, 60)}{req.description?.length > 60 ? '…' : ''}
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                           {req.city ? `📍 ${req.city}` : ''} · {formatTimeAgo(req.postedAt || req.createdAt)}
@@ -437,11 +434,12 @@ export default function Matches() {
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => handleAcceptNearby(req._id)}
-                        disabled={acceptingId === req._id || decliningId === req._id}
+                        disabled={acceptingId === req._id}
                       >
                         {acceptingId === req._id
                           ? <><span className="spinner" /> Accepting…</>
-                          : '✓ Accept'}
+                          : '✓ Accept'
+                        }
                       </button>
                     </div>
                   ))}

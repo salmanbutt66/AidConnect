@@ -171,7 +171,7 @@ export default function VolunteerProfile() {
     setRatingsLoading(true);
     try {
       const res = await getMyRatings({ page, limit: 5 });
-      setRatings(res.ratings || []);
+      setRatings(res.data || []);
       setRatingsMeta(res.pagination || null);
     } catch {
       // fail silently
@@ -686,14 +686,14 @@ export default function VolunteerProfile() {
             )}
 
             {/* Ratings pagination */}
-            {ratingsMeta && ratingsMeta.totalPages > 1 && (
+            {ratingsMeta && ratingsMeta.pages > 1 && (
               <div className="pagination" style={{ marginTop: '20px' }}>
                 <button
                   className="page-btn"
                   disabled={ratingsPage <= 1}
                   onClick={() => setRatingsPage((p) => Math.max(1, p - 1))}
                 >‹</button>
-                {Array.from({ length: ratingsMeta.totalPages }, (_, i) => i + 1).map((p) => (
+                {Array.from({ length: ratingsMeta.pages }, (_, i) => i + 1).map((p) => (
                   <button
                     key={p}
                     className={`page-btn${p === ratingsPage ? ' active' : ''}`}
@@ -704,8 +704,8 @@ export default function VolunteerProfile() {
                 ))}
                 <button
                   className="page-btn"
-                  disabled={ratingsPage >= ratingsMeta.totalPages}
-                  onClick={() => setRatingsPage((p) => Math.min(ratingsMeta.totalPages, p + 1))}
+                  disabled={ratingsPage >= ratingsMeta.pages}
+                  onClick={() => setRatingsPage((p) => Math.min(ratingsMeta.pages, p + 1))}
                 >›</button>
               </div>
             )}
