@@ -1,5 +1,5 @@
 // src/components/forms/HelpRequestForm.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   EMERGENCY_TYPES,
   URGENCY_LEVELS,
@@ -168,7 +168,7 @@ function LocationSection({ form, errors, onChange, disabled }) {
         or enter manually
       </div>
 
-      {/* City + Area — FIX: city is now required for matching */}
+      {/* City + Area */}
       <div className="form-row cols-2">
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label" htmlFor="city">
@@ -229,7 +229,10 @@ function LocationSection({ form, errors, onChange, disabled }) {
 }
 
 // ─── HelpRequestForm ──────────────────────────────────────────────────────────
-export default function HelpRequestForm({ onSubmit, onCancel, loading = false }) {
+// FIX: accepts `defaultCity` prop so CreateRequest.jsx can pass in the
+//      logged-in user's saved city — prevents users from having to re-select
+//      their city on every request.
+export default function HelpRequestForm({ onSubmit, onCancel, loading = false, defaultCity = '' }) {
   const [form, setForm] = useState({
     emergencyType:    '',
     urgencyLevel:     '',
@@ -237,7 +240,7 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
     bloodGroupNeeded: '',
     latitude:         null,
     longitude:        null,
-    city:             '',
+    city:             defaultCity,   // FIX: seeded from user profile
     area:             '',
     address:          '',
     proofImage:       '',
@@ -245,6 +248,13 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
 
   const [errors,   setErrors]   = useState({});
   const [apiError, setApiError] = useState('');
+
+  // FIX: if defaultCity arrives after first render (async auth), sync it in
+  useEffect(() => {
+    if (defaultCity && !form.city) {
+      setForm((prev) => ({ ...prev, city: defaultCity }));
+    }
+  }, [defaultCity]);
 
   const handleChange = useCallback((name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -267,7 +277,7 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
       latitude:      form.latitude  ?? (form.city ? 0 : null),
     });
 
-    // FIX: city is now required — matching depends on it
+    // City is required — matching engine depends on it
     if (!form.city) {
       errs.city = 'Please select your city so we can find nearby volunteers';
     }
@@ -295,7 +305,7 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
       emergencyType: form.emergencyType,
       urgencyLevel:  form.urgencyLevel,
       description:   sanitizeString(form.description),
-      // FIX: city sent as its own field — matching.service.js reads request.city
+      // city is the primary field the matching service reads as request.city
       city:          form.city,
     };
 
@@ -303,12 +313,7 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false })
     if (form.latitude != null && form.longitude != null) {
       payload.latitude  = form.latitude;
       payload.longitude = form.longitude;
-    } else {
-      // Fallback coords so backend GeoJSON validation passes
-      // Matching now uses city, not coordinates, so [0,0] is fine here
-      payload.latitude  = 0;
-      payload.longitude = 0;
-    }
+    } 
 
     // Build address string from fields if not manually entered
     payload.address = form.address.trim() ||

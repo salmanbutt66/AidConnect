@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth.js';
 import useNotifications from '../../hooks/useNotifications.js';
+import { getMyMatches } from '../../api/match.api.js';
 import { getInitials, formatTimeAgo, formatRole } from '../../utils/formatters.js';
 import { APP_NAME } from '../../utils/constants.js';
 
@@ -120,6 +121,7 @@ export default function Navbar({ title, children }) {
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [userMenuOpen,  setUserMenuOpen]  = useState(false);
   const [loggingOut,    setLoggingOut]    = useState(false);
+  const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
 
   const notifRef   = useRef(null);
   const userRef    = useRef(null);
@@ -148,6 +150,35 @@ export default function Navbar({ title, children }) {
   useEffect(() => {
     if (notifOpen) fetchNotifications();
   }, [notifOpen, fetchNotifications]);
+
+  // ── Fetch volunteer match count for navbar badge ─────────────────────────
+  useEffect(() => {
+    if (user?.role !== 'volunteer') {
+      setPendingMatchesCount(0);
+      return;
+    }
+
+    let active = true;
+
+    const loadPendingMatches = async () => {
+      try {
+        const res = await getMyMatches({ status: 'notified', limit: 1, page: 1 });
+        if (!active) return;
+        setPendingMatchesCount(res?.pagination?.total || 0);
+      } catch {
+        if (!active) return;
+        setPendingMatchesCount(0);
+      }
+    };
+
+    loadPendingMatches();
+    const intervalId = window.setInterval(loadPendingMatches, 30000);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [user?.role]);
 
   // ── Close sidebar on mobile when nav item clicked ─────────────────────────
   const handleNavClick = useCallback(() => {
@@ -201,6 +232,28 @@ export default function Navbar({ title, children }) {
             >
               <span className="nav-icon">{link.icon}</span>
               {link.label}
+              {user?.role === 'volunteer' && link.to === '/volunteer/matches' && pendingMatchesCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    minWidth: '22px',
+                    height: '22px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--green-600)',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 6px',
+                    flexShrink: 0,
+                  }}
+                  aria-label={`${pendingMatchesCount} pending matches`}
+                >
+                  {pendingMatchesCount > 99 ? '99+' : pendingMatchesCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

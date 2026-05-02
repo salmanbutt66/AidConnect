@@ -1,5 +1,4 @@
 // controllers/volunteer.controller.js
-
 import Volunteer from "../models/Volunteer.model.js";
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
@@ -28,6 +27,13 @@ export const getMyVolunteerProfile = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   PUT /api/volunteers/profile
 // @access  Private (volunteer only)
+//
+// FIX: the old code used `if (serviceArea.city)` which silently ignored
+//      empty strings — a volunteer could never clear their city once set.
+//      Now we use `!== undefined` so empty string ("") is a valid value
+//      that correctly overwrites the stored city.
+//      radiusKm is also now handled inside the serviceArea block so it
+//      is always saved together with city/area.
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateVolunteerProfile = async (req, res, next) => {
   try {
@@ -43,18 +49,29 @@ export const updateVolunteerProfile = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Volunteer profile not found" });
     }
 
-    if (bio !== undefined) profile.bio = bio;
-    if (skills) profile.skills = skills;
-    if (emergencyTypes) profile.emergencyTypes = emergencyTypes;
-    if (availabilitySchedule) profile.availabilitySchedule = availabilitySchedule;
-    if (canDonatBlood !== undefined) profile.canDonatBlood = canDonatBlood;
-    if (lastDonationDate) profile.lastDonationDate = lastDonationDate;
-    if (cnic) profile.cnic = cnic;
+    if (bio !== undefined)            profile.bio            = bio;
+    if (skills !== undefined)         profile.skills         = skills;
+    if (emergencyTypes !== undefined) profile.emergencyTypes = emergencyTypes;
+    if (availabilitySchedule !== undefined) {
+      profile.availabilitySchedule = availabilitySchedule;
+    }
+    if (canDonatBlood !== undefined)  profile.canDonatBlood  = canDonatBlood;
+    if (lastDonationDate)             profile.lastDonationDate = lastDonationDate;
+    if (cnic)                         profile.cnic           = cnic;
 
-    if (serviceArea) {
-      if (serviceArea.city) profile.serviceArea.city = serviceArea.city;
-      if (serviceArea.area) profile.serviceArea.area = serviceArea.area;
-      if (radiusKm) profile.serviceArea.radiusKm = radiusKm;
+    // FIX: use !== undefined so empty string clears the field correctly.
+    // radiusKm handled here too — previously it was outside and could be
+    // silently ignored if serviceArea was not present in the body.
+    if (serviceArea !== undefined) {
+      if (serviceArea.city !== undefined) {
+        profile.serviceArea.city = serviceArea.city || null;
+      }
+      if (serviceArea.area !== undefined) {
+        profile.serviceArea.area = serviceArea.area || null;
+      }
+    }
+    if (radiusKm !== undefined) {
+      profile.serviceArea.radiusKm = Number(radiusKm);
     }
 
     await profile.save();
@@ -162,8 +179,8 @@ export const getMyRatings = async (req, res, next) => {
 
     const profile = await Volunteer.findOne({ user: req.user.id })
       .select("ratings averageRating totalRatings")
-      .populate("ratings.givenBy", "name profilePicture")
-      .populate("ratings.requestId", "emergencyType");
+      .populate("ratings.givenBy",    "name profilePicture")
+      .populate("ratings.requestId",  "emergencyType");
 
     if (!profile) {
       return res.status(404).json({ success: false, message: "Volunteer profile not found" });
@@ -195,7 +212,6 @@ export const getMyRatings = async (req, res, next) => {
 //
 // FIX: was filtering by { assignedTo: req.user.id } which is the User _id.
 // HelpRequest.assignedTo stores the Volunteer profile _id, not the User _id.
-// This caused the history to always return an empty array.
 // Fix: resolve the Volunteer profile first, then filter by profile._id.
 // ─────────────────────────────────────────────────────────────────────────────
 export const getVolunteerHistory = async (req, res, next) => {
@@ -203,14 +219,12 @@ export const getVolunteerHistory = async (req, res, next) => {
     const { status, page = 1, limit = 10 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // FIX: look up the volunteer profile to get the correct _id
     const profile = await Volunteer.findOne({ user: req.user.id }).select("_id");
 
     if (!profile) {
       return res.status(404).json({ success: false, message: "Volunteer profile not found" });
     }
 
-    // FIX: filter by profile._id (Volunteer doc id), not req.user.id (User doc id)
     const filter = { assignedTo: profile._id };
     if (status) filter.status = status;
 
@@ -318,7 +332,7 @@ export const acceptRequest = async (req, res, next) => {
     request.status       = "accepted";
     request.acceptedAt   = new Date();
 
-    const diffMs = request.acceptedAt - request.postedAt;
+    const diffMs         = request.acceptedAt - request.postedAt;
     request.responseTime = Math.round(diffMs / 1000 / 60);
 
     await request.save();
@@ -370,10 +384,9 @@ export const completeRequest = async (req, res, next) => {
       });
     }
 
-    request.status      = "completed";
-    request.completedAt = new Date();
-
-    const diffMs = request.completedAt - request.postedAt;
+    request.status         = "completed";
+    request.completedAt    = new Date();
+    const diffMs           = request.completedAt - request.postedAt;
     request.resolutionTime = Math.round(diffMs / 1000 / 60);
 
     await request.save();

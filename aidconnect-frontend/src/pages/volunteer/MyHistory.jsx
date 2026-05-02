@@ -22,6 +22,12 @@ function HistoryRow({ request }) {
   const [expanded, setExpanded] = useState(false);
   const requester = request.requesterId;
 
+  // FIX: read top-level city field — request.location is GeoJSON
+  // { type:"Point", coordinates:[] } and has no .city property.
+  // city is stored at request.city (top-level field on HelpRequest).
+  const locationValue =
+    [request.city, request.address].filter(Boolean).join(' · ') || null;
+
   return (
     <div
       className="card"
@@ -47,17 +53,13 @@ function HistoryRow({ request }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
           <div
             style={{
-              width: '40px',
-              height: '40px',
+              width: '40px', height: '40px',
               borderRadius: 'var(--radius-md)',
               background: request.status === 'completed'
                 ? 'var(--green-100)'
                 : 'var(--danger-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '18px', flexShrink: 0,
             }}
           >
             {request.status === 'completed' ? '✅' : '❌'}
@@ -74,6 +76,9 @@ function HistoryRow({ request }) {
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {formatDateTime(request.createdAt)}
               {requester?.name && ` · ${requester.name}`}
+              {/* FIX: also show city in the collapsed row so user can see
+                  at a glance where each request was without expanding */}
+              {request.city && ` · 📍 ${request.city}`}
             </div>
           </div>
         </div>
@@ -81,28 +86,19 @@ function HistoryRow({ request }) {
         {/* Right — resolution time + chevron */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {request.resolutionTime && (
-            <span
-              style={{
-                fontSize: '12px',
-                color: 'var(--text-muted)',
-                background: 'var(--stone-200)',
-                borderRadius: 'var(--radius-full)',
-                padding: '2px 10px',
-                fontWeight: 600,
-              }}
-            >
+            <span style={{
+              fontSize: '12px', color: 'var(--text-muted)',
+              background: 'var(--stone-200)', borderRadius: 'var(--radius-full)',
+              padding: '2px 10px', fontWeight: 600,
+            }}>
               ⏱ {formatDuration(request.resolutionTime)}
             </span>
           )}
-          <span
-            style={{
-              color: 'var(--text-muted)',
-              fontSize: '14px',
-              display: 'inline-block',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
-              transition: 'transform var(--t-base)',
-            }}
-          >
+          <span style={{
+            color: 'var(--text-muted)', fontSize: '14px', display: 'inline-block',
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+            transition: 'transform var(--t-base)',
+          }}>
             ▾
           </span>
         </div>
@@ -110,16 +106,13 @@ function HistoryRow({ request }) {
 
       {/* ── Expanded details ──────────────────────────────────────────── */}
       {expanded && (
-        <div
-          style={{
-            borderTop: '1px solid var(--stone-200)',
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            animation: 'fadeSlideDown var(--t-base) var(--ease)',
-          }}
-        >
+        <div style={{
+          borderTop: '1px solid var(--stone-200)',
+          padding: '16px 20px',
+          display: 'flex', flexDirection: 'column', gap: '12px',
+          animation: 'fadeSlideDown var(--t-base) var(--ease)',
+        }}>
+
           {/* Description */}
           {request.description && (
             <div>
@@ -133,24 +126,12 @@ function HistoryRow({ request }) {
           )}
 
           {/* Detail grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-              gap: '12px',
-            }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
             {[
-              {
-                icon: '📍',
-                label: 'Location',
-                value: request.address ||
-                  (request.location?.city
-                    ? `${request.location.city}${request.location.area ? ', ' + request.location.area : ''}`
-                    : null),
-              },
-              { icon: '✅', label: 'Accepted At',  value: request.acceptedAt  ? formatDateTime(request.acceptedAt)  : null },
-              { icon: '🎉', label: 'Completed At', value: request.completedAt ? formatDateTime(request.completedAt) : null },
+              // FIX: was request.location?.city — now request.city (top-level)
+              { icon: '📍', label: 'Location',      value: locationValue },
+              { icon: '✅', label: 'Accepted At',   value: request.acceptedAt  ? formatDateTime(request.acceptedAt)  : null },
+              { icon: '🎉', label: 'Completed At',  value: request.completedAt ? formatDateTime(request.completedAt) : null },
               { icon: '⚡', label: 'Response Time', value: request.responseTime   ? formatDuration(request.responseTime)   : null },
               { icon: '⏱', label: 'Resolution',    value: request.resolutionTime ? formatDuration(request.resolutionTime) : null },
               { icon: '🩸', label: 'Blood Group',   value: request.bloodGroupNeeded || null },
@@ -168,17 +149,12 @@ function HistoryRow({ request }) {
 
           {/* Requester info */}
           {requester && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 14px',
-                background: 'var(--green-50)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--green-100)',
-              }}
-            >
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '12px 14px',
+              background: 'var(--green-50)', borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--green-100)',
+            }}>
               <div className="avatar avatar-sm">
                 {getInitials(requester.name)}
               </div>
@@ -277,33 +253,13 @@ export default function MyHistory() {
         {/* ── Quick stats ───────────────────────────────────────────────── */}
         {!loading && requests.length > 0 && (
           <div className="grid-4" style={{ marginBottom: '28px' }}>
-            <StatsCard
-              label="Showing"
-              value={requests.length}
-              icon="📋"
-              color="blue"
-              delay={0}
-            />
-            <StatsCard
-              label="Completed"
-              value={completedCount}
-              icon="✅"
-              color="green"
-              delay={100}
-            />
-            <StatsCard
-              label="Cancelled"
-              value={cancelledCount}
-              icon="❌"
-              color="red"
-              delay={200}
-            />
+            <StatsCard label="Showing"        value={requests.length} icon="📋" color="blue"   delay={0}   />
+            <StatsCard label="Completed"      value={completedCount}  icon="✅" color="green"  delay={100} />
+            <StatsCard label="Cancelled"      value={cancelledCount}  icon="❌" color="red"    delay={200} />
             <StatsCard
               label="Avg Resolution"
               value={avgTime ? `${avgTime}m` : '—'}
-              icon="⏱"
-              color="orange"
-              format="raw"
+              icon="⏱" color="orange" format="raw"
               delay={300}
             />
           </div>
@@ -312,8 +268,6 @@ export default function MyHistory() {
         {/* ── Main card ─────────────────────────────────────────────────── */}
         <div className="card anim-fade-up delay-100">
           <div className="card-header">
-
-            {/* Status filter tabs */}
             <div className="tabs" style={{ marginBottom: 0 }}>
               {FILTERS.map(({ label, value }) => (
                 <button
@@ -329,7 +283,6 @@ export default function MyHistory() {
 
           <div className="card-body">
 
-            {/* Error */}
             {error && (
               <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
                 <span className="alert-icon">⚠️</span>
@@ -341,10 +294,8 @@ export default function MyHistory() {
               </div>
             )}
 
-            {/* Loading */}
             {loading && <Loader variant="skeleton" count={4} />}
 
-            {/* Empty state */}
             {!loading && requests.length === 0 && (
               <div className="empty-state">
                 <div className="empty-state-icon">📋</div>
@@ -356,17 +307,13 @@ export default function MyHistory() {
                   }
                 </p>
                 {filter !== 'all' && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleFilterChange('all')}
-                  >
+                  <button className="btn btn-primary" onClick={() => handleFilterChange('all')}>
                     View All
                   </button>
                 )}
               </div>
             )}
 
-            {/* History list */}
             {!loading && requests.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {requests.map((req) => (
@@ -383,9 +330,8 @@ export default function MyHistory() {
                     className="page-btn"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    ‹
-                  </button>
+                  >‹</button>
+
                   {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
                     .filter((p) => Math.abs(p - page) <= 2)
                     .map((p) => (
@@ -396,17 +342,16 @@ export default function MyHistory() {
                       >
                         {p}
                       </button>
-                    ))}
+                    ))
+                  }
+
                   <button
                     className="page-btn"
                     disabled={page >= pagination.totalPages}
                     onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                  >
-                    ›
-                  </button>
+                  >›</button>
                 </div>
 
-                {/* Page info */}
                 <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '13px', color: 'var(--text-muted)' }}>
                   Page {page} of {pagination.totalPages}
                   {pagination.total ? ` · ${pagination.total} total requests` : ''}
@@ -415,7 +360,6 @@ export default function MyHistory() {
             )}
           </div>
         </div>
-
       </div>
     </Navbar>
   );

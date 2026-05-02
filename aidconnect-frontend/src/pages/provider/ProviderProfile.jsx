@@ -7,12 +7,17 @@ import { getProviderProfile, updateProviderProfile, registerProvider } from '../
 import { formatPhone, formatDate } from '../../utils/formatters.js';
 import { SERVICE_TYPES, PAKISTAN_CITIES } from '../../utils/constants.js';
 
+// FIX: city is now a dedicated field separate from address.
+// Previously both city and address were stored in form.address,
+// so the payload never had a `city` key — the Provider.city field
+// was always null, breaking getRelevantRequests city filtering.
 const EMPTY_FORM = {
   organizationName: '',
   serviceType:      '',
   licenseNumber:    '',
   contactNumber:    '',
-  address:          '',
+  city:             '',   // ← FIX: was `address`, now separate `city`
+  address:          '',   // ← street/building address (optional, freetext)
   servicesOffered:  '',
   operatingHours: { open: '08:00', close: '22:00' },
 };
@@ -21,7 +26,7 @@ export default function ProviderProfile() {
   const [profile,     setProfile]     = useState(null);
   const [loading,     setLoading]     = useState(true);
   const [editing,     setEditing]     = useState(false);
-  const [registering, setRegistering] = useState(false); // true = no profile yet
+  const [registering, setRegistering] = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [form,        setForm]        = useState(EMPTY_FORM);
 
@@ -31,11 +36,15 @@ export default function ProviderProfile() {
   const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 4000); };
   const showError   = (msg) => setError(msg);
 
+  // FIX: buildForm now reads p.city for the city dropdown and p.address
+  // for the freetext address field. Previously both read from p.address,
+  // so the city dropdown was always blank when editing an existing profile.
   const buildForm = (p) => ({
     organizationName: p.organizationName || '',
     serviceType:      p.serviceType      || '',
     licenseNumber:    p.licenseNumber    || '',
     contactNumber:    p.contactNumber    || '',
+    city:             p.city             || '',   // ← FIX: read from p.city
     address:          p.address          || '',
     servicesOffered:  p.servicesOffered?.join(', ') || '',
     operatingHours: {
@@ -47,14 +56,13 @@ export default function ProviderProfile() {
   // ── Fetch profile ──────────────────────────────────────────────────────────
   const fetchProfile = useCallback(async () => {
     try {
-      const data = await getProviderProfile();
-      const provider = data.provider || data.data || data;
+      const data     = await getProviderProfile();
+      const provider = data.data ?? data.provider ?? data;
       setProfile(provider);
       setForm(buildForm(provider));
       setRegistering(false);
     } catch (err) {
       if (err.response?.status === 404) {
-        // No profile yet — show registration form
         setRegistering(true);
         setForm(EMPTY_FORM);
       } else {
@@ -72,21 +80,30 @@ export default function ProviderProfile() {
     if (error) setError('');
   }, [error]);
 
+  // ── Build payload — always sends city as its own field ────────────────────
+  const buildPayload = (f) => ({
+    organizationName: f.organizationName,
+    serviceType:      f.serviceType,
+    licenseNumber:    f.licenseNumber  || null,
+    contactNumber:    f.contactNumber  || null,
+    city:             f.city           || null,   // ← FIX: explicit city field
+    address:          f.address        || null,
+    operatingHours:   f.operatingHours,
+    servicesOffered:  f.servicesOffered
+      ? f.servicesOffered.split(',').map((s) => s.trim()).filter(Boolean)
+      : [],
+  });
+
   // ── Register (first time) ──────────────────────────────────────────────────
   const handleRegister = useCallback(async () => {
     if (!form.organizationName?.trim()) { showError('Organization name is required.'); return; }
     if (!form.serviceType)              { showError('Service type is required.');       return; }
+    if (!form.city)                     { showError('City is required so we can show you local requests.'); return; }
 
     setSaving(true);
     setError('');
     try {
-      const payload = {
-        ...form,
-        servicesOffered: form.servicesOffered
-          ? form.servicesOffered.split(',').map((s) => s.trim()).filter(Boolean)
-          : [],
-      };
-      await registerProvider(payload);
+      await registerProvider(buildPayload(form));
       showSuccess('Organization registered! Awaiting admin verification.');
       await fetchProfile();
     } catch (err) {
@@ -99,18 +116,13 @@ export default function ProviderProfile() {
   // ── Update existing profile ────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!form.organizationName?.trim()) { showError('Organization name is required.'); return; }
+    if (!form.city)                     { showError('City is required.'); return; }
 
     setSaving(true);
     setError('');
     try {
-      const payload = {
-        ...form,
-        servicesOffered: form.servicesOffered
-          ? form.servicesOffered.split(',').map((s) => s.trim()).filter(Boolean)
-          : [],
-      };
-      const data = await updateProviderProfile(payload);
-      const updated = data.provider || data.data || data;
+      const data    = await updateProviderProfile(buildPayload(form));
+      const updated = data.data ?? data.provider ?? data;
       setProfile(updated);
       setForm(buildForm(updated));
       setEditing(false);
@@ -135,7 +147,7 @@ export default function ProviderProfile() {
     );
   }
 
-  // ── Shared form fields (used for both register + edit) ─────────────────────
+  // ── Shared form fields ────────────────────────────────────────────────────
   const renderFormFields = (showServiceType = false) => (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '16px' }}>
@@ -186,18 +198,35 @@ export default function ProviderProfile() {
           />
         </div>
 
+        {/* FIX: City is now a dedicated dropdown — its value maps to Provider.city */}
         <div className="form-group">
-          <label className="form-label">City / Address</label>
+          <label className="form-label">
+            City <span style={{ color: 'var(--danger)' }}>*</span>
+            <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '6px', fontSize: '11px' }}>
+              (used to match you with local requests)
+            </span>
+          </label>
           <select
             className="form-select"
-            value={form.address}
-            onChange={(e) => handleChange('address', e.target.value)}
+            value={form.city}
+            onChange={(e) => handleChange('city', e.target.value)}
           >
             <option value="">Select city</option>
             {PAKISTAN_CITIES.map((city) => (
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
+        </div>
+
+        {/* Address is now a separate freetext field for street/building */}
+        <div className="form-group">
+          <label className="form-label">Street Address <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+          <input
+            type="text" className="form-input"
+            value={form.address}
+            onChange={(e) => handleChange('address', e.target.value)}
+            placeholder="e.g. Street 5, Block B, Gulshan"
+          />
         </div>
 
         <div className="form-group">
@@ -244,7 +273,7 @@ export default function ProviderProfile() {
           <p>
             {registering
               ? 'Complete your organization profile to start receiving emergency requests.'
-              : 'Manage your organization\'s information and service details.'
+              : "Manage your organization's information and service details."
             }
           </p>
         </div>
@@ -264,7 +293,7 @@ export default function ProviderProfile() {
           </div>
         )}
 
-        {/* ── Registration form (no profile yet) ───────────────────────── */}
+        {/* ── Registration form ─────────────────────────────────────────── */}
         {registering ? (
           <div className="card">
             <div className="card-body">
@@ -281,7 +310,7 @@ export default function ProviderProfile() {
 
         ) : (
           <>
-            {/* ── Profile header card ─────────────────────────────────── */}
+            {/* ── Profile header ───────────────────────────────────────── */}
             <div className="card" style={{ marginBottom: '20px' }}>
               <div className="card-body">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
@@ -293,6 +322,11 @@ export default function ProviderProfile() {
                       <h2 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 700, color: 'var(--text-dark)' }}>
                         {profile?.organizationName}
                       </h2>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                        {profile?.city && `📍 ${profile.city}`}
+                        {profile?.city && profile?.address && ' · '}
+                        {profile?.address}
+                      </div>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <Badge color={profile?.isVerified ? 'green' : 'orange'} dot>
                           {profile?.isVerified ? 'Verified' : 'Pending Verification'}
@@ -300,11 +334,19 @@ export default function ProviderProfile() {
                         <Badge color={profile?.isAvailable ? 'green' : 'stone'}>
                           {profile?.isAvailable ? 'Available' : 'Unavailable'}
                         </Badge>
-                        <Badge color={credibilityScore >= 85 ? 'green' : credibilityScore >= 70 ? 'blue' : credibilityScore >= 55 ? 'orange' : 'red'}>
+                        <Badge color={
+                          credibilityScore >= 85 ? 'green'  :
+                          credibilityScore >= 70 ? 'blue'   :
+                          credibilityScore >= 55 ? 'orange' : 'red'
+                        }>
                           Credibility {credibilityScore}/100
                         </Badge>
                         {serviceTypeLabel && (
                           <Badge color="blue">{serviceTypeLabel.emoji} {serviceTypeLabel.label}</Badge>
+                        )}
+                        {/* Warn if city not set — will get nationwide requests */}
+                        {!profile?.city && (
+                          <Badge color="orange">⚠️ City not set</Badge>
                         )}
                       </div>
                     </div>
@@ -321,6 +363,7 @@ export default function ProviderProfile() {
             {/* ── View mode ───────────────────────────────────────────── */}
             {!editing ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
                 <div className="card">
                   <div className="card-body">
                     <div className="section-title" style={{ marginBottom: '16px' }}>Organization Details</div>
@@ -328,9 +371,10 @@ export default function ProviderProfile() {
                       {[
                         { label: 'Organization Name', value: profile?.organizationName,                   icon: '🏢' },
                         { label: 'Service Type',       value: serviceTypeLabel?.label,                    icon: '🔧' },
-                        { label: 'License Number',     value: profile?.licenseNumber || '—',              icon: '📋' },
+                        { label: 'License Number',     value: profile?.licenseNumber    || '—',           icon: '📋' },
                         { label: 'Contact Number',     value: formatPhone(profile?.contactNumber) || '—', icon: '📞' },
-                        { label: 'Address',            value: profile?.address || '—',                    icon: '📍' },
+                        { label: 'City',               value: profile?.city             || '—',           icon: '📍' },
+                        { label: 'Street Address',     value: profile?.address          || '—',           icon: '🏠' },
                         { label: 'Member Since',       value: formatDate(profile?.createdAt),             icon: '📅' },
                       ].map((item) => (
                         <div key={item.label}>
@@ -367,9 +411,9 @@ export default function ProviderProfile() {
                     <div className="section-title" style={{ marginBottom: '16px' }}>Credibility</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
                       {[
-                        { label: 'Average Rating', value: profile?.averageRating ? Number(profile.averageRating).toFixed(1) : '—', icon: '⭐' },
-                        { label: 'Total Ratings', value: profile?.totalRatings ?? 0, icon: '🧮' },
-                        { label: 'Credibility Score', value: `${credibilityScore}/100`, icon: '🛡️' },
+                        { label: 'Average Rating',    value: profile?.averageRating ? Number(profile.averageRating).toFixed(1) : '—', icon: '⭐' },
+                        { label: 'Total Ratings',     value: profile?.totalRatings  ?? 0,                                             icon: '🧮' },
+                        { label: 'Credibility Score', value: `${credibilityScore}/100`,                                               icon: '🛡️' },
                       ].map((item) => (
                         <div key={item.label} style={{ padding: '14px 18px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--stone-200)' }}>
                           <div style={{ fontSize: '20px', marginBottom: '6px' }}>{item.icon}</div>
@@ -396,7 +440,7 @@ export default function ProviderProfile() {
               </div>
 
             ) : (
-              /* ── Edit mode ────────────────────────────────────────── */
+              /* ── Edit mode ──────────────────────────────────────────── */
               <div className="card">
                 <div className="card-body">
                   <div className="section-title" style={{ marginBottom: '20px' }}>Edit Profile</div>
@@ -405,7 +449,7 @@ export default function ProviderProfile() {
                     <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                       {saving ? <><span className="spinner" /> Saving…</> : '💾 Save Changes'}
                     </button>
-                    <button className="btn btn-ghost" onClick={() => { setEditing(false); setError(''); }} disabled={saving}>
+                    <button className="btn btn-ghost" onClick={() => { setEditing(false); setForm(buildForm(profile)); setError(''); }} disabled={saving}>
                       Cancel
                     </button>
                   </div>

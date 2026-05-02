@@ -29,6 +29,11 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    if (!error.response) {
+      return Promise.reject(
+      new Error("Network error — please check your connection.")
+    );
+  }
     if (
       error.response?.status === 401 &&
       !originalRequest._retry

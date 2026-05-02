@@ -7,64 +7,69 @@ import HelpRequest from "../models/HelpRequest.model.js";
 import { createNotification } from "./notification.service.js";
 
 // ─────────────────────────────────────────
-// MAIN MATCHING FUNCTION
+// FIND AND CREATE MATCHES
+// Entry point called after a request is created
 // ─────────────────────────────────────────
 const findAndCreateMatches = async (request) => {
   try {
     const candidates = await findCandidatesByCity(request);
 
     if (candidates.length === 0) {
-      console.log(`No candidates found for request ${request._id} in city: ${request.city || "unknown"}`);
+      console.log(
+        `[Matching] No candidates found for request ${request._id} in city: ${request.city || "unknown"}`
+      );
       return [];
     }
 
     const scoredCandidates = scoreCandidates(candidates);
-    const topMatches = scoredCandidates.slice(0, 5);
-    const createdMatches = await createMatchDocuments(topMatches, request);
+    const topMatches       = scoredCandidates.slice(0, 5);
+    const createdMatches   = await createMatchDocuments(topMatches, request);
 
-    console.log(`✅ Created ${createdMatches.length} matches for request ${request._id}`);
-
+    console.log(`[Matching] ✅ Created ${createdMatches.length} matches for request ${request._id}`);
     return createdMatches;
   } catch (error) {
-    console.error("Matching engine error:", error.message);
+    console.error("[Matching] Engine error:", error.message);
     throw error;
   }
 };
 
 // ─────────────────────────────────────────
-// STEP 1: FIND CANDIDATES BY CITY
-// Replaces the $nearSphere geo query entirely.
-// Matches volunteers whose serviceArea.city matches
-// the city on the help request (case-insensitive).
+// FIND CANDIDATES BY CITY
+// Queries both volunteers and providers whose city matches the request city.
+//
+// FIX: provider query previously used:
+//   $or: [{ "location.city": cityRegex }, { address: cityRegex }]
+// Provider.model no longer stores city in location.city — it has a flat
+// top-level `city` field. The old query never matched any provider after
+// the schema update, silently producing zero provider candidates.
+// Fixed to: { city: cityRegex }
 // ─────────────────────────────────────────
 const findCandidatesByCity = async (request) => {
-  const requestCity = request.city;
+  const requestCity = request.city?.trim();
 
   if (!requestCity) {
-    console.log(`Request ${request._id} has no city — cannot match by city`);
+    console.log(`[Matching] Request ${request._id} has no city — cannot match`);
     return [];
   }
 
-  // Case-insensitive exact city match
-  const cityRegex = new RegExp(`^${requestCity.trim()}$`, "i");
+  const cityRegex = new RegExp(`^${requestCity}$`, "i");
 
   let volunteers = [];
   let providers  = [];
 
-  // ── FIND VOLUNTEERS IN SAME CITY ──────
+  // ── Volunteer candidates ────────────────────────────────────────────────
   try {
-    let volunteerQuery = {
+    const volunteerQuery = {
       isAvailable:        true,
       isApproved:         true,
       isSuspended:        { $ne: true },
       "serviceArea.city": cityRegex,
     };
 
-    // Blood group filter — find compatible user IDs first, then filter volunteers
+    // Blood requests: only match volunteers with a compatible blood group
     if (request.emergencyType === "blood" && request.bloodGroupNeeded) {
-      const compatibleGroups = getCompatibleBloodGroups(request.bloodGroupNeeded);
-
-      const compatibleUsers = await User.find({
+      const compatibleGroups  = getCompatibleBloodGroups(request.bloodGroupNeeded);
+      const compatibleUsers   = await User.find({
         role:       "volunteer",
         isActive:   true,
         bloodGroup: { $in: compatibleGroups },
@@ -73,42 +78,45 @@ const findCandidatesByCity = async (request) => {
       const compatibleUserIds = compatibleUsers.map((u) => u._id);
 
       if (compatibleUserIds.length === 0) {
-        console.log(`No blood-compatible volunteers for group ${request.bloodGroupNeeded}`);
-        return [];
+        console.log(
+          `[Matching] No blood-compatible volunteers for group ${request.bloodGroupNeeded}`
+        );
+      } else {
+        volunteerQuery.user = { $in: compatibleUserIds };
       }
-
-      volunteerQuery.user = { $in: compatibleUserIds };
     }
 
     volunteers = await Volunteer.find(volunteerQuery)
       .populate("user", "name phone bloodGroup")
-      .sort({ reputationScore: -1 }); // highest reputation first within city
+      .sort({ reputationScore: -1 });
 
   } catch (error) {
-    console.error("Error finding volunteers by city:", error.message);
+    console.error("[Matching] Error finding volunteers:", error.message);
   }
 
-  // ── FIND PROVIDERS IN SAME CITY ───────
+  // ── Provider candidates ─────────────────────────────────────────────────
+  // FIX: query the flat `city` field instead of the nested location.city
+  // or address fields. Provider.model stores city as a top-level string.
   try {
     providers = await Provider.find({
       isAvailable: true,
       isVerified:  true,
       serviceType: getRelevantProviderTypes(request.emergencyType),
-      address:     cityRegex,
+      city:        cityRegex,   // ← FIX: was $or[location.city, address]
     });
   } catch (error) {
-    console.error("Error finding providers by city:", error.message);
+    console.error("[Matching] Error finding providers:", error.message);
   }
 
-  // ── FORMAT INTO UNIFORM SHAPE ──────────
+  // ── Format results into unified candidate shape ─────────────────────────
   const formattedVolunteers = volunteers.map((v) => ({
     _id:              v._id,
     userId:           v.user._id,
     type:             "Volunteer",
     reliabilityScore: v.reputationScore || 50,
-    bloodGroup:       v.user.bloodGroup,
-    name:             v.user.name,
-    phone:            v.user.phone,
+    bloodGroup:       v.user?.bloodGroup,
+    name:             v.user?.name,
+    phone:            v.user?.phone,
     city:             v.serviceArea?.city,
   }));
 
@@ -116,32 +124,39 @@ const findCandidatesByCity = async (request) => {
     _id:              p._id,
     userId:           p.userId,
     type:             "Provider",
-    reliabilityScore: 70,
+    // Providers start with a base score of 70; credibilityScore (0-100)
+    // maps to the same 0-100 range — use it directly if available
+    reliabilityScore: p.credibilityScore ?? 70,
     name:             p.organizationName,
     phone:            p.contactNumber,
-    city:             requestCity,
+    city:             p.city || requestCity,
   }));
+
+  console.log(
+    `[Matching] Found ${formattedVolunteers.length} volunteers, ` +
+    `${formattedProviders.length} providers in ${requestCity}`
+  );
 
   return [...formattedVolunteers, ...formattedProviders];
 };
 
 // ─────────────────────────────────────────
-// STEP 2: SCORE EACH CANDIDATE
-// Without GPS we score purely on reputation.
-// matchScore = reliabilityScore (0–100)
+// SCORE CANDIDATES
+// Simple reliability-based sort.
+// Distance is 0 for all city-matched candidates (no GPS required).
 // ─────────────────────────────────────────
 const scoreCandidates = (candidates) => {
-  const scored = candidates.map((candidate) => ({
-    ...candidate,
-    distanceKm: 0,
-    matchScore:  candidate.reliabilityScore || 50,
-  }));
-
-  return scored.sort((a, b) => b.matchScore - a.matchScore);
+  return candidates
+    .map((candidate) => ({
+      ...candidate,
+      distanceKm: 0,
+      matchScore: candidate.reliabilityScore || 50,
+    }))
+    .sort((a, b) => b.matchScore - a.matchScore);
 };
 
 // ─────────────────────────────────────────
-// STEP 3: CREATE MATCH DOCUMENTS + NOTIFY
+// CREATE MATCH DOCUMENTS + NOTIFY
 // ─────────────────────────────────────────
 const createMatchDocuments = async (topMatches, request) => {
   const createdMatches = [];
@@ -169,13 +184,77 @@ const createMatchDocuments = async (topMatches, request) => {
       createdMatches.push(match);
     } catch (error) {
       console.error(
-        `Failed to create match for candidate ${candidate._id}:`,
+        `[Matching] Failed to create match for candidate ${candidate._id}:`,
         error.message
       );
     }
   }
 
   return createdMatches;
+};
+
+// ─────────────────────────────────────────
+// HANDLE VOLUNTEER RESPONSE
+// Accepts or declines a match on behalf of a volunteer.
+//
+// FIX (preserved from earlier): match.matchedTo is the Volunteer profile _id,
+// not the User _id. Resolve the volunteer profile first, then compare correctly.
+// ─────────────────────────────────────────
+const handleVolunteerResponse = async (matchId, userId, action) => {
+  const match = await Match.findById(matchId);
+  if (!match) throw new Error("Match not found");
+
+  // Resolve Volunteer profile from User _id
+  const volunteerProfile = await Volunteer.findOne({ user: userId });
+  if (!volunteerProfile) throw new Error("Volunteer profile not found");
+
+  // match.matchedTo holds the Volunteer profile _id — compare correctly
+  if (match.matchedTo.toString() !== volunteerProfile._id.toString()) {
+    throw new Error("Unauthorized — this match does not belong to you");
+  }
+
+  if (match.status !== "notified") {
+    throw new Error("This match has already been responded to");
+  }
+
+  match.status      = action;
+  match.respondedAt = new Date();
+  await match.save();
+
+  if (action === "accepted") {
+    const request = await HelpRequest.findById(match.requestId);
+    if (!request)                    throw new Error("Request not found");
+    if (request.status !== "posted") throw new Error("Request is no longer available");
+
+    request.status       = "accepted";
+    request.assignedTo   = match.matchedTo;
+    request.assignedType = match.matchedType;
+    request.acceptedAt   = new Date();
+    request.responseTime = Math.round((request.acceptedAt - request.postedAt) / 1000 / 60);
+    await request.save();
+
+    // Lock volunteer so they don't receive further matches
+    volunteerProfile.currentRequestId = request._id;
+    volunteerProfile.isAvailable      = false;
+    volunteerProfile.totalAccepted    = (volunteerProfile.totalAccepted || 0) + 1;
+    await volunteerProfile.save();
+
+    // Expire all other pending matches for this request
+    await Match.updateMany(
+      { requestId: match.requestId, _id: { $ne: matchId }, status: "notified" },
+      { status: "expired" }
+    );
+
+    await createNotification({
+      recipientId:    request.requesterId,
+      type:           "request_accepted",
+      title:          "Help is on the way!",
+      message:        `Your ${request.emergencyType} request has been accepted. A responder is on their way.`,
+      relatedRequest: request._id,
+    });
+  }
+
+  return match;
 };
 
 // ─────────────────────────────────────────
@@ -192,12 +271,11 @@ const getCompatibleBloodGroups = (neededGroup) => {
     "O+":  ["O+", "O-"],
     "O-":  ["O-"],
   };
-
   return compatibility[neededGroup] || [neededGroup];
 };
 
 // ─────────────────────────────────────────
-// RELEVANT PROVIDER TYPES PER EMERGENCY
+// PROVIDER TYPE → EMERGENCY TYPE MAPPING
 // ─────────────────────────────────────────
 const getRelevantProviderTypes = (emergencyType) => {
   const mapping = {
@@ -207,61 +285,7 @@ const getRelevantProviderTypes = (emergencyType) => {
     disaster: ["rescue", "ngo", "ambulance"],
     other:    ["ngo", "hospital", "rescue"],
   };
-
   return { $in: mapping[emergencyType] || ["ngo"] };
-};
-
-// ─────────────────────────────────────────
-// HANDLE VOLUNTEER RESPONSE (accept/decline)
-// ─────────────────────────────────────────
-const handleVolunteerResponse = async (matchId, volunteerId, action) => {
-  const match = await Match.findById(matchId);
-  if (!match) throw new Error("Match not found");
-
-  if (match.matchedTo.toString() !== volunteerId.toString()) {
-    throw new Error("Unauthorized — this match does not belong to you");
-  }
-
-  if (match.status !== "notified") {
-    throw new Error("This match has already been responded to");
-  }
-
-  match.status      = action;
-  match.respondedAt = new Date();
-  await match.save();
-
-  if (action === "accepted") {
-    const request = await HelpRequest.findById(match.requestId);
-
-    if (!request) throw new Error("Request not found");
-    if (request.status !== "posted") throw new Error("Request is no longer available");
-
-    request.status       = "accepted";
-    request.assignedTo   = match.matchedTo;
-    request.assignedType = match.matchedType;
-    request.acceptedAt   = new Date();
-
-    const diffMs         = request.acceptedAt - request.postedAt;
-    request.responseTime = Math.round(diffMs / 1000 / 60);
-
-    await request.save();
-
-    // Expire all other notified matches for this request
-    await Match.updateMany(
-      { requestId: match.requestId, _id: { $ne: matchId }, status: "notified" },
-      { status: "expired" }
-    );
-
-    await createNotification({
-      recipientId:    request.requesterId,
-      type:           "request_accepted",
-      title:          "Help is on the way!",
-      message:        `Your ${request.emergencyType} request has been accepted. A responder is on their way.`,
-      relatedRequest: request._id,
-    });
-  }
-
-  return match;
 };
 
 export {

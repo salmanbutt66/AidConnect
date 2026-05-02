@@ -16,7 +16,6 @@ import {
 } from '../../utils/constants.js';
 import {
   formatDate,
-  formatDateTime,
   formatScore,
   formatStars,
   getInitials,
@@ -25,7 +24,7 @@ import {
 // ─── Days of week ─────────────────────────────────────────────────────────────
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
-// ─── Toggle chip — skill / emergency type selector ────────────────────────────
+// ─── Toggle chip ──────────────────────────────────────────────────────────────
 function ToggleChip({ label, selected, onClick }) {
   return (
     <button
@@ -37,8 +36,7 @@ function ToggleChip({ label, selected, onClick }) {
         border: `1.5px solid ${selected ? 'var(--green-600)' : 'var(--stone-300)'}`,
         background: selected ? 'var(--green-50)' : 'white',
         color: selected ? 'var(--green-800)' : 'var(--text-muted)',
-        fontSize: '12px',
-        fontWeight: 600,
+        fontSize: '12px', fontWeight: 600,
         cursor: 'pointer',
         transition: 'all var(--t-fast)',
         textTransform: 'capitalize',
@@ -50,7 +48,7 @@ function ToggleChip({ label, selected, onClick }) {
   );
 }
 
-// ─── Star rating display ──────────────────────────────────────────────────────
+// ─── Star display ─────────────────────────────────────────────────────────────
 function StarDisplay({ score }) {
   const stars = formatStars(score);
   return (
@@ -84,15 +82,10 @@ function RatingCard({ rating }) {
           <StarDisplay score={rating.score} />
         </div>
         {rating.comment && (
-          <div
-            style={{
-              fontSize: '13px',
-              color: 'var(--text-muted)',
-              lineHeight: 1.6,
-              paddingLeft: '46px',
-              fontStyle: 'italic',
-            }}
-          >
+          <div style={{
+            fontSize: '13px', color: 'var(--text-muted)',
+            lineHeight: 1.6, paddingLeft: '46px', fontStyle: 'italic',
+          }}>
             "{rating.comment}"
           </div>
         )}
@@ -103,7 +96,10 @@ function RatingCard({ rating }) {
 
 // ─── VolunteerProfile ─────────────────────────────────────────────────────────
 export default function VolunteerProfile() {
-  const { user } = useAuth();
+  // FIX: pull updateVolunteerProfile from AuthContext so city stays in sync
+  // across the app after the volunteer updates their service area here.
+  // Without this, CreateRequest.jsx defaultCity would be stale until next login.
+  const { user, updateVolunteerProfile: updateContextProfile } = useAuth();
 
   const [profile,        setProfile]        = useState(null);
   const [ratings,        setRatings]        = useState([]);
@@ -225,14 +221,22 @@ export default function VolunteerProfile() {
         emergencyTypes: form.emergencyTypes,
         canDonatBlood:  form.canDonatBlood,
         availabilitySchedule: form.availabilitySchedule,
-        serviceArea: { city: form.city, area: form.area },
-        radiusKm: Number(form.radiusKm),
+        serviceArea:    { city: form.city, area: form.area },
+        radiusKm:       Number(form.radiusKm),
       };
       if (form.cnic.trim())      payload.cnic             = form.cnic.trim();
       if (form.lastDonationDate) payload.lastDonationDate = form.lastDonationDate;
 
       const res = await updateVolunteerProfile(payload);
       setProfile(res.profile);
+
+      // FIX: sync the updated volunteer profile into AuthContext so that
+      // user.location.city (read by CreateRequest.jsx as defaultCity) reflects
+      // the new city immediately without requiring a logout/login cycle.
+      if (updateContextProfile) {
+        updateContextProfile(res.profile);
+      }
+
       showSuccess('Profile updated successfully!');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save profile.');
@@ -279,12 +283,18 @@ export default function VolunteerProfile() {
                   🩸 {user.bloodGroup}
                 </span>
               )}
+              {/* Show current service city so volunteer can confirm it's set */}
+              {profile?.serviceArea?.city && (
+                <span className="badge badge-blue" style={{ fontSize: '11px' }}>
+                  📍 {profile.serviceArea.city}
+                </span>
+              )}
             </div>
           </div>
           {/* Stats */}
           <div style={{ display: 'flex', gap: '28px', flexShrink: 0 }}>
             {[
-              { label: 'Completed',  value: profile?.totalCompleted  ?? 0 },
+              { label: 'Completed',  value: profile?.totalCompleted ?? 0 },
               { label: 'Avg Rating', value: profile?.averageRating
                   ? Number(profile.averageRating).toFixed(1) : '—'
               },
@@ -316,6 +326,17 @@ export default function VolunteerProfile() {
           <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
             <span className="alert-icon">✅</span>
             {successMsg}
+          </div>
+        )}
+
+        {/* ── City missing warning ───────────────────────────────────────── */}
+        {!profile?.serviceArea?.city && (
+          <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px' }}>
+            <span className="alert-icon">⚠️</span>
+            <div>
+              <strong>City not set</strong> — Set your service area city below so emergency
+              requests in your city appear on your dashboard.
+            </div>
           </div>
         )}
 
@@ -365,12 +386,10 @@ export default function VolunteerProfile() {
                     placeholder="e.g. Experienced first-aider with 5 years of volunteer work…"
                   />
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        color: form.bio.length > 270 ? 'var(--danger)' : 'var(--text-light)',
-                      }}
-                    >
+                    <span style={{
+                      fontSize: '11px',
+                      color: form.bio.length > 270 ? 'var(--danger)' : 'var(--text-light)',
+                    }}>
                       {form.bio.length}/300
                     </span>
                   </div>
@@ -435,12 +454,21 @@ export default function VolunteerProfile() {
             {/* ── Service area ──────────────────────────────────────────── */}
             <div className="card anim-fade-up delay-300" style={{ marginBottom: '20px' }}>
               <div className="card-header">
-                <div className="section-title">Service Area</div>
+                <div className="section-title">
+                  Service Area
+                  {!form.city && (
+                    <span style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 400, marginLeft: '8px' }}>
+                      ← required for matching
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="card-body" style={{ paddingTop: '16px' }}>
                 <div className="form-row cols-2">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="vp-city">City</label>
+                    <label className="form-label" htmlFor="vp-city">
+                      City <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
                     <select
                       id="vp-city"
                       className="form-select"
@@ -453,6 +481,9 @@ export default function VolunteerProfile() {
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
+                    <div className="form-hint">
+                      Requests in this city will appear on your dashboard
+                    </div>
                   </div>
                   <div className="form-group">
                     <label className="form-label" htmlFor="vp-area">Area / Neighbourhood</label>
@@ -478,8 +509,7 @@ export default function VolunteerProfile() {
                   </label>
                   <input
                     type="range"
-                    min={1}
-                    max={100}
+                    min={1} max={100}
                     value={form.radiusKm}
                     onChange={(e) => setForm((p) => ({ ...p, radiusKm: e.target.value }))}
                     disabled={saving}
@@ -512,12 +542,10 @@ export default function VolunteerProfile() {
                         border: `2px solid ${form.availabilitySchedule[day] ? 'var(--green-600)' : 'var(--stone-300)'}`,
                         background: form.availabilitySchedule[day] ? 'var(--green-50)' : 'white',
                         color: form.availabilitySchedule[day] ? 'var(--green-800)' : 'var(--text-muted)',
-                        fontSize: '13px',
-                        fontWeight: 700,
+                        fontSize: '13px', fontWeight: 700,
                         cursor: saving ? 'not-allowed' : 'pointer',
                         transition: 'all var(--t-fast)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
+                        textTransform: 'uppercase', letterSpacing: '0.5px',
                       }}
                     >
                       {day.slice(0, 3)}
@@ -533,7 +561,6 @@ export default function VolunteerProfile() {
                 <div className="section-title">Blood Donation</div>
               </div>
               <div className="card-body" style={{ paddingTop: '14px' }}>
-                {/* Toggle */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                   <label className="toggle-switch">
                     <input
@@ -554,7 +581,6 @@ export default function VolunteerProfile() {
                   )}
                 </div>
 
-                {/* Last donation date */}
                 {form.canDonatBlood && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="vp-donation-date">
@@ -604,13 +630,10 @@ export default function VolunteerProfile() {
         ════════════════════════════════════════════════════════════════ */}
         {activeTab === 'ratings' && (
           <div>
-
             {/* Rating summary card */}
             <div className="card anim-fade-up delay-100" style={{ marginBottom: '20px' }}>
               <div className="card-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
-
-                  {/* Average + stars */}
                   <div style={{ textAlign: 'center', flexShrink: 0 }}>
                     <div style={{ fontSize: '40px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-1.5px', lineHeight: 1 }}>
                       {profile?.averageRating?.toFixed(1) || '—'}
@@ -669,9 +692,7 @@ export default function VolunteerProfile() {
                   className="page-btn"
                   disabled={ratingsPage <= 1}
                   onClick={() => setRatingsPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹
-                </button>
+                >‹</button>
                 {Array.from({ length: ratingsMeta.totalPages }, (_, i) => i + 1).map((p) => (
                   <button
                     key={p}
@@ -685,9 +706,7 @@ export default function VolunteerProfile() {
                   className="page-btn"
                   disabled={ratingsPage >= ratingsMeta.totalPages}
                   onClick={() => setRatingsPage((p) => Math.min(ratingsMeta.totalPages, p + 1))}
-                >
-                  ›
-                </button>
+                >›</button>
               </div>
             )}
           </div>

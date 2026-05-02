@@ -5,16 +5,44 @@ import { getMe, login as loginApi, register as registerApi, logout as logoutApi 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [user,             setUser]             = useState(null);
+  const [volunteerProfile, setVolunteerProfile] = useState(null); // FIX: was discarded
+  const [loading,          setLoading]          = useState(true);
+  const [error,            setError]            = useState(null);
 
-  // ─── Load user on mount from stored token ──────────────────────────────────
+  // ─── Helper: apply a getMe/login/register response to state ───────────────
+  // FIX: centralised so login, register, and mount all set state the same way.
+  // Merges volunteerProfile.serviceArea.city into user.location.city so every
+  // part of the app (CreateRequest defaultCity, etc.) can read city from
+  // user.location.city without knowing about the Volunteer schema.
+  const applyAuthResponse = useCallback((data) => {
+    const rawUser    = data.user;
+    const volProfile = data.volunteerProfile || null;
+
+    // If the user is a volunteer and has a city on their volunteer profile
+    // but NOT on their user record, merge it in so city is always accessible
+    // from user.location.city regardless of which record has it.
+    if (
+      rawUser?.role === 'volunteer' &&
+      volProfile?.serviceArea?.city &&
+      !rawUser?.location?.city
+    ) {
+      rawUser.location = {
+        ...(rawUser.location || {}),
+        city: volProfile.serviceArea.city,
+      };
+    }
+
+    setUser(rawUser);
+    setVolunteerProfile(volProfile);
+  }, []);
+
+  // ─── Load user on mount from stored token ─────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       getMe()
-        .then((data) => setUser(data.user))
+        .then((data) => applyAuthResponse(data))
         .catch(() => {
           localStorage.removeItem('accessToken');
         })
@@ -22,39 +50,65 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [applyAuthResponse]);
 
-  // ─── Login ─────────────────────────────────────────────────────────────────
+  // ─── Login ────────────────────────────────────────────────────────────────
   const login = useCallback(async (credentials) => {
     setError(null);
     try {
       const data = await loginApi(credentials);
-      // loginApi already stores token in localStorage
+      // FIX: loginApi response doesn't include volunteerProfile —
+      // do a getMe() after login to get the full profile including
+      // serviceArea.city for volunteers.
+      // We set the basic user immediately for fast UI, then enrich.
       setUser(data.user);
+      setVolunteerProfile(null);
+
+      if (data.user?.role === 'volunteer') {
+        try {
+          const meData = await getMe();
+          applyAuthResponse(meData);
+        } catch {
+          // getMe failed — user is still logged in, just no volunteer profile
+        }
+      }
+
       return data.user;
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed';
       setError(message);
       throw err;
     }
-  }, []);
+  }, [applyAuthResponse]);
 
-  // ─── Register ──────────────────────────────────────────────────────────────
+  // ─── Register ─────────────────────────────────────────────────────────────
   const register = useCallback(async (formData) => {
     setError(null);
     try {
       const data = await registerApi(formData);
-      // registerApi stores token in localStorage
+      // FIX: same as login — registerApi returns basic user.
+      // For volunteers, fetch full profile to get serviceArea.city.
       setUser(data.user);
+      setVolunteerProfile(null);
+
+      if (data.user?.role === 'volunteer') {
+        try {
+          const meData = await getMe();
+          applyAuthResponse(meData);
+        } catch {
+          // non-fatal
+        }
+      }
+
       return data.user;
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed';
       setError(message);
       throw err;
     }
-  }, []);
+  }, [applyAuthResponse]);
 
-  // ─── Logout ────────────────────────────────────────────────────────────────
+  // ─── Logout ───────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     try {
       await logoutApi();
@@ -63,19 +117,33 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.removeItem('accessToken');
     setUser(null);
+    setVolunteerProfile(null);
   }, []);
 
-  // ─── Update user locally (after profile update) ────────────────────────────
+  // ─── Update user locally (after profile update) ───────────────────────────
   const updateUser = useCallback((updatedUser) => {
     setUser((prev) => ({ ...prev, ...updatedUser }));
   }, []);
 
-  // ─── Clear error ───────────────────────────────────────────────────────────
-  const clearError = useCallback(() => {
-    setError(null);
+  // ─── Update volunteer profile locally ─────────────────────────────────────
+  const updateVolunteerProfile = useCallback((updatedProfile) => {
+    setVolunteerProfile((prev) => ({ ...prev, ...updatedProfile }));
+    // Keep user.location.city in sync if serviceArea.city changed
+    if (updatedProfile?.serviceArea?.city) {
+      setUser((prev) => ({
+        ...prev,
+        location: {
+          ...(prev?.location || {}),
+          city: updatedProfile.serviceArea.city,
+        },
+      }));
+    }
   }, []);
 
-  // ─── Role-based redirect helper ────────────────────────────────────────────
+  // ─── Clear error ──────────────────────────────────────────────────────────
+  const clearError = useCallback(() => setError(null), []);
+
+  // ─── Role-based redirect helper ───────────────────────────────────────────
   const getDashboardPath = useCallback((role) => {
     const paths = {
       admin:     '/admin/dashboard',
@@ -88,6 +156,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    volunteerProfile,   // FIX: exposed so VolunteerProfile page can read it
     loading,
     error,
 
@@ -103,6 +172,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    updateVolunteerProfile,
     clearError,
     setError,
 
@@ -110,7 +180,7 @@ export const AuthProvider = ({ children }) => {
     getDashboardPath,
   };
 
-  // ─── Show nothing while checking auth status ───────────────────────────────
+  // ─── Show nothing while checking auth status ──────────────────────────────
   if (loading) {
     return (
       <div

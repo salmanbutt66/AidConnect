@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
-import { BLOOD_GROUPS } from '../../utils/constants.js';
+import { BLOOD_GROUPS, PAKISTAN_CITIES } from '../../utils/constants.js';
 
-// ─── Password Strength Indicator ─────────────────────────────────────────────
 function PasswordStrength({ password }) {
   if (!password) return null;
   const hasUpper  = /[A-Z]/.test(password);
@@ -51,7 +50,6 @@ function PasswordStrength({ password }) {
   );
 }
 
-// ─── Reusable Field Component ─────────────────────────────────────────────────
 function Field({ id, name, label, type = 'text', placeholder, required, form, errors, onChange, disabled }) {
   return (
     <div className="form-group">
@@ -66,22 +64,17 @@ function Field({ id, name, label, type = 'text', placeholder, required, form, er
         onChange={onChange}
         required={required}
         disabled={disabled}
-        autoComplete={
-          type === 'password' ? 'new-password' : undefined
-        }
+        autoComplete={type === 'password' ? 'new-password' : undefined}
       />
-      {errors[name] && (
-        <div className="form-error">{errors[name]}</div>
-      )}
+      {errors[name] && <div className="form-error">{errors[name]}</div>}
     </div>
   );
 }
 
-// ─── Register Page ────────────────────────────────────────────────────────────
 export default function Register() {
   const { register, getDashboardPath } = useAuth();
-  const navigate  = useNavigate();
-  const [params]  = useSearchParams();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   const [form, setForm] = useState({
     name:            '',
@@ -91,11 +84,12 @@ export default function Register() {
     role:            params.get('role') || 'user',
     phone:           '',
     bloodGroup:      '',
+    city:            '',   // FIX: added for volunteer serviceArea.city
   });
 
-  const [errors, setErrors]     = useState({});
+  const [errors,   setErrors]   = useState({});
   const [apiError, setApiError] = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -127,6 +121,10 @@ export default function Register() {
     if (form.phone && !/^(\+92|0)[0-9]{10}$/.test(form.phone))
       errs.phone = 'Format: 03001234567 or +923001234567';
 
+    // FIX: city required for volunteers — matching engine depends on it
+    if (form.role === 'volunteer' && !form.city)
+      errs.city = 'Please select your city so requests can be matched to you';
+
     return errs;
   };
 
@@ -151,6 +149,18 @@ export default function Register() {
       if (form.phone)      payload.phone      = form.phone;
       if (form.bloodGroup) payload.bloodGroup = form.bloodGroup;
 
+      // FIX: send city for volunteers so auth.controller can seed
+      // serviceArea.city on the Volunteer profile at creation time
+      if (form.role === 'volunteer' && form.city) {
+        payload.city = form.city;
+      }
+
+      // Also send for users so their profile has a city for
+      // the HelpRequestForm defaultCity prop
+      if (form.role === 'user' && form.city) {
+        payload.city = form.city;
+      }
+
       const user = await register(payload);
       navigate(getDashboardPath(user.role), { replace: true });
     } catch (err) {
@@ -173,23 +183,18 @@ export default function Register() {
   };
 
   const roles = [
-    { value: 'user',      emoji: '👤', label: 'Citizen',      desc: 'I need emergency help' },
-    { value: 'volunteer', emoji: '🤝', label: 'Volunteer',     desc: 'I respond to crises' },
-    { value: 'provider',  emoji: '🏥', label: 'Organization',  desc: 'We provide aid services' },
+    { value: 'user',      emoji: '👤', label: 'Citizen',     desc: 'I need emergency help' },
+    { value: 'volunteer', emoji: '🤝', label: 'Volunteer',    desc: 'I respond to crises' },
+    { value: 'provider',  emoji: '🏥', label: 'Organization', desc: 'We provide aid services' },
   ];
 
   return (
     <div className="auth-layout">
-
-      {/* ── Left Branding Panel ──────────────────────────────────────── */}
       <div className="auth-left">
-        <div className="auth-left-logo">
-          Aid<span>Connect</span>
-        </div>
+        <div className="auth-left-logo">Aid<span>Connect</span></div>
         <div>
           <div className="auth-left-tagline">
-            Join the<br />
-            <span>relief network.</span>
+            Join the<br /><span>relief network.</span>
           </div>
           <div className="auth-left-sub">
             Every person who joins makes Pakistan's emergency
@@ -199,7 +204,6 @@ export default function Register() {
         <div className="auth-left-crescent">☽</div>
       </div>
 
-      {/* ── Right Form Panel ─────────────────────────────────────────── */}
       <div
         className="auth-right"
         style={{ alignItems: 'flex-start', overflowY: 'auto', padding: '40px' }}
@@ -208,7 +212,6 @@ export default function Register() {
           <h2>Create your account</h2>
           <p>Join AidConnect — Pakistan's relief network</p>
 
-          {/* API Error */}
           {apiError && (
             <div className="alert alert-error" style={{ marginBottom: '18px' }}>
               <span className="alert-icon">⚠️</span>
@@ -217,14 +220,7 @@ export default function Register() {
           )}
 
           {/* Role Selector */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: '8px',
-              marginBottom: '22px',
-            }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '22px' }}>
             {roles.map((r) => (
               <button
                 key={r.value}
@@ -233,42 +229,18 @@ export default function Register() {
                 disabled={loading}
                 style={{
                   padding: '12px 8px',
-                  border: `2px solid ${
-                    form.role === r.value
-                      ? 'var(--green-600)'
-                      : 'var(--stone-300)'
-                  }`,
+                  border: `2px solid ${form.role === r.value ? 'var(--green-600)' : 'var(--stone-300)'}`,
                   borderRadius: 'var(--radius-sm)',
-                  background:
-                    form.role === r.value ? 'var(--green-50)' : 'white',
-                  cursor: 'pointer',
-                  textAlign: 'center',
+                  background: form.role === r.value ? 'var(--green-50)' : 'white',
+                  cursor: 'pointer', textAlign: 'center',
                   transition: 'all var(--t-fast)',
                 }}
               >
-                <div style={{ fontSize: '20px', marginBottom: '4px' }}>
-                  {r.emoji}
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: '11px',
-                    color:
-                      form.role === r.value
-                        ? 'var(--green-800)'
-                        : 'var(--text-dark)',
-                  }}
-                >
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>{r.emoji}</div>
+                <div style={{ fontWeight: 700, fontSize: '11px', color: form.role === r.value ? 'var(--green-800)' : 'var(--text-dark)' }}>
                   {r.label}
                 </div>
-                <div
-                  style={{
-                    color: 'var(--text-muted)',
-                    fontSize: '10px',
-                    marginTop: '2px',
-                    lineHeight: 1.4,
-                  }}
-                >
+                <div style={{ color: 'var(--text-muted)', fontSize: '10px', marginTop: '2px', lineHeight: 1.4 }}>
                   {r.desc}
                 </div>
               </button>
@@ -277,7 +249,6 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} noValidate>
 
-            {/* Name + Phone */}
             <div className="form-row cols-2">
               <Field
                 id="name" name="name" label="Full Name"
@@ -293,7 +264,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Email */}
             <Field
               id="reg-email" name="email" label="Email Address"
               type="email" placeholder="you@example.com" required
@@ -301,21 +271,15 @@ export default function Register() {
               onChange={handleChange} disabled={loading}
             />
 
-            {/* Password with strength */}
             <div className="form-group">
-              <label className="form-label" htmlFor="reg-password">
-                Password
-              </label>
+              <label className="form-label" htmlFor="reg-password">Password</label>
               <input
-                id="reg-password"
-                name="password"
-                type="password"
+                id="reg-password" name="password" type="password"
                 className={`form-input ${errors.password ? 'error' : ''}`}
                 placeholder="Min 8 chars, uppercase + number"
                 value={form.password}
                 onChange={handleChange}
-                required
-                disabled={loading}
+                required disabled={loading}
                 autoComplete="new-password"
               />
               {errors.password
@@ -324,7 +288,6 @@ export default function Register() {
               }
             </div>
 
-            {/* Confirm Password */}
             <Field
               id="confirmPassword" name="confirmPassword"
               label="Confirm Password" type="password"
@@ -340,12 +303,10 @@ export default function Register() {
                   Blood Group (optional)
                 </label>
                 <select
-                  id="bloodGroup"
-                  name="bloodGroup"
+                  id="bloodGroup" name="bloodGroup"
                   className="form-select"
                   value={form.bloodGroup}
-                  onChange={handleChange}
-                  disabled={loading}
+                  onChange={handleChange} disabled={loading}
                 >
                   <option value="">Select blood group</option>
                   {BLOOD_GROUPS.map((bg) => (
@@ -355,36 +316,58 @@ export default function Register() {
               </div>
             )}
 
-            {/* Submit */}
+            {/* FIX: City field — required for volunteers, optional for users,
+                hidden for providers (providers set city on their org profile) */}
+            {form.role !== 'provider' && (
+              <div className="form-group">
+                <label className="form-label" htmlFor="city">
+                  City
+                  {form.role === 'volunteer' && (
+                    <span style={{ color: 'var(--danger)' }}> *</span>
+                  )}
+                  {form.role === 'user' && (
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
+                      (optional)
+                    </span>
+                  )}
+                </label>
+                <select
+                  id="city" name="city"
+                  className={`form-select ${errors.city ? 'error' : ''}`}
+                  value={form.city}
+                  onChange={handleChange}
+                  disabled={loading}
+                >
+                  <option value="">Select your city</option>
+                  {PAKISTAN_CITIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {errors.city
+                  ? <div className="form-error">{errors.city}</div>
+                  : form.role === 'volunteer'
+                    ? <div className="form-hint">Used to match you with emergency requests in your city</div>
+                    : <div className="form-hint">Helps pre-fill your city when posting requests</div>
+                }
+              </div>
+            )}
+
             <button
               type="submit"
               className="btn btn-primary btn-full btn-lg"
               style={{ marginTop: '10px' }}
               disabled={loading}
             >
-              {loading ? (
-                <>
-                  <span className="spinner" />
-                  Creating account…
-                </>
-              ) : (
-                'Create Account →'
-              )}
+              {loading
+                ? <><span className="spinner" /> Creating account…</>
+                : 'Create Account →'
+              }
             </button>
           </form>
 
-          <p
-            style={{
-              textAlign: 'center',
-              fontSize: '14px',
-              color: 'var(--text-muted)',
-              marginTop: '20px',
-            }}
-          >
+          <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)', marginTop: '20px' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ fontWeight: 600 }}>
-              Sign in
-            </Link>
+            <Link to="/login" style={{ fontWeight: 600 }}>Sign in</Link>
           </p>
         </div>
       </div>

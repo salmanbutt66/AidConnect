@@ -7,8 +7,6 @@ const PATTERNS = {
   email:    /^\S+@\S+\.\S+$/,
   phone:    /^(\+92|0)[0-9]{10}$/,
   cnic:     /^\d{5}-\d{7}-\d{1}$/,
-  // FIX: was .{6,} — changed to .{8,} to match the 8-character minimum
-  // enforced in validateRegister and validateChangePassword
   password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
   objectId: /^[a-fA-F0-9]{24}$/,
 };
@@ -36,8 +34,7 @@ export const isInRange = (val, min, max) =>
   typeof val === "number" && val >= min && val <= max;
 
 // ─── Form Validators ──────────────────────────────────
-// Returns object of field errors
-// Empty object means valid
+// Returns object of field errors — empty object means valid
 
 export const validateLogin = ({ email, password }) => {
   const errors = {};
@@ -54,9 +51,6 @@ export const validateRegister = ({
   password,
   confirmPassword,
   phone,
-  // FIX: removed bloodGroup from destructure — it was accepted but never
-  // validated, which was misleading. bloodGroup is optional on the backend
-  // and has no validation rule to enforce here.
 }) => {
   const errors = {};
 
@@ -105,8 +99,9 @@ export const validateHelpRequest = ({
   if (description && description.trim().length > 1000)
     errors.description = "Description cannot exceed 1000 characters";
 
-  // FIX: was (!longitude || !latitude) which fails when coords are 0 (falsy)
-  // e.g. longitude = 0 is valid (Prime Meridian). Use null/undefined check instead.
+  // Uses == null to catch both null and undefined.
+  // HelpRequestForm passes 0 when city is set (bypasses this check correctly).
+  // Only fires when both city and GPS are missing.
   if (longitude == null || latitude == null)
     errors.location = "Location is required";
 
@@ -169,12 +164,10 @@ export const validateRating = ({ rating, comment }) => {
   return errors;
 };
 
-// ─── Helper: Has Errors ───────────────────────────────
-// Quick check if validation returned any errors
+// ─── Helpers ──────────────────────────────────────────
 export const hasErrors = (errors) =>
   Object.keys(errors).length > 0;
 
-// ─── Helper: Sanitize String ──────────────────────────
 export const sanitizeString = (str) => {
   if (typeof str !== "string") return "";
   return str.trim().replace(/\s+/g, " ");

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
 import HelpRequestForm from '../../components/forms/HelpRequestForm.jsx';
 import useRequests from '../../hooks/useRequests.js';
+import useAuth from '../../hooks/useAuth.js';
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
 function StepIndicator({ steps, current }) {
@@ -210,8 +211,13 @@ const STEPS = [
 ];
 
 export default function CreateRequest() {
-  const navigate = useNavigate();
+  const navigate                                    = useNavigate();
   const { submitRequest, loading, error, clearError } = useRequests();
+
+  // FIX: pull the logged-in user's saved city so the form can pre-fill it.
+  // user.location.city is populated from the User schema after login/getMe.
+  const { user } = useAuth();
+  const defaultCity = user?.location?.city || '';
 
   const [step,           setStep]           = useState(1);
   const [submitted,      setSubmitted]      = useState(false);
@@ -283,10 +289,13 @@ export default function CreateRequest() {
                       {error}
                     </div>
                   )}
+                  {/* FIX: pass defaultCity so the form pre-selects the user's
+                      saved city — they can still change it if needed */}
                   <HelpRequestForm
                     onSubmit={handleSubmit}
                     onCancel={() => navigate('/user/dashboard')}
                     loading={loading}
+                    defaultCity={defaultCity}
                   />
                 </>
               )}
@@ -340,7 +349,7 @@ export default function CreateRequest() {
               </div>
             </div>
 
-            {/* Safety disclaimer — from Rabia's branch */}
+            {/* Safety disclaimer */}
             <div
               style={{
                 padding: '16px 20px',

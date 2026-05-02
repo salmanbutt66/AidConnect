@@ -1,5 +1,6 @@
 // controllers/match.controller.js
 import Match from "../models/Match.model.js";
+import Volunteer from "../models/Volunteer.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import { handleVolunteerResponse } from "../services/matching.service.js";
@@ -18,7 +19,7 @@ export const getRequestMatches = asyncHandler(async (req, res) => {
     })
     .populate({
       path: "requestId",
-      select: "emergencyType urgencyLevel status postedAt",
+      select: "emergencyType urgencyLevel status postedAt city",
     })
     .sort({ matchScore: -1 });
 
@@ -55,11 +56,24 @@ export const declineMatch = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────
 // GET MY MATCHES
 // GET /api/matches/my
+// FIX: was filtering by matchedTo: req.user.id (User _id) but
+//      matchedTo stores the Volunteer profile _id. Resolve the
+//      profile first, then filter by profile._id.
+//      Also added city to the requestId populate select so the
+//      frontend can display which city the request is from.
 // ─────────────────────────────────────────
 export const getMyMatches = asyncHandler(async (req, res) => {
   const { status, page = 1, limit = 10 } = req.query;
 
-  const filter = { matchedTo: req.user.id };
+  const volunteerProfile = await Volunteer.findOne({ user: req.user.id })
+    .select("_id")
+    .lean();
+
+  if (!volunteerProfile) {
+    return sendError(res, 404, "Volunteer profile not found");
+  }
+
+  const filter = { matchedTo: volunteerProfile._id };
   if (status) filter.status = status;
 
   const skip = (Number(page) - 1) * Number(limit);
@@ -71,7 +85,7 @@ export const getMyMatches = asyncHandler(async (req, res) => {
       .limit(Number(limit))
       .populate({
         path: "requestId",
-        select: "emergencyType urgencyLevel status description location address postedAt requesterId",
+        select: "emergencyType urgencyLevel status description location address city postedAt requesterId",
         populate: {
           path: "requesterId",
           select: "name phone",
@@ -82,7 +96,7 @@ export const getMyMatches = asyncHandler(async (req, res) => {
 
   return sendPaginated(res, "Your match notifications fetched successfully", matches, {
     total,
-    page: Number(page),
+    page:  Number(page),
     limit: Number(limit),
     pages: Math.ceil(total / Number(limit)),
   });

@@ -1,5 +1,4 @@
 // controllers/provider.controller.js
-
 import Provider from "../models/Provider.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import Notification from "../models/Notification.model.js";
@@ -27,20 +26,44 @@ export const registerProvider = asyncHandler(async (req, res) => {
     servicesOffered,
     contactNumber,
     address,
+    city,
     location,
   } = req.body;
+
+  // FIX: city is now a flat top-level field on Provider (not location.city).
+  // Accept it from either req.body.city (flat) or req.body.location.city
+  // (legacy nested) so existing frontend forms keep working.
+  const resolvedCity =
+    city?.trim() ||
+    location?.city?.trim() ||
+    null;
+
+  // Only store GPS location when valid coordinates are provided.
+  // City-based matching does not need coordinates.
+  let resolvedLocation;
+  if (
+    location?.coordinates?.length === 2 &&
+    location.coordinates[0] !== 0 &&
+    location.coordinates[1] !== 0
+  ) {
+    resolvedLocation = {
+      type: "Point",
+      coordinates: location.coordinates,
+    };
+  }
 
   const provider = await Provider.create({
     userId,
     organizationName,
     serviceType,
-    licenseNumber,
-    operatingHours,
-    servicesOffered,
-    contactNumber,
-    address,
-    location,
-    isAvailable: true,
+    licenseNumber:  licenseNumber  || null,
+    operatingHours: operatingHours || undefined,
+    servicesOffered: servicesOffered || [],
+    contactNumber:  contactNumber  || null,
+    address:        address?.trim() || null,
+    city:           resolvedCity,
+    location:       resolvedLocation,
+    isAvailable:    true,
   });
 
   await User.findByIdAndUpdate(userId, { role: "provider" });
@@ -96,6 +119,14 @@ export const updateProviderProfile = asyncHandler(async (req, res) => {
     }
   });
 
+  // FIX: city is now a flat field — update it directly.
+  // Also accept city from the nested location.city path for compatibility.
+  if (req.body.city !== undefined) {
+    updates.city = req.body.city?.trim() || null;
+  } else if (req.body.location?.city !== undefined) {
+    updates.city = req.body.location.city?.trim() || null;
+  }
+
   const provider = await Provider.findOneAndUpdate(
     { userId: req.user.id },
     updates,
@@ -124,8 +155,6 @@ export const toggleAvailability = asyncHandler(async (req, res) => {
     throw new AppError("Provider profile not found", 404);
   }
 
-  // If the client sends an explicit state, use it.
-  // Otherwise preserve the old toggle behavior for simple button clicks.
   if (typeof req.body.isAvailable === "boolean") {
     provider.isAvailable = req.body.isAvailable;
   } else {
@@ -142,7 +171,7 @@ export const toggleAvailability = asyncHandler(async (req, res) => {
     success: true,
     message: `You are now ${provider.isAvailable ? "available" : "unavailable"}`,
     data: {
-      isAvailable: provider.isAvailable,
+      isAvailable:    provider.isAvailable,
       operatingHours: provider.operatingHours,
     },
   });
@@ -151,6 +180,11 @@ export const toggleAvailability = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────
 // GET /api/providers/requests
 // Access: Private (provider only)
+//
+// FIX: now reads the flat provider.city field instead of the
+// non-existent provider.location.city. The city field on both
+// Provider and HelpRequest is a flat indexed string so the
+// case-insensitive regex query is fast and always resolves.
 // ─────────────────────────────────────────
 export const getRelevantRequests = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
@@ -164,18 +198,23 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
   }
 
   if (!provider.isVerified) {
-    throw new AppError("Your account is not verified yet. Please wait for admin approval.", 403);
+    throw new AppError(
+      "Your account is not verified yet. Please wait for admin approval.",
+      403
+    );
   }
 
   if (!provider.isAvailable) {
     return res.status(200).json({
-      success: true,
-      count: 0,
-      data: [],
-      message: "You are currently unavailable, so no new requests are shown.",
+      success:  true,
+      count:    0,
+      data:     [],
+      city:     provider.city || null,
+      message:  "You are currently unavailable, so no new requests are shown.",
     });
   }
 
+  // Map service type → relevant emergency types
   const typeMap = {
     ambulance:  ["medical", "accident"],
     hospital:   ["medical", "accident"],
@@ -187,17 +226,36 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
 
   const relevantTypes = typeMap[provider.serviceType] || [];
 
-  const requests = await HelpRequest.find({
-    status: "posted",
+  // FIX: read city from the flat provider.city field.
+  // address is a secondary fallback only when city is unset.
+  const providerCity = provider.city?.trim() || provider.address?.trim() || null;
+
+  const query = {
+    status:        "posted",
     emergencyType: { $in: relevantTypes },
-  })
-    .sort({ urgencyScore: -1 })
+  };
+
+  if (providerCity) {
+    // Case-insensitive exact city match — same logic as volunteer matching.
+    query.city = new RegExp(`^${providerCity}$`, "i");
+  } else {
+    // No city configured — warn and return nationwide results so the
+    // provider isn't silently blocked. Dashboard shows a "set your city"
+    // prompt in this case.
+    console.warn(
+      `[getRelevantRequests] Provider ${provider._id} has no city set — returning nationwide results`
+    );
+  }
+
+  const requests = await HelpRequest.find(query)
+    .sort({ urgencyScore: -1, createdAt: -1 })
     .populate("requesterId", "name phone");
 
   res.status(200).json({
     success: true,
-    count: requests.length,
-    data: requests,
+    count:   requests.length,
+    city:    providerCity || null,
+    data:    requests,
   });
 });
 
@@ -217,15 +275,15 @@ export const getActiveRequest = asyncHandler(async (req, res) => {
   }
 
   const activeRequest = await HelpRequest.findOne({
-    assignedTo: provider._id,
+    assignedTo:   provider._id,
     assignedType: "Provider",
-    status: { $in: ["accepted", "in_progress"] },
+    status:       { $in: ["accepted", "in_progress"] },
   })
     .sort({ acceptedAt: -1, createdAt: -1 })
     .populate("requesterId", "name phone");
 
   res.status(200).json({
-    success: true,
+    success:       true,
     activeRequest: activeRequest || null,
   });
 });
@@ -237,37 +295,38 @@ export const getActiveRequest = asyncHandler(async (req, res) => {
 export const acceptRequest = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
 
-  if (!provider) throw new AppError("Provider profile not found", 404);
-  if (!provider.isVerified) throw new AppError("Your account is not verified yet", 403);
+  if (!provider)             throw new AppError("Provider profile not found", 404);
+  if (!provider.isVerified)  throw new AppError("Your account is not verified yet", 403);
   if (!provider.isAvailable) throw new AppError("You are currently unavailable", 400);
 
   const request = await HelpRequest.findById(req.params.id);
 
-  if (!request) throw new AppError("Help request not found", 404);
+  if (!request)                    throw new AppError("Help request not found", 404);
   if (request.status !== "posted") throw new AppError("This request has already been taken", 400);
 
-  request.status = "accepted";
-  request.assignedTo = provider._id;
+  request.status       = "accepted";
+  request.assignedTo   = provider._id;
   request.assignedType = "Provider";
-  request.acceptedAt = new Date();
+  request.acceptedAt   = new Date();
   request.responseTime = Math.round((new Date() - request.postedAt) / 60000);
   await request.save();
 
+  // Mark provider unavailable while they handle this request
   provider.isAvailable = false;
   await provider.save();
 
   await Notification.create({
-    recipientId: request.requesterId,
-    type: "request_accepted",
-    title: "Help is on the way!",
-    message: `Your request has been accepted by ${provider.organizationName}.`,
+    recipientId:    request.requesterId,
+    type:           "request_accepted",
+    title:          "Help is on the way!",
+    message:        `Your request has been accepted by ${provider.organizationName}.`,
     relatedRequest: request._id,
   });
 
   res.status(200).json({
     success: true,
     message: "Request accepted successfully",
-    data: request,
+    data:    request,
   });
 });
 
@@ -276,14 +335,15 @@ export const acceptRequest = asyncHandler(async (req, res) => {
 // Access: Private (admin only)
 // ─────────────────────────────────────────
 export const getAllProviders = asyncHandler(async (req, res) => {
-  const { serviceType, isVerified, isAvailable, page = 1, limit = 10 } = req.query;
+  const { serviceType, isVerified, isAvailable, city, page = 1, limit = 10 } = req.query;
 
   const filter = {};
-  if (serviceType) filter.serviceType = serviceType;
-  if (isVerified !== undefined) filter.isVerified = isVerified === "true";
-  if (isAvailable !== undefined) filter.isAvailable = isAvailable === "true";
+  if (serviceType)               filter.serviceType  = serviceType;
+  if (isVerified  !== undefined) filter.isVerified   = isVerified  === "true";
+  if (isAvailable !== undefined) filter.isAvailable  = isAvailable === "true";
+  if (city)                      filter.city         = new RegExp(`^${city.trim()}$`, "i");
 
-  const skip = (page - 1) * limit;
+  const skip = (Number(page) - 1) * Number(limit);
 
   const [providers, total] = await Promise.all([
     Provider.find(filter)
@@ -297,9 +357,9 @@ export const getAllProviders = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     total,
-    page: Number(page),
-    pages: Math.ceil(total / limit),
-    data: providers,
+    page:  Number(page),
+    pages: Math.ceil(total / Number(limit)),
+    data:  providers,
   });
 });
 
@@ -318,15 +378,15 @@ export const verifyProvider = asyncHandler(async (req, res) => {
 
   await Notification.create({
     recipientId: provider.userId,
-    type: "account_verified",
-    title: "Account Verified!",
-    message: "Your provider account has been verified. You can now accept requests.",
+    type:        "account_verified",
+    title:       "Account Verified!",
+    message:     "Your provider account has been verified. You can now accept requests.",
   });
 
   res.status(200).json({
     success: true,
     message: "Provider verified successfully",
-    data: provider,
+    data:    provider,
   });
 });
 
@@ -346,6 +406,6 @@ export const suspendProvider = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Provider suspended successfully",
-    data: provider,
+    data:    provider,
   });
 });

@@ -85,7 +85,7 @@ function TimelineItem({ icon, label, time, isLast, color = 'var(--green-500)' })
 }
 
 // ─── Star rating picker ───────────────────────────────────────────────────────
-function StarPicker({ value, onChange }) {
+function StarPicker({ value, onChange, disabled }) {
   const [hovered, setHovered] = useState(0);
   return (
     <div style={{ display: 'flex', gap: '6px' }}>
@@ -93,20 +93,20 @@ function StarPicker({ value, onChange }) {
         <button
           key={star}
           type="button"
-          onClick={() => onChange(star)}
-          onMouseEnter={() => setHovered(star)}
+          onClick={() => !disabled && onChange(star)}
+          onMouseEnter={() => !disabled && setHovered(star)}
           onMouseLeave={() => setHovered(0)}
+          disabled={disabled}
           style={{
             background: 'none',
             border: 'none',
-            cursor: 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
             fontSize: '28px',
-            color: star <= (hovered || value)
-              ? '#f39c12'
-              : 'var(--stone-300)',
+            color: star <= (hovered || value) ? '#f39c12' : 'var(--stone-300)',
             transition: 'color var(--t-fast), transform var(--t-fast)',
             transform: star <= (hovered || value) ? 'scale(1.15)' : 'scale(1)',
             padding: '2px',
+            opacity: disabled ? 0.6 : 1,
           }}
         >
           ★
@@ -117,7 +117,7 @@ function StarPicker({ value, onChange }) {
 }
 
 // ─── Rating form (inside modal) ───────────────────────────────────────────────
-function RatingForm({ onSubmit, loading }) {
+function RatingForm({ onSubmit, loading, error: externalError }) {
   const [rating,  setRating]  = useState(0);
   const [comment, setComment] = useState('');
   const [errors,  setErrors]  = useState({});
@@ -130,12 +130,24 @@ function RatingForm({ onSubmit, loading }) {
 
   return (
     <div>
+      {/* External error (from API) shown at top of form */}
+      {externalError && (
+        <div className="alert alert-error" style={{ marginBottom: '14px' }}>
+          <span className="alert-icon">⚠️</span>
+          {externalError}
+        </div>
+      )}
+
       {/* Stars */}
       <div className="form-group">
         <label className="form-label">
           Rating <span style={{ color: 'var(--danger)' }}>*</span>
         </label>
-        <StarPicker value={rating} onChange={(v) => { setRating(v); setErrors((p) => ({ ...p, rating: '' })); }} />
+        <StarPicker
+          value={rating}
+          onChange={(v) => { setRating(v); setErrors((p) => ({ ...p, rating: '' })); }}
+          disabled={loading}
+        />
         {errors.rating && <div className="form-error">{errors.rating}</div>}
         {rating > 0 && (
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -146,7 +158,9 @@ function RatingForm({ onSubmit, loading }) {
 
       {/* Comment */}
       <div className="form-group" style={{ marginBottom: 0 }}>
-        <label className="form-label">Comment <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+        <label className="form-label">
+          Comment <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+        </label>
         <textarea
           className="form-textarea"
           placeholder="Share your experience with the responder…"
@@ -172,7 +186,10 @@ function RatingForm({ onSubmit, loading }) {
         onClick={handleSubmit}
         disabled={loading || rating === 0}
       >
-        {loading ? <><span className="spinner" /> Submitting…</> : '⭐ Submit Rating'}
+        {loading
+          ? <><span className="spinner" /> Submitting…</>
+          : '⭐ Submit Rating'
+        }
       </button>
     </div>
   );
@@ -188,7 +205,6 @@ export default function RequestDetail() {
   const {
     currentRequest: request,
     loading,
-    actionLoading,
     error,
     fetchRequestById,
     cancelMyRequest,
@@ -201,6 +217,14 @@ export default function RequestDetail() {
   const [showRating,  setShowRating]  = useState(false);
   const [successMsg,  setSuccessMsg]  = useState('');
   const [ratingDone,  setRatingDone]  = useState(false);
+
+  // FIX: local rating state — decoupled from the hook's shared actionLoading.
+  // This prevents the modal from being frozen by any other concurrent action.
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingError,      setRatingError]      = useState('');
+
+  // FIX: local cancel loading state — same reason
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
   // ── Fetch on mount ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -223,28 +247,51 @@ export default function RequestDetail() {
 
   // ── Cancel ─────────────────────────────────────────────────────────────────
   const handleCancelConfirm = useCallback(async () => {
+    setCancelSubmitting(true);
     try {
       await cancelMyRequest(id);
       setShowCancel(false);
       setSuccessMsg('Request cancelled successfully.');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch {
+      // error is shown via hook's error state
       setShowCancel(false);
+    } finally {
+      setCancelSubmitting(false);
     }
   }, [id, cancelMyRequest]);
 
   // ── Rating ─────────────────────────────────────────────────────────────────
+  // FIX: uses local ratingSubmitting state instead of hook's actionLoading.
+  // On error: stays open, shows error inside modal so user can retry.
+  // On success: closes modal, marks as rated.
+  // finally: always unblocks the submit button.
   const handleRatingSubmit = useCallback(async (ratingData) => {
+    setRatingSubmitting(true);
+    setRatingError('');
     try {
       await submitRating(id, ratingData);
       setShowRating(false);
       setRatingDone(true);
       setSuccessMsg('Thank you for your rating!');
       setTimeout(() => setSuccessMsg(''), 4000);
-    } catch {
-      setShowRating(false);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to submit rating. Please try again.';
+      setRatingError(msg);
+      // Modal stays open on error — user can fix and resubmit
+    } finally {
+      setRatingSubmitting(false);
     }
   }, [id, submitRating]);
+
+  const handleCloseRatingModal = useCallback(() => {
+    if (ratingSubmitting) return; // block close during active submission
+    setShowRating(false);
+    setRatingError('');
+  }, [ratingSubmitting]);
 
   // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
@@ -283,6 +330,7 @@ export default function RequestDetail() {
     description,
     status,
     address,
+    city,
     bloodGroupNeeded,
     proofImage,
     postedAt,
@@ -296,27 +344,27 @@ export default function RequestDetail() {
     assignedType,
   } = request;
 
-  const isOwner  = request.requesterId?._id === user?._id ||
-                   request.requesterId === user?._id;
-  const isActive = ['posted', 'accepted', 'in_progress'].includes(status);
+  const isOwner   = request.requesterId?._id === user?._id ||
+                    request.requesterId       === user?._id;
+  const isActive  = ['posted', 'accepted', 'in_progress'].includes(status);
   const canCancel = isOwner && status === 'posted';
   const canRate   = isOwner && status === 'completed' && !ratingDone;
   const rateLabel = assignedType === 'Provider' ? 'Rate Service' : 'Rate Responder';
 
-  // Build timeline events
+  // Build timeline
   const timeline = [
-    { icon: '📋', label: 'Request Posted',    time: postedAt,    color: 'var(--info)'      },
-    { icon: '✅', label: 'Request Accepted',  time: acceptedAt,  color: 'var(--warning)'   },
-    { icon: '🚨', label: 'Responder En Route', time: acceptedAt, color: 'var(--warning)'   },
-    { icon: '🎉', label: 'Request Completed', time: completedAt, color: 'var(--green-600)' },
-    { icon: '❌', label: 'Request Cancelled', time: cancelledAt, color: 'var(--danger)'    },
+    { icon: '📋', label: 'Request Posted',     time: postedAt,    color: 'var(--info)'      },
+    { icon: '✅', label: 'Request Accepted',   time: acceptedAt,  color: 'var(--warning)'   },
+    { icon: '🚨', label: 'Responder En Route', time: acceptedAt,  color: 'var(--warning)'   },
+    { icon: '🎉', label: 'Request Completed',  time: completedAt, color: 'var(--green-600)' },
+    { icon: '❌', label: 'Request Cancelled',  time: cancelledAt, color: 'var(--danger)'    },
   ].filter((t) => !!t.time);
 
   return (
     <Navbar title="Request Detail">
       <div className="page-wrapper">
 
-        {/* ── Back button + header ──────────────────────────────────────── */}
+        {/* ── Back + header ─────────────────────────────────────────────── */}
         <div className="page-header">
           <button
             className="btn btn-ghost btn-sm"
@@ -367,19 +415,13 @@ export default function RequestDetail() {
           </div>
         )}
 
-        {/* ── Main two-column grid ───────────────────────────────────────── */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '24px',
-            alignItems: 'start',
-          }}
-        >
-          {/* ── Left column — details ─────────────────────────────────── */}
+        {/* ── Two-column grid ───────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+
+          {/* ── Left — details ────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* Description card */}
+            {/* Description */}
             <div className="card anim-fade-up delay-100">
               <div className="card-header">
                 <div className="section-title">Description</div>
@@ -390,21 +432,13 @@ export default function RequestDetail() {
                 </p>
 
                 {bloodGroupNeeded && (
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginTop: '16px',
-                      padding: '8px 14px',
-                      background: 'var(--danger-bg)',
-                      border: '1px solid #f5c6c2',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: 'var(--danger)',
-                    }}
-                  >
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    marginTop: '16px', padding: '8px 14px',
+                    background: 'var(--danger-bg)', border: '1px solid #f5c6c2',
+                    borderRadius: 'var(--radius-full)', fontSize: '13px',
+                    fontWeight: 700, color: 'var(--danger)',
+                  }}>
                     🩸 Blood Group Needed: {bloodGroupNeeded}
                   </div>
                 )}
@@ -418,13 +452,7 @@ export default function RequestDetail() {
                       <img
                         src={proofImage}
                         alt="Proof"
-                        style={{
-                          maxHeight: '220px',
-                          borderRadius: 'var(--radius-md)',
-                          border: '1px solid var(--stone-200)',
-                          objectFit: 'cover',
-                          width: '100%',
-                        }}
+                        style={{ maxHeight: '220px', borderRadius: 'var(--radius-md)', border: '1px solid var(--stone-200)', objectFit: 'cover', width: '100%' }}
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     </a>
@@ -433,23 +461,24 @@ export default function RequestDetail() {
               </div>
             </div>
 
-            {/* Details card */}
+            {/* Details */}
             <div className="card anim-fade-up delay-200">
               <div className="card-header">
                 <div className="section-title">Request Details</div>
               </div>
               <div className="card-body" style={{ paddingTop: '8px' }}>
-                <DetailRow icon="📍" label="Location"       value={address} />
-                <DetailRow icon="🕐" label="Posted"         value={formatDateTime(postedAt)} />
-                <DetailRow icon="✅" label="Accepted At"    value={acceptedAt ? formatDateTime(acceptedAt) : null} />
-                <DetailRow icon="🎉" label="Completed At"   value={completedAt ? formatDateTime(completedAt) : null} />
-                <DetailRow icon="❌" label="Cancelled At"   value={cancelledAt ? formatDateTime(cancelledAt) : null} />
-                <DetailRow icon="⚡" label="Response Time"  value={responseTime ? formatDuration(responseTime) : null} />
+                <DetailRow icon="📍" label="City"            value={city} />
+                <DetailRow icon="🏠" label="Address"         value={address} />
+                <DetailRow icon="🕐" label="Posted"          value={formatDateTime(postedAt)} />
+                <DetailRow icon="✅" label="Accepted At"     value={acceptedAt  ? formatDateTime(acceptedAt)  : null} />
+                <DetailRow icon="🎉" label="Completed At"    value={completedAt ? formatDateTime(completedAt) : null} />
+                <DetailRow icon="❌" label="Cancelled At"    value={cancelledAt ? formatDateTime(cancelledAt) : null} />
+                <DetailRow icon="⚡" label="Response Time"   value={responseTime   ? formatDuration(responseTime)   : null} />
                 <DetailRow icon="⏱" label="Resolution Time" value={resolutionTime ? formatDuration(resolutionTime) : null} />
               </div>
             </div>
 
-            {/* Assigned responder card */}
+            {/* Assigned responder */}
             {assignedTo && (
               <div className="card anim-fade-up delay-300">
                 <div className="card-header">
@@ -460,15 +489,22 @@ export default function RequestDetail() {
                 <div className="card-body" style={{ paddingTop: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div className="avatar avatar-md">
-                      {assignedTo.name?.[0]?.toUpperCase() || '?'}
+                      {assignedTo.name?.[0]?.toUpperCase() ||
+                       assignedTo.organizationName?.[0]?.toUpperCase() || '?'}
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-dark)' }}>
-                        {assignedTo.name || assignedTo.organizationName || 'Responder'}
+                        {assignedTo.organizationName || assignedTo.name || 'Responder'}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {assignedType === 'Volunteer' ? 'Volunteer Responder' : 'Service Provider'}
                       </div>
+                      {/* Show provider credibility if available */}
+                      {assignedType === 'Provider' && assignedTo.totalRatings > 0 && (
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          ⭐ {assignedTo.averageRating?.toFixed(1)} · {assignedTo.totalRatings} ratings
+                        </div>
+                      )}
                     </div>
                     {isActive && (
                       <span className="badge badge-green" style={{ marginLeft: 'auto' }}>
@@ -482,7 +518,7 @@ export default function RequestDetail() {
             )}
           </div>
 
-          {/* ── Right column — status + timeline ──────────────────────── */}
+          {/* ── Right — status + timeline ──────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* Status card */}
@@ -509,11 +545,21 @@ export default function RequestDetail() {
                     {status === 'completed'   && 'Your request has been resolved. We hope you received the help you needed.'}
                     {status === 'cancelled'   && 'This request was cancelled.'}
                   </p>
+                  {/* Rate prompt when completed and not yet rated */}
+                  {canRate && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: '12px' }}
+                      onClick={() => setShowRating(true)}
+                    >
+                      ⭐ {rateLabel}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Timeline card */}
+            {/* Timeline */}
             {timeline.length > 0 && (
               <div className="card anim-fade-up delay-200">
                 <div className="card-header">
@@ -532,17 +578,11 @@ export default function RequestDetail() {
             )}
 
             {/* Posted time */}
-            <div
-              style={{
-                padding: '14px 16px',
-                background: 'var(--green-50)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--green-100)',
-                fontSize: '12px',
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-              }}
-            >
+            <div style={{
+              padding: '14px 16px', background: 'var(--green-50)',
+              borderRadius: 'var(--radius-md)', border: '1px solid var(--green-100)',
+              fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center',
+            }}>
               Posted {formatTimeAgo(postedAt)}
             </div>
 
@@ -554,13 +594,17 @@ export default function RequestDetail() {
       {/* ── Cancel modal ──────────────────────────────────────────────────── */}
       <Modal
         isOpen={showCancel}
-        onClose={() => { setShowCancel(false); clearError(); }}
+        onClose={() => {
+          if (cancelSubmitting) return;
+          setShowCancel(false);
+          clearError();
+        }}
         title="Cancel Request"
         icon="⚠️"
         onConfirm={handleCancelConfirm}
-        confirmLabel="Yes, Cancel"
+        confirmLabel={cancelSubmitting ? 'Cancelling…' : 'Yes, Cancel'}
         confirmVariant="danger"
-        loading={actionLoading}
+        loading={cancelSubmitting}
       >
         Are you sure you want to cancel this request? Volunteers who have been
         notified will be informed. This action cannot be undone.
@@ -569,7 +613,7 @@ export default function RequestDetail() {
       {/* ── Rating modal ──────────────────────────────────────────────────── */}
       <Modal
         isOpen={showRating}
-        onClose={() => setShowRating(false)}
+        onClose={handleCloseRatingModal}
         title={assignedType === 'Provider' ? 'Rate Your Service Provider' : 'Rate Your Responder'}
         icon="⭐"
         size="md"
@@ -577,7 +621,8 @@ export default function RequestDetail() {
       >
         <RatingForm
           onSubmit={handleRatingSubmit}
-          loading={actionLoading}
+          loading={ratingSubmitting}
+          error={ratingError}
         />
       </Modal>
 

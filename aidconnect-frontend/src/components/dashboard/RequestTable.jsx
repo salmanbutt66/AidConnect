@@ -5,10 +5,6 @@ import {
   formatTimeAgo,
   formatEmergencyType,
   getEmergencyEmoji,
-  formatStatus,
-  formatUrgency,
-  getUrgencyClass,
-  getStatusClass,
 } from '../../utils/formatters.js';
 import {
   EMERGENCY_TYPES,
@@ -21,7 +17,6 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
   return (
     <div className="filter-bar">
 
-      {/* Search */}
       {showSearch && (
         <div className="search-input-wrap">
           <span className="search-icon">🔍</span>
@@ -35,7 +30,6 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
         </div>
       )}
 
-      {/* Emergency type filter */}
       <select
         className="form-select"
         style={{ width: 'auto', minWidth: '140px' }}
@@ -50,7 +44,6 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
         ))}
       </select>
 
-      {/* Urgency filter */}
       <select
         className="form-select"
         style={{ width: 'auto', minWidth: '130px' }}
@@ -65,7 +58,6 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
         ))}
       </select>
 
-      {/* Status filter */}
       <select
         className="form-select"
         style={{ width: 'auto', minWidth: '130px' }}
@@ -80,7 +72,6 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
         ))}
       </select>
 
-      {/* Reset */}
       {(filters.search || filters.emergencyType || filters.urgencyLevel || filters.status) && (
         <button className="btn btn-ghost btn-sm" onClick={onReset}>
           ✕ Clear
@@ -98,73 +89,34 @@ function PaginationBar({ pagination, onPageChange }) {
   const from = (page - 1) * limit + 1;
   const to   = Math.min(page * limit, total);
 
-  // Build page numbers — always show first, last, current ± 1
-  const pages = new Set([1, totalPages, page, page - 1, page + 1].filter(
-    (p) => p >= 1 && p <= totalPages
-  ));
+  const pages = new Set(
+    [1, totalPages, page, page - 1, page + 1].filter(
+      (p) => p >= 1 && p <= totalPages
+    )
+  );
   const pageArr = [...pages].sort((a, b) => a - b);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        marginTop: '16px',
-      }}
-    >
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px' }}>
       <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
         Showing {from}–{to} of {total} requests
       </span>
       <div className="pagination">
-        {/* Prev */}
-        <button
-          className="page-btn"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-          aria-label="Previous page"
-        >
-          ‹
-        </button>
-
+        <button className="page-btn" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page">‹</button>
         {pageArr.map((p, i) => {
-          // Insert ellipsis gap
           const prev = pageArr[i - 1];
           return (
             <React.Fragment key={p}>
               {prev && p - prev > 1 && (
-                <span
-                  style={{
-                    width: '36px',
-                    textAlign: 'center',
-                    fontSize: '13px',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  …
-                </span>
+                <span style={{ width: '36px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>…</span>
               )}
-              <button
-                className={`page-btn${p === page ? ' active' : ''}`}
-                onClick={() => onPageChange(p)}
-              >
+              <button className={`page-btn${p === page ? ' active' : ''}`} onClick={() => onPageChange(p)}>
                 {p}
               </button>
             </React.Fragment>
           );
         })}
-
-        {/* Next */}
-        <button
-          className="page-btn"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-          aria-label="Next page"
-        >
-          ›
-        </button>
+        <button className="page-btn" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page">›</button>
       </div>
     </div>
   );
@@ -186,49 +138,6 @@ function EmptyState({ filtered }) {
 }
 
 // ─── RequestTable ─────────────────────────────────────────────────────────────
-/**
- * RequestTable — paginated, filterable table of help requests.
- * Used by ManageRequests (admin), MyRequests (user), MyHistory (volunteer).
- *
- * Props:
- *   requests     {array}    — array of HelpRequest objects
- *   pagination   {object}   — { page, limit, total, totalPages }
- *   loading      {boolean}  — shows skeleton rows
- *   onPageChange {fn}       — (newPage) => void
- *   filters      {object}   — current filter state { search, emergencyType, urgencyLevel, status }
- *   onFilterChange {fn}     — (key, value) => void
- *   onFilterReset  {fn}     — () => void
- *
- *   variant      'user' | 'volunteer' | 'admin'     default: 'admin'
- *
- *   Action props (all optional — only render when provided):
- *   onView       {fn}  — (request) => void   view detail
- *   onCancel     {fn}  — (requestId) => void  cancel request
- *   onDelete     {fn}  — (requestId) => void  delete request  [admin]
- *   actionLoading {boolean} — disables action buttons
- *
- *   showFilters  {boolean}  default: true
- *   showSearch   {boolean}  default: true
- *
- * Usage:
- *   // Admin — ManageRequests
- *   <RequestTable
- *     requests={requests} pagination={pagination} loading={loading}
- *     filters={filters} onFilterChange={handleFilter} onFilterReset={resetFilters}
- *     onPageChange={(p) => fetchAllRequests({ ...filters, page: p })}
- *     variant="admin" onView={openDetail} onCancel={handleCancel} onDelete={removeRequest}
- *     actionLoading={actionLoading}
- *   />
- *
- *   // User — MyRequests
- *   <RequestTable
- *     requests={requests} pagination={pagination} loading={loading}
- *     filters={filters} onFilterChange={handleFilter} onFilterReset={resetFilters}
- *     onPageChange={(p) => fetchMyRequests({ ...filters, page: p })}
- *     variant="user" onView={openDetail} onCancel={cancelMyRequest}
- *     actionLoading={actionLoading}
- *   />
- */
 export default function RequestTable({
   requests      = [],
   pagination    = { page: 1, limit: 10, total: 0, totalPages: 1 },
@@ -263,9 +172,7 @@ export default function RequestTable({
       <td><div className="skeleton" style={{ height: '20px', width: '80px', borderRadius: 'var(--radius-full)' }} /></td>
       <td><div className="skeleton" style={{ height: '13px', width: '60%' }} /></td>
       <td><div className="skeleton" style={{ height: '13px', width: '50%' }} /></td>
-      {(isAdmin || isUser || isVolunteer) && (
-        <td><div className="skeleton" style={{ height: '28px', width: '80px', borderRadius: 'var(--radius-sm)' }} /></td>
-      )}
+      <td><div className="skeleton" style={{ height: '28px', width: '80px', borderRadius: 'var(--radius-sm)' }} /></td>
     </tr>
   ));
 
@@ -308,6 +215,13 @@ export default function RequestTable({
               requests.map((r) => {
                 const isActive = ['posted', 'accepted', 'in_progress'].includes(r.status);
 
+                // FIX: show city as fallback when address is missing.
+                // r.city is the top-level field always present on HelpRequest.
+                // Previously showed '—' whenever address was null, even though
+                // city was always available.
+                const locationText =
+                  [r.city, r.address].filter(Boolean).join(' · ') || '—';
+
                 return (
                   <tr
                     key={r._id}
@@ -316,35 +230,20 @@ export default function RequestTable({
                   >
                     {/* Description */}
                     <td style={{ maxWidth: '220px' }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                        }}
-                      >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '16px', flexShrink: 0 }}>
                           {getEmergencyEmoji(r.emergencyType)}
                         </span>
-                        <span
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            color: 'var(--text-dark)',
-                          }}
-                        >
+                        <span style={{
+                          overflow: 'hidden', textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap', fontSize: '13px',
+                          fontWeight: 500, color: 'var(--text-dark)',
+                        }}>
                           {r.description}
                         </span>
                       </div>
-                      {/* Disaster badge */}
                       {r.isDisasterMode && (
-                        <span
-                          className="badge badge-red"
-                          style={{ fontSize: '9px', marginTop: '4px' }}
-                        >
+                        <span className="badge badge-red" style={{ fontSize: '9px', marginTop: '4px' }}>
                           ⚠️ DISASTER
                         </span>
                       )}
@@ -352,21 +251,13 @@ export default function RequestTable({
 
                     {/* Emergency type */}
                     <td>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          color: 'var(--text-mid)',
-                        }}
-                      >
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-mid)' }}>
                         {formatEmergencyType(r.emergencyType)}
                       </span>
                     </td>
 
                     {/* Urgency */}
-                    <td>
-                      <Badge urgency={r.urgencyLevel} />
-                    </td>
+                    <td><Badge urgency={r.urgencyLevel} /></td>
 
                     {/* Status */}
                     <td>
@@ -377,20 +268,15 @@ export default function RequestTable({
                       />
                     </td>
 
-                    {/* Location */}
+                    {/* Location — FIX: city · address fallback chain */}
                     <td>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          color: 'var(--text-muted)',
-                          maxWidth: '150px',
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {r.address || '—'}
+                      <span style={{
+                        fontSize: '12px', color: 'var(--text-muted)',
+                        maxWidth: '150px', display: 'block',
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {locationText}
                       </span>
                     </td>
 
@@ -405,7 +291,6 @@ export default function RequestTable({
                     <td onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
 
-                        {/* View detail */}
                         {typeof onView === 'function' && (
                           <button
                             className="btn btn-ghost btn-sm"
@@ -416,7 +301,6 @@ export default function RequestTable({
                           </button>
                         )}
 
-                        {/* Cancel — user (own posted) or admin (any active) */}
                         {typeof onCancel === 'function' &&
                           ((isUser && r.status === 'posted') ||
                            (isAdmin && isActive)) && (
@@ -430,7 +314,6 @@ export default function RequestTable({
                           </button>
                         )}
 
-                        {/* Delete — admin only */}
                         {isAdmin && typeof onDelete === 'function' && (
                           <button
                             className="btn btn-danger btn-sm"
@@ -452,10 +335,7 @@ export default function RequestTable({
 
       {/* ── Pagination ────────────────────────────────────────────────────── */}
       {!loading && requests.length > 0 && (
-        <PaginationBar
-          pagination={pagination}
-          onPageChange={onPageChange}
-        />
+        <PaginationBar pagination={pagination} onPageChange={onPageChange} />
       )}
     </div>
   );

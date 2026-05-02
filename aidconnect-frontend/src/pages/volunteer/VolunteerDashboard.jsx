@@ -13,7 +13,9 @@ import {
   toggleAvailability,
   getActiveRequest,
 } from '../../api/volunteer.api.js';
-import { formatScore, formatPercent } from '../../utils/formatters.js';
+import { getNearbyRequests } from '../../api/request.api.js';
+import { formatScore, formatTimeAgo, getUrgencyClass } from '../../utils/formatters.js';
+import { EMERGENCY_TYPES } from '../../utils/constants.js';
 
 // ─── Availability toggle card ─────────────────────────────────────────────────
 function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onToggle }) {
@@ -29,16 +31,12 @@ function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onTo
         <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
           Availability Status
         </div>
-
-        {/* Status indicator */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '14px' }}>
           <span className={`status-dot ${isAvailable ? 'dot-green pulse' : 'dot-stone'}`} />
           <span style={{ fontWeight: 700, fontSize: '15px', color: isAvailable ? 'var(--green-700)' : 'var(--text-muted)' }}>
             {isAvailable ? 'Available' : 'Unavailable'}
           </span>
         </div>
-
-        {/* Toggle button */}
         <button
           onClick={onToggle}
           disabled={toggling || !isApproved || isSuspended}
@@ -50,7 +48,6 @@ function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onTo
             : isAvailable ? 'Go Unavailable' : 'Go Available'
           }
         </button>
-
         {!isApproved && (
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
             Awaiting admin approval
@@ -129,6 +126,96 @@ function ActiveRequestBanner({ request, onView }) {
   );
 }
 
+// ─── FIX: Incoming request card (was completely missing from dashboard) ────────
+function IncomingRequestCard({ request, onView }) {
+  const emergencyEmojis = {
+    medical: '🏥', blood: '🩸', accident: '🚗', disaster: '🌊', other: '🆘',
+  };
+  const urgencyColors = {
+    critical: 'var(--danger)',
+    high:     'var(--warning)',
+    medium:   'var(--info)',
+    low:      'var(--green-600)',
+  };
+
+  return (
+    <div
+      className="card card-hover"
+      style={{
+        borderLeft: `4px solid ${urgencyColors[request.urgencyLevel] || 'var(--stone-300)'}`,
+        cursor: 'pointer',
+      }}
+      onClick={() => onView(request._id)}
+    >
+      <div className="card-body" style={{ padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          {/* Emoji icon */}
+          <div style={{
+            width: '40px', height: '40px', flexShrink: 0,
+            background: 'var(--green-50)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '20px',
+          }}>
+            {emergencyEmojis[request.emergencyType] || '🆘'}
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-dark)', textTransform: 'capitalize' }}>
+                {request.emergencyType?.replace('_', ' ')} Emergency
+              </span>
+              <span
+                style={{
+                  fontSize: '10px', fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  background: urgencyColors[request.urgencyLevel] + '20',
+                  color: urgencyColors[request.urgencyLevel],
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                {request.urgencyLevel}
+              </span>
+              {request.bloodGroupNeeded && (
+                <span className="badge badge-red" style={{ fontSize: '10px' }}>
+                  🩸 {request.bloodGroupNeeded}
+                </span>
+              )}
+            </div>
+
+            <div style={{
+              fontSize: '13px', color: 'var(--text-muted)',
+              lineHeight: 1.5, marginBottom: '8px',
+              display: '-webkit-box', WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              {request.description}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              {request.city && (
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  📍 {request.city}
+                  {request.address ? ` · ${request.address}` : ''}
+                </span>
+              )}
+              <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>
+                {formatTimeAgo(request.postedAt || request.createdAt)}
+              </span>
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <span style={{ color: 'var(--text-light)', fontSize: '18px', flexShrink: 0, alignSelf: 'center' }}>›</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── VolunteerDashboard ───────────────────────────────────────────────────────
 export default function VolunteerDashboard() {
   const { user }   = useAuth();
@@ -137,24 +224,43 @@ export default function VolunteerDashboard() {
   const [profile,        setProfile]        = useState(null);
   const [stats,          setStats]          = useState(null);
   const [activeRequest,  setActiveRequest]  = useState(null);
-  const [loading,        setLoading]        = useState(true);
-  const [toggling,       setToggling]       = useState(false);
-  const [error,          setError]          = useState('');
+
+  // FIX: incoming requests state — was completely missing
+  const [nearbyRequests, setNearbyRequests] = useState([]);
+  const [requestsCity,   setRequestsCity]   = useState('');
+  const [requestsTotal,  setRequestsTotal]  = useState(0);
+  const [filterType,     setFilterType]     = useState('');
+
+  const [loading,  setLoading]  = useState(true);
+  const [toggling, setToggling] = useState(false);
+  const [error,    setError]    = useState('');
 
   // ── Load all data on mount ─────────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       try {
-        // Run all three in parallel — handle each failure independently
-        const [profileRes, statsRes, activeRes] = await Promise.allSettled([
+        const [profileRes, statsRes, activeRes, nearbyRes] = await Promise.allSettled([
           getMyVolunteerProfile(),
           getVolunteerStats(),
           getActiveRequest(),
+          // FIX: fetch nearby requests for the dashboard feed
+          getNearbyRequests({ limit: 5 }),
         ]);
+
         if (profileRes.status === 'fulfilled') setProfile(profileRes.value.profile);
         if (statsRes.status   === 'fulfilled') setStats(statsRes.value.stats);
         if (activeRes.status  === 'fulfilled') setActiveRequest(activeRes.value.activeRequest);
-        // Only show error if all three failed
+
+        // FIX: handle the nearby requests response
+        if (nearbyRes.status === 'fulfilled') {
+          const data = nearbyRes.value;
+          // Handle both { data: [...] } and { requests: [...] } shapes
+          const requests = data?.data ?? data?.requests ?? [];
+          setNearbyRequests(Array.isArray(requests) ? requests : []);
+          setRequestsTotal(data?.pagination?.total ?? requests.length);
+          setRequestsCity(data?.pagination?.city || data?.city || '');
+        }
+
         if (
           profileRes.status === 'rejected' &&
           statsRes.status   === 'rejected' &&
@@ -168,6 +274,25 @@ export default function VolunteerDashboard() {
     };
     load();
   }, []);
+
+  // ── Refresh nearby requests when filter changes ────────────────────────────
+  const refreshRequests = useCallback(async (type) => {
+    try {
+      const params = { limit: 5 };
+      if (type) params.emergencyType = type;
+      const data = await getNearbyRequests(params);
+      const requests = data?.data ?? data?.requests ?? [];
+      setNearbyRequests(Array.isArray(requests) ? requests : []);
+      setRequestsTotal(data?.pagination?.total ?? requests.length);
+    } catch {
+      // fail silently — city may not be set yet
+    }
+  }, []);
+
+  const handleFilterChange = (type) => {
+    setFilterType(type);
+    refreshRequests(type);
+  };
 
   // ── Toggle availability ────────────────────────────────────────────────────
   const handleToggleAvailability = useCallback(async () => {
@@ -190,6 +315,12 @@ export default function VolunteerDashboard() {
   const scoreMeta       = formatScore(reputationScore);
   const firstName       = user?.name?.split(' ')[0] || 'there';
 
+  // FIX: navigate to a request detail — volunteers view via matches or
+  // a dedicated volunteer request view. Adjust route as needed.
+  const handleViewRequest = (requestId) => {
+    navigate(`/volunteer/active-request?requestId=${requestId}`);
+  };
+
   return (
     <Navbar title="Dashboard">
       <div className="page-wrapper">
@@ -200,7 +331,6 @@ export default function VolunteerDashboard() {
           <p>Here's your volunteer activity and performance overview.</p>
         </div>
 
-        {/* ── Loading state ─────────────────────────────────────────────── */}
         {loading && <Loader variant="skeleton" count={3} />}
 
         {!loading && (
@@ -227,7 +357,6 @@ export default function VolunteerDashboard() {
                 </div>
               </div>
             )}
-
             {isSuspended && (
               <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
                 <span className="alert-icon">⛔</span>
@@ -248,55 +377,125 @@ export default function VolunteerDashboard() {
 
             {/* ── Stats row ─────────────────────────────────────────────── */}
             <div className="grid-4" style={{ marginBottom: '28px' }}>
-              <StatsCard
-                label="Completed"
-                value={stats?.totalCompleted ?? 0}
-                icon="✅"
-                color="green"
-                sub="Total resolved"
-                delay={0}
-              />
-              <StatsCard
-                label="Acceptance Rate"
-                value={stats?.acceptanceRate ?? 0}
-                icon="⚡"
-                color="blue"
-                format="percent"
-                delay={100}
-              />
+              <StatsCard label="Completed"       value={stats?.totalCompleted ?? 0} icon="✅" color="green" sub="Total resolved" delay={0} />
+              <StatsCard label="Acceptance Rate" value={stats?.acceptanceRate ?? 0} icon="⚡" color="blue"  format="percent"   delay={100} />
               <StatsCard
                 label="Avg Rating"
-                value={stats?.averageRating
-                  ? Number(stats.averageRating).toFixed(1)
-                  : '—'
-                }
-                icon="⭐"
-                color="orange"
-                format="raw"
+                value={stats?.averageRating ? Number(stats.averageRating).toFixed(1) : '—'}
+                icon="⭐" color="orange" format="raw"
                 sub={`${stats?.totalRatings ?? 0} ratings`}
                 delay={200}
               />
-              <StatsCard
-                label="Reputation"
-                value={reputationScore}
-                icon="🏅"
-                color="green"
-                sub={scoreMeta.label}
-                delay={300}
-              />
+              <StatsCard label="Reputation" value={reputationScore} icon="🏅" color="green" sub={scoreMeta.label} delay={300} />
             </div>
 
             {/* ── Main content grid ──────────────────────────────────────── */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 300px',
-                gap: '24px',
-                alignItems: 'start',
-              }}
-            >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }}>
+
               {/* Left column */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+                {/* ── FIX: Incoming Requests Feed ───────────────────────── */}
+                <div className="card anim-fade-up delay-100">
+                  <div className="card-header">
+                    <div>
+                      <div className="section-title">
+                        Requests in Your City
+                        {requestsCity && (
+                          <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>
+                            📍 {requestsCity}
+                          </span>
+                        )}
+                      </div>
+                      <div className="section-subtitle">
+                        {requestsTotal > 0
+                          ? `${requestsTotal} open request${requestsTotal !== 1 ? 's' : ''} awaiting response`
+                          : 'No open requests in your city right now'
+                        }
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => refreshRequests(filterType)}
+                      style={{ flexShrink: 0 }}
+                    >
+                      ↻ Refresh
+                    </button>
+                  </div>
+
+                  {/* Filter chips */}
+                  <div style={{ padding: '0 20px 12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {[{ value: '', label: 'All' }, ...EMERGENCY_TYPES].map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => handleFilterChange(t.value)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          border: `1.5px solid ${filterType === t.value ? 'var(--green-600)' : 'var(--stone-300)'}`,
+                          background: filterType === t.value ? 'var(--green-50)' : 'white',
+                          color: filterType === t.value ? 'var(--green-800)' : 'var(--text-muted)',
+                          fontSize: '12px', fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all var(--t-fast)',
+                        }}
+                      >
+                        {t.emoji ? `${t.emoji} ` : ''}{t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Request list */}
+                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {!isApproved ? (
+                      <div className="empty-state" style={{ padding: '24px' }}>
+                        <div className="empty-state-icon">⏳</div>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                          Requests will appear here once your account is approved by an admin.
+                        </p>
+                      </div>
+                    ) : nearbyRequests.length === 0 ? (
+                      <div className="empty-state" style={{ padding: '24px' }}>
+                        <div className="empty-state-icon">✅</div>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                          No open requests in your city right now.
+                          {!profile?.serviceArea?.city && (
+                            <span>
+                              {' '}Set your city in{' '}
+                              <button
+                                onClick={() => navigate('/volunteer/profile')}
+                                style={{ background: 'none', border: 'none', color: 'var(--green-700)', fontWeight: 600, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                              >
+                                your profile
+                              </button>.
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                      nearbyRequests.map((req) => (
+                        <IncomingRequestCard
+                          key={req._id}
+                          request={req}
+                          onView={handleViewRequest}
+                        />
+                      ))
+                    )}
+                  </div>
+
+                  {/* View all link */}
+                  {nearbyRequests.length > 0 && (
+                    <div style={{ padding: '0 16px 16px', textAlign: 'center' }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigate('/volunteer/matches')}
+                      >
+                        View all {requestsTotal} requests →
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Performance summary card */}
                 <div className="card anim-fade-up delay-200">
@@ -309,36 +508,12 @@ export default function VolunteerDashboard() {
                     </div>
                   </div>
                   <div className="card-body" style={{ paddingTop: '16px' }}>
-
-                    {/* Performance bars */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-                      <PerformanceBar
-                        label="Acceptance Rate"
-                        value={stats?.acceptanceRate ?? 0}
-                        color="var(--info)"
-                      />
-                      <PerformanceBar
-                        label="Completion Rate"
-                        value={stats?.completionRate ?? 0}
-                        color="var(--green-600)"
-                      />
-                      <PerformanceBar
-                        label="Cancellation Rate"
-                        value={stats?.cancellationRate ?? 0}
-                        color="var(--danger)"
-                      />
+                      <PerformanceBar label="Acceptance Rate"  value={stats?.acceptanceRate  ?? 0} color="var(--info)" />
+                      <PerformanceBar label="Completion Rate"  value={stats?.completionRate  ?? 0} color="var(--green-600)" />
+                      <PerformanceBar label="Cancellation Rate" value={stats?.cancellationRate ?? 0} color="var(--danger)" />
                     </div>
-
-                    {/* Breakdown counters */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '0',
-                        paddingTop: '20px',
-                        borderTop: '1px solid var(--stone-200)',
-                        justifyContent: 'space-around',
-                      }}
-                    >
+                    <div style={{ display: 'flex', gap: '0', paddingTop: '20px', borderTop: '1px solid var(--stone-200)', justifyContent: 'space-around' }}>
                       {[
                         { label: 'Assigned',    value: stats?.totalAssigned   ?? 0 },
                         { label: 'Accepted',    value: stats?.totalAccepted   ?? 0 },
@@ -347,12 +522,8 @@ export default function VolunteerDashboard() {
                         { label: 'No Response', value: stats?.totalNoResponse ?? 0 },
                       ].map(({ label, value }) => (
                         <div key={label} style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-0.5px' }}>
-                            {value}
-                          </div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>
-                            {label}
-                          </div>
+                          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-0.5px' }}>{value}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>{label}</div>
                         </div>
                       ))}
                     </div>
@@ -368,7 +539,7 @@ export default function VolunteerDashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {[
                         { icon: '🚨', label: 'View Active Request', desc: 'Check and manage your current assignment', to: '/volunteer/active-request' },
-                        { icon: '📬', label: 'Incoming Matches',    desc: 'Review matches and accept a request',    to: '/volunteer/matches' },
+                        { icon: '📬', label: 'Incoming Matches',    desc: 'Review matches and accept a request',    to: '/volunteer/matches'        },
                         { icon: '📋', label: 'Request History',     desc: 'Browse your past responses and ratings',  to: '/volunteer/history'        },
                         { icon: '👤', label: 'Edit Profile',         desc: 'Update your skills and service area',     to: '/volunteer/profile'        },
                       ].map((action) => (
@@ -376,17 +547,11 @@ export default function VolunteerDashboard() {
                           key={action.to}
                           onClick={() => navigate(action.to)}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '14px',
-                            padding: '14px 16px',
-                            background: 'white',
-                            border: '1.5px solid var(--stone-200)',
-                            borderRadius: 'var(--radius-lg)',
-                            cursor: 'pointer',
-                            textAlign: 'left',
+                            display: 'flex', alignItems: 'center', gap: '14px',
+                            padding: '14px 16px', background: 'white',
+                            border: '1.5px solid var(--stone-200)', borderRadius: 'var(--radius-lg)',
+                            cursor: 'pointer', textAlign: 'left', width: '100%',
                             transition: 'all var(--t-base)',
-                            width: '100%',
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = 'var(--green-300)';
@@ -400,21 +565,16 @@ export default function VolunteerDashboard() {
                           }}
                         >
                           <div style={{
-                            width: '40px', height: '40px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'var(--green-100)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                            background: 'var(--green-100)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
                             fontSize: '18px', flexShrink: 0,
                           }}>
                             {action.icon}
                           </div>
                           <div>
-                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--green-800)', marginBottom: '2px' }}>
-                              {action.label}
-                            </div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                              {action.desc}
-                            </div>
+                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--green-800)', marginBottom: '2px' }}>{action.label}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{action.desc}</div>
                           </div>
                           <span style={{ marginLeft: 'auto', color: 'var(--text-light)', fontSize: '16px' }}>›</span>
                         </button>
@@ -427,7 +587,6 @@ export default function VolunteerDashboard() {
               {/* Right column */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-                {/* Availability card */}
                 <div className="anim-fade-up delay-100">
                   <AvailabilityCard
                     isAvailable={isAvailable}
@@ -441,25 +600,15 @@ export default function VolunteerDashboard() {
                 {/* Reputation card */}
                 <div className="card anim-fade-up delay-200">
                   <div className="card-body">
-                    <div className="section-title" style={{ marginBottom: '14px' }}>
-                      Reputation Score
-                    </div>
+                    <div className="section-title" style={{ marginBottom: '14px' }}>Reputation Score</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                      <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-1px' }}>
-                        {reputationScore}
-                      </div>
+                      <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-dark)', letterSpacing: '-1px' }}>{reputationScore}</div>
                       <span className="badge badge-green">{scoreMeta.label}</span>
                     </div>
-                    {/* Score bar */}
                     <div style={{ height: '8px', background: 'var(--stone-200)', borderRadius: 'var(--radius-full)', overflow: 'hidden', marginBottom: '8px' }}>
                       <div style={{
-                        width: `${reputationScore}%`,
-                        height: '100%',
-                        background: reputationScore >= 70
-                          ? 'var(--green-600)'
-                          : reputationScore >= 40
-                            ? 'var(--warning)'
-                            : 'var(--danger)',
+                        width: `${reputationScore}%`, height: '100%',
+                        background: reputationScore >= 70 ? 'var(--green-600)' : reputationScore >= 40 ? 'var(--warning)' : 'var(--danger)',
                         borderRadius: 'var(--radius-full)',
                         transition: 'width 0.6s var(--ease)',
                       }} />

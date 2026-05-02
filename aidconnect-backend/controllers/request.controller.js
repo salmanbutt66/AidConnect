@@ -23,7 +23,7 @@ const getProviderCredibilityScore = (averageRating, totalRatings) => {
 export const createRequest = asyncHandler(async (req, res) => {
   const {
     emergencyType, urgencyLevel, description,
-    longitude, latitude, address,
+    longitude, latitude, address, city,
     bloodGroupNeeded, proofImage,
   } = req.body;
 
@@ -31,16 +31,20 @@ export const createRequest = asyncHandler(async (req, res) => {
     return sendError(res, 400, "Emergency type, urgency level and description are required");
   }
 
-  if (!longitude || !latitude) {
-    return sendError(res, 400, "Location coordinates are required");
-  }
-
-  if (!isValidCoordinates(Number(longitude), Number(latitude))) {
-    return sendError(res, 400, "Invalid coordinates provided");
+  if (!city || !city.trim()) {
+    return sendError(res, 400, "City is required so we can find nearby responders");
   }
 
   if (emergencyType === "blood" && !bloodGroupNeeded) {
     return sendError(res, 400, "Blood group is required for blood emergency requests");
+  }
+
+  let locationGeoPoint = null;
+  if (longitude && latitude) {
+    if (!isValidCoordinates(Number(longitude), Number(latitude))) {
+      return sendError(res, 400, "Coordinates provided but are invalid");
+    }
+    locationGeoPoint = createGeoPoint(Number(longitude), Number(latitude));
   }
 
   const request = await HelpRequest.create({
@@ -50,8 +54,9 @@ export const createRequest = asyncHandler(async (req, res) => {
     description,
     bloodGroupNeeded: emergencyType === "blood" ? bloodGroupNeeded : null,
     proofImage:       proofImage || null,
-    address:          address || null,
-    location:         createGeoPoint(Number(longitude), Number(latitude)),
+    address:          address    || null,
+    city:             city.trim(),
+    location:         locationGeoPoint,
     status:           "posted",
     postedAt:         new Date(),
   });
@@ -93,55 +98,50 @@ export const getMyRequests = asyncHandler(async (req, res) => {
 });
 
 // ─────────────────────────────────────────
-// GET NEARBY REQUESTS
+// GET NEARBY REQUESTS (city-based)
 // GET /api/requests/nearby
 // ─────────────────────────────────────────
 export const getNearbyRequests = asyncHandler(async (req, res) => {
-  const {
-    longitude, latitude,
-    radius = 10,
-    emergencyType,
-    page = 1,
-    limit = 10,
-  } = req.query;
+  const { emergencyType, page = 1, limit = 10 } = req.query;
 
-  if (!longitude || !latitude) {
-    return sendError(res, 400, "Your location coordinates are required");
+  const volunteer = await Volunteer.findOne({ user: req.user.id })
+    .select("serviceArea.city")
+    .lean();
+
+  const volunteerCity = volunteer?.serviceArea?.city;
+
+  if (!volunteerCity) {
+    return sendError(
+      res, 400,
+      "Your city is not set. Please update your volunteer profile with your service area city before browsing requests."
+    );
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const cityRegex = new RegExp(`^${volunteerCity.trim()}$`, "i");
+  const skip      = (Number(page) - 1) * Number(limit);
 
   const filter = {
     status: "posted",
-    location: {
-      $nearSphere: {
-        $geometry: {
-          type: "Point",
-          coordinates: [Number(longitude), Number(latitude)],
-        },
-        $maxDistance: Number(radius) * 1000,
-      },
-    },
+    city:   cityRegex,
   };
 
   if (emergencyType) filter.emergencyType = emergencyType;
 
-  const requests = await HelpRequest.find(filter)
-    .sort({ urgencyScore: -1 })
-    .skip(skip)
-    .limit(Number(limit))
-    .populate("requesterId", "name phone");
+  const [requests, total] = await Promise.all([
+    HelpRequest.find(filter)
+      .sort({ urgencyScore: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .populate("requesterId", "name phone"),
+    HelpRequest.countDocuments(filter),
+  ]);
 
-  const total = await HelpRequest.countDocuments({
-    status: "posted",
-    ...(emergencyType && { emergencyType }),
-  });
-
-  return sendPaginated(res, "Nearby requests fetched successfully", requests, {
+  return sendPaginated(res, "Requests in your city fetched successfully", requests, {
     total,
     page:  Number(page),
     limit: Number(limit),
     pages: Math.ceil(total / Number(limit)),
+    city:  volunteerCity,
   });
 });
 
@@ -189,11 +189,16 @@ export const cancelRequest = asyncHandler(async (req, res) => {
     { status: "expired" }
   );
 
+  // FIX: if a provider was assigned, free them up when request is cancelled
+  if (request.assignedType === "Provider" && request.assignedTo) {
+    await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
+  }
+
   return sendSuccess(res, 200, "Request cancelled successfully", request);
 });
 
 // ─────────────────────────────────────────
-// ACCEPT REQUEST
+// ACCEPT REQUEST (volunteer via match)
 // PUT /api/requests/:id/accept
 // ─────────────────────────────────────────
 export const acceptRequest = asyncHandler(async (req, res) => {
@@ -209,6 +214,15 @@ export const acceptRequest = asyncHandler(async (req, res) => {
 // ─────────────────────────────────────────
 // UPDATE REQUEST STATUS
 // PUT /api/requests/:id/status
+// Access: assigned volunteer or provider only
+//
+// Valid transitions:
+//   accepted    → in_progress
+//   in_progress → completed
+//
+// FIX: provider.isAvailable restored BEFORE request.save() so a save
+// failure can never leave the provider permanently locked as unavailable.
+// Also frees provider on cancellation (handled in cancelRequest above).
 // ─────────────────────────────────────────
 export const updateRequestStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
@@ -228,6 +242,7 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
     return sendError(res, 400, "No responder is assigned to this request");
   }
 
+  // ── Verify the caller is the assigned responder ──────────────────────────
   let isAssignedResponder = false;
 
   if (request.assignedType === "Volunteer" && req.user.role === "volunteer") {
@@ -246,18 +261,27 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
     return sendError(res, 403, "You are not assigned to this request");
   }
 
+  // ── Validate transition ───────────────────────────────────────────────────
   const allowedNextStatuses = validTransitions[request.status] || [];
   if (!allowedNextStatuses.includes(status)) {
-    return sendError(res, 400, `Cannot transition from ${request.status} to ${status}`);
+    return sendError(
+      res,
+      400,
+      `Cannot transition from "${request.status}" to "${status}". ` +
+      `Allowed next status: ${allowedNextStatuses.join(", ") || "none"}`
+    );
   }
 
+  // ── Apply transition ──────────────────────────────────────────────────────
   request.status = status;
 
   if (status === "completed") {
     request.completedAt    = new Date();
-    const diffMs           = request.completedAt - request.postedAt;
-    request.resolutionTime = Math.round(diffMs / 1000 / 60);
+    request.resolutionTime = Math.round(
+      (request.completedAt - request.postedAt) / 1000 / 60
+    );
 
+    // Free provider BEFORE save so a save failure doesn't lock them unavailable
     if (request.assignedType === "Provider") {
       await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
     }
@@ -267,16 +291,14 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
 
   await request.save();
 
-  return sendSuccess(res, 200, `Request status updated to ${status}`, request);
+  return sendSuccess(res, 200, `Request status updated to "${status}"`, request);
 });
 
 // ─────────────────────────────────────────
 // RATE REQUEST
 // POST /api/requests/:id/rate
-// FIX: frontend sends { score, comment } — was incorrectly reading { rating }
 // ─────────────────────────────────────────
 export const rateRequest = asyncHandler(async (req, res) => {
-  // FIX: destructure 'score' not 'rating'
   const { score, comment } = req.body;
 
   if (!score || score < 1 || score > 5) {
@@ -327,7 +349,6 @@ export const rateRequest = asyncHandler(async (req, res) => {
 
   if (existingRating) return sendError(res, 400, "You have already rated this request");
 
-  // FIX: use 'score' field, include 'recipientType' so analytics filters work
   const newRating = await Rating.create({
     helpRequest:   request._id,
     ratedBy:       req.user.id,
@@ -337,22 +358,21 @@ export const rateRequest = asyncHandler(async (req, res) => {
     comment:       comment || null,
   });
 
-  // Update volunteer — addRating() recalculates averageRating inline
+  // ── Update volunteer reputation ───────────────────────────────────────────
   if (recipientType === "Volunteer") {
     volunteerProfile.addRating(req.user.id, request._id, score, comment || "");
     await volunteerProfile.save();
 
-    // FIX: trigger scoring service so reputationScore stays in sync
     ScoringService.recalculate(volunteerProfile._id).catch((err) =>
       console.error("Score recalculation failed:", err.message)
     );
   }
 
-  // Update provider — pull fresh average from Rating collection
+  // ── Update provider credibility ───────────────────────────────────────────
   if (recipientType === "Provider") {
-    const providerRatings        = await Rating.getAverageScore(recipientUserId, "Provider");
-    providerProfile.averageRating    = Number((providerRatings.averageScore || 0).toFixed(2));
-    providerProfile.totalRatings     = providerRatings.totalRatings || 0;
+    const stats = await Rating.getAverageScore(recipientUserId, "Provider");
+    providerProfile.averageRating    = Number((stats.averageScore  || 0).toFixed(2));
+    providerProfile.totalRatings     = stats.totalRatings || 0;
     providerProfile.credibilityScore = getProviderCredibilityScore(
       providerProfile.averageRating,
       providerProfile.totalRatings
@@ -417,4 +437,4 @@ export const deleteRequest = asyncHandler(async (req, res) => {
   await HelpRequest.findByIdAndDelete(req.params.id);
 
   return sendSuccess(res, 200, "Request and related matches deleted successfully");
-});
+}); 

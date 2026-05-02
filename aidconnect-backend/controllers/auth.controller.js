@@ -1,11 +1,8 @@
 // controllers/auth.controller.js
-
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import User from "../models/User.model.js";
 import Volunteer from "../models/Volunteer.model.js";
 
-// ─── Helper: Generate Access Token (short-lived) ─────────────────────────────
 const generateAccessToken = (userId, role) => {
   return jwt.sign(
     { id: userId, role },
@@ -14,7 +11,6 @@ const generateAccessToken = (userId, role) => {
   );
 };
 
-// ─── Helper: Generate Refresh Token (long-lived) ─────────────────────────────
 const generateRefreshToken = (userId) => {
   return jwt.sign(
     { id: userId },
@@ -23,27 +19,19 @@ const generateRefreshToken = (userId) => {
   );
 };
 
-// ─── Helper: Send tokens as HTTP-only cookies + response ─────────────────────
-// refreshToken is now passed in — never regenerated here
 const sendTokenResponse = (user, statusCode, res, message = "Success", refreshToken) => {
   const accessToken = generateAccessToken(user._id, user.role);
 
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure:   process.env.NODE_ENV === "production",
     sameSite: "strict",
   };
 
   res
     .status(statusCode)
-    .cookie("accessToken", accessToken, {
-      ...cookieOptions,
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    })
-    .cookie("refreshToken", refreshToken, {
-      ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    })
+    .cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
+    .cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 })
     .json({
       success: true,
       message,
@@ -55,13 +43,28 @@ const sendTokenResponse = (user, statusCode, res, message = "Success", refreshTo
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   POST /api/auth/register
 // @access  Public
+//
+// FIX SUMMARY:
+// 1. `city` is read as a flat top-level field (what Register.jsx sends).
+// 2. It is stored in user.location.city so /api/auth/me returns it and
+//    HelpRequestForm can pre-fill the city dropdown.
+// 3. When role === "volunteer", a Volunteer profile is created immediately
+//    with serviceArea.city set to the resolved city. Without this, new
+//    volunteers had serviceArea.city = null and were never matched.
+// 4. Provider registration does NOT create a Volunteer profile — providers
+//    register their org separately via POST /api/providers/register.
 // ─────────────────────────────────────────────────────────────────────────────
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, bloodGroup, location } = req.body;
+    const {
+      name, email, password, role,
+      phone, bloodGroup,
+      city,     // flat field sent by Register.jsx
+      location, // nested object (future-proofing / API consumers)
+    } = req.body;
 
-    // 1. Check if email already exists
-    const existingUser = await User.findOne({ email });
+    // ── Duplicate check ────────────────────────────────────────────────────
+    const existingUser = await User.findOne({ email: email?.toLowerCase().trim() });
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -69,7 +72,7 @@ export const register = async (req, res, next) => {
       });
     }
 
-    // 2. Prevent registering directly as admin
+    // ── Block admin self-registration ──────────────────────────────────────
     if (role === "admin") {
       return res.status(403).json({
         success: false,
@@ -77,35 +80,53 @@ export const register = async (req, res, next) => {
       });
     }
 
-    // 3. Create the user
+    // ── Resolve city ───────────────────────────────────────────────────────
+    // Flat `city` from Register.jsx takes precedence over nested location.city.
+    const resolvedCity = city?.trim() || location?.city?.trim() || null;
+
+    // ── Create user ────────────────────────────────────────────────────────
+    // Store city in user.location.city so the auth/me response includes it.
+    // HelpRequestForm reads this to pre-fill the city dropdown for users.
     const user = await User.create({
-      name,
-      email,
+      name:       name?.trim(),
+      email:      email?.toLowerCase().trim(),
       password,
-      role: role || "user",
-      phone,
-      bloodGroup,
-      location,
+      role:       role || "user",
+      phone:      phone || undefined,
+      bloodGroup: bloodGroup || undefined,
+      location:   resolvedCity
+        ? { city: resolvedCity, area: location?.area || null }
+        : (location || undefined),
     });
 
-    // 4. If registering as volunteer → auto-create a Volunteer profile
+    // ── Seed Volunteer profile ─────────────────────────────────────────────
+    // FIX: create the Volunteer profile at registration time with serviceArea.city
+    // pre-populated. Without this, getNearbyRequests returns nothing because it
+    // filters on volunteer.serviceArea.city which would otherwise be null.
+    //
+    // isApproved stays false (default) — admin must approve before the volunteer
+    // can toggle availability. isAvailable also stays false (default) so the
+    // volunteer won't be matched until they manually go available after approval.
     if (user.role === "volunteer") {
-      await Volunteer.create({
-        user: user._id,
-        serviceArea: location
-          ? {
-              city: location.city,
-              area: location.area,
-              coordinates: location.coordinates,
-            }
-          : {},
-      });
+      const existing = await Volunteer.findOne({ user: user._id });
+      if (!existing) {
+        await Volunteer.create({
+          user: user._id,
+          serviceArea: {
+            city:     resolvedCity || null,
+            area:     location?.area || null,
+            radiusKm: 10,
+          },
+          // isAvailable: false  ← Mongoose default, no need to set explicitly
+          // isApproved:  false  ← Mongoose default
+        });
+      }
     }
 
-    // 5. Generate refresh token once, save to DB, send in cookie
+    // ── Issue tokens ───────────────────────────────────────────────────────
     const refreshToken = generateRefreshToken(user._id);
-    user.refreshToken = refreshToken;
-    user.lastLogin = new Date();
+    user.refreshToken  = refreshToken;
+    user.lastLogin     = new Date();
     await user.save({ validateBeforeSave: false });
 
     sendTokenResponse(user, 201, res, "Account created successfully", refreshToken);
@@ -122,7 +143,6 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -130,17 +150,13 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // 2. Find user and explicitly select password (it's select:false in schema)
-    const user = await User.findOne({ email }).select("+password +refreshToken");
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
+      .select("+password +refreshToken");
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
-    // 3. Check if banned
     if (user.isBanned) {
       return res.status(403).json({
         success: false,
@@ -148,7 +164,6 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // 4. Check if account is active
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -156,21 +171,14 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // 5. Compare password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
-    // 6. Update last login
-    user.lastLogin = new Date();
-
-    // 7. Generate refresh token once, save to DB, send in cookie
+    user.lastLogin    = new Date();
     const refreshToken = generateRefreshToken(user._id);
-    user.refreshToken = refreshToken;
+    user.refreshToken  = refreshToken;
     await user.save({ validateBeforeSave: false });
 
     sendTokenResponse(user, 200, res, "Login successful", refreshToken);
@@ -185,18 +193,12 @@ export const login = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const logout = async (req, res, next) => {
   try {
-    // Clear refresh token from DB
     await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
-
-    // Clear cookies
     res
       .clearCookie("accessToken")
       .clearCookie("refreshToken")
       .status(200)
-      .json({
-        success: true,
-        message: "Logged out successfully",
-      });
+      .json({ success: true, message: "Logged out successfully" });
   } catch (error) {
     next(error);
   }
@@ -204,21 +206,16 @@ export const logout = async (req, res, next) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   POST /api/auth/refresh-token
-// @access  Public (uses refresh token cookie)
+// @access  Public
 // ─────────────────────────────────────────────────────────────────────────────
 export const refreshToken = async (req, res, next) => {
   try {
-    // Get token from cookie or body
     const token = req.cookies?.refreshToken || req.body?.refreshToken;
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No refresh token provided",
-      });
+      return res.status(401).json({ success: false, message: "No refresh token provided" });
     }
 
-    // Verify the refresh token
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
@@ -229,7 +226,6 @@ export const refreshToken = async (req, res, next) => {
       });
     }
 
-    // Find user and check stored refresh token matches
     const user = await User.findById(decoded.id).select("+refreshToken");
 
     if (!user || user.refreshToken !== token) {
@@ -240,28 +236,20 @@ export const refreshToken = async (req, res, next) => {
     }
 
     if (user.isBanned || !user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: "Account is banned or inactive.",
-      });
+      return res.status(403).json({ success: false, message: "Account is banned or inactive." });
     }
 
-    // Issue new access token only (rolling refresh)
     const newAccessToken = generateAccessToken(user._id, user.role);
 
     res
       .cookie("accessToken", newAccessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure:   process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 15 * 60 * 1000,
+        maxAge:   15 * 60 * 1000,
       })
       .status(200)
-      .json({
-        success: true,
-        message: "Token refreshed",
-        accessToken: newAccessToken,
-      });
+      .json({ success: true, message: "Token refreshed", accessToken: newAccessToken });
   } catch (error) {
     next(error);
   }
@@ -274,23 +262,19 @@ export const refreshToken = async (req, res, next) => {
 export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // If volunteer, attach volunteer profile too
     let volunteerProfile = null;
     if (user.role === "volunteer") {
-      volunteerProfile = await Volunteer.findOne({ user: user._id });
+      volunteerProfile = await Volunteer.findOne({ user: user._id })
+        .select("serviceArea isApproved isAvailable isSuspended reputationScore");
     }
 
     res.status(200).json({
-      success: true,
-      user: user.toPublicJSON(),
+      success:          true,
+      user:             user.toPublicJSON(),
       volunteerProfile: volunteerProfile || undefined,
     });
   } catch (error) {
@@ -307,11 +291,11 @@ export const updateProfile = async (req, res, next) => {
     const { name, phone, bloodGroup, location, notificationPreferences } = req.body;
 
     const updates = {};
-    if (name) updates.name = name;
-    if (phone) updates.phone = phone;
-    if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
-    if (location) updates.location = location;
-    if (notificationPreferences) updates.notificationPreferences = notificationPreferences;
+    if (name !== undefined)                    updates.name     = name;
+    if (phone !== undefined)                   updates.phone    = phone;
+    if (bloodGroup !== undefined)              updates.bloodGroup = bloodGroup;
+    if (location !== undefined)                updates.location = location;
+    if (notificationPreferences !== undefined) updates.notificationPreferences = notificationPreferences;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -322,7 +306,7 @@ export const updateProfile = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      user: user.toPublicJSON(),
+      user:    user.toPublicJSON(),
     });
   } catch (error) {
     next(error);
@@ -355,19 +339,13 @@ export const changePassword = async (req, res, next) => {
 
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Current password is incorrect",
-      });
+      return res.status(401).json({ success: false, message: "Current password is incorrect" });
     }
 
     user.password = newPassword;
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-    });
+    res.status(200).json({ success: true, message: "Password changed successfully" });
   } catch (error) {
     next(error);
   }
@@ -380,12 +358,11 @@ export const changePassword = async (req, res, next) => {
 export const deleteAccount = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    user.isActive = false;
+    user.isActive     = false;
     user.refreshToken = null;
     await user.save({ validateBeforeSave: false });
 
@@ -400,10 +377,7 @@ export const deleteAccount = async (req, res, next) => {
       .clearCookie("accessToken")
       .clearCookie("refreshToken")
       .status(200)
-      .json({
-        success: true,
-        message: "Account deactivated successfully",
-      });
+      .json({ success: true, message: "Account deactivated successfully" });
   } catch (error) {
     next(error);
   }

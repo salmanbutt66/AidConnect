@@ -11,6 +11,9 @@ const matchSchema = new mongoose.Schema(
     },
 
     // ── WHO WAS MATCHED ────────────────────
+    // NOTE: matchedTo stores the Volunteer profile _id (not User _id)
+    // or the Provider _id. Any query filtering by matchedTo must
+    // resolve the profile _id first — never use req.user.id directly.
     matchedTo: {
       type: mongoose.Schema.Types.ObjectId,
       refPath: "matchedType",
@@ -89,6 +92,10 @@ matchSchema.pre("save", function () {
 });
 
 // ─── Static Methods ───────────────────────────────────────────────────────────
+// IMPORTANT: both statics take a Volunteer profile _id, not a User _id.
+// Callers must resolve the profile first:
+//   const profile = await Volunteer.findOne({ user: req.user.id });
+//   Match.getVolunteerMatches(profile._id)
 matchSchema.statics.getRequestMatches = async function (requestId) {
   return await this.find({ requestId })
     .populate("matchedTo")
@@ -99,7 +106,7 @@ matchSchema.statics.getRequestMatches = async function (requestId) {
 matchSchema.statics.getVolunteerMatches = async function (volunteerId) {
   return await this.find({
     matchedTo: volunteerId,
-    status: "notified",
+    status:    "notified",
   })
     .populate("requestId")
     .sort({ notifiedAt: -1 });
