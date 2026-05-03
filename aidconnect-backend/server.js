@@ -86,7 +86,11 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
+// ─── Root & Health Check ──────────────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.status(200).send("AidConnect API is running. Please use /api for endpoints.");
+});
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success:     true,
