@@ -1,5 +1,13 @@
 // src/pages/admin/ManageVolunteers.jsx
 import React, { useEffect, useState, useCallback } from 'react';
+import {
+  Search,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  UserCheck,
+  Ban,
+} from 'lucide-react';
 import Navbar from '../../components/common/Navbar.jsx';
 import VolunteerCard from '../../components/cards/VolunteerCard.jsx';
 import Loader from '../../components/common/Loader.jsx';
@@ -14,20 +22,13 @@ import {
 const ADMIN_STATS_REFRESH_EVENT = 'aidconnect:admin-stats-refresh';
 
 export default function ManageVolunteers() {
-
-  const [volunteers,    setVolunteers]    = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // FIX: replaced all alert() calls with local error state + alert-error div
-  const [error,      setError]      = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-
-  // Filters
-  const [filters, setFilters] = useState({ search: '', status: 'all' });
-
-  // Suspend modal
-  const [suspendModal,      setSuspendModal]      = useState({ isOpen: false, volunteerId: null, reason: '' });
+  const [volunteers,         setVolunteers]         = useState([]);
+  const [loading,            setLoading]            = useState(true);
+  const [actionLoading,      setActionLoading]      = useState(false);
+  const [error,              setError]              = useState('');
+  const [successMsg,         setSuccessMsg]         = useState('');
+  const [filters,            setFilters]            = useState({ search: '', status: 'all' });
+  const [suspendModal,       setSuspendModal]       = useState({ isOpen: false, volunteerId: null, reason: '' });
   const [suspendReasonError, setSuspendReasonError] = useState('');
 
   const showSuccess = (msg) => {
@@ -35,15 +36,13 @@ export default function ManageVolunteers() {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  // ── Fetch volunteers ───────────────────────────────────────────────────────
   const fetchVolunteers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const response = await getAllVolunteers();
       setVolunteers(response.volunteers || response.data || response || []);
-    } catch (err) {
-      // FIX: console.error + alert → local error state
+    } catch {
       setError('Failed to load volunteers. Please refresh.');
     } finally {
       setLoading(false);
@@ -52,28 +51,22 @@ export default function ManageVolunteers() {
 
   useEffect(() => { fetchVolunteers(); }, [fetchVolunteers]);
 
-  // ── Approve ────────────────────────────────────────────────────────────────
   const handleApprove = useCallback(async (id) => {
     setActionLoading(true);
     setError('');
     try {
       await approveVolunteer(id);
-      setVolunteers((prev) =>
-        prev.map((v) => v._id === id ? { ...v, isApproved: true } : v)
-      );
+      setVolunteers((prev) => prev.map((v) => v._id === id ? { ...v, isApproved: true } : v));
       window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       showSuccess('Volunteer approved successfully.');
     } catch (err) {
-      // FIX: alert() → local error state
       setError(err.response?.data?.message || 'Approval failed. Please try again.');
     } finally {
       setActionLoading(false);
     }
   }, []);
 
-  // ── Suspend ────────────────────────────────────────────────────────────────
   const handleSuspend = useCallback(async () => {
-    // FIX: alert() for validation → inline error inside modal
     if (!suspendModal.reason.trim()) {
       setSuspendReasonError('Please provide a reason for suspension.');
       return;
@@ -94,7 +87,6 @@ export default function ManageVolunteers() {
       setSuspendReasonError('');
       showSuccess('Volunteer suspended.');
     } catch (err) {
-      // FIX: alert() → local error state
       setError(err.response?.data?.message || 'Failed to suspend volunteer.');
       setSuspendModal({ isOpen: false, volunteerId: null, reason: '' });
     } finally {
@@ -102,32 +94,27 @@ export default function ManageVolunteers() {
     }
   }, [suspendModal]);
 
-  // ── Unsuspend ──────────────────────────────────────────────────────────────
   const handleUnsuspend = useCallback(async (id) => {
     setActionLoading(true);
     setError('');
     try {
       await unsuspendVolunteer(id);
       setVolunteers((prev) =>
-        prev.map((v) =>
-          v._id === id ? { ...v, isSuspended: false, suspendedReason: null } : v
-        )
+        prev.map((v) => v._id === id ? { ...v, isSuspended: false, suspendedReason: null } : v)
       );
       window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       showSuccess('Suspension lifted.');
     } catch (err) {
-      // FIX: alert() → local error state
       setError(err.response?.data?.message || 'Failed to lift suspension.');
     } finally {
       setActionLoading(false);
     }
   }, []);
 
-  // ── Local filtering ────────────────────────────────────────────────────────
   const filteredVolunteers = volunteers.filter((v) => {
-    const name         = v.user?.name || '';
-    const matchSearch  = name.toLowerCase().includes(filters.search.toLowerCase());
-    const matchStatus  =
+    const name        = v.user?.name || '';
+    const matchSearch = name.toLowerCase().includes(filters.search.toLowerCase());
+    const matchStatus =
       filters.status === 'all'      ? true :
       filters.status === 'pending'  ? !v.isApproved :
       filters.status === 'approved' ? v.isApproved  : true;
@@ -138,47 +125,49 @@ export default function ManageVolunteers() {
     <Navbar title="Manage Volunteers">
       <div className="page-wrapper">
 
-        {/* ── Page header ───────────────────────────────────────────────── */}
+        {/* ── Page header ───────────────────────────────────────────── */}
         <div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h1>Manage Volunteers 🤝</h1>
+              <h1>Manage Volunteers</h1>
               <p>Approve, suspend, and oversee all volunteer accounts.</p>
             </div>
-            <div
-              style={{
-                fontSize: '13px',
-                color: 'var(--text-muted)',
-                fontWeight: 600,
-              }}
-            >
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
               {filteredVolunteers.length} volunteer{filteredVolunteers.length !== 1 ? 's' : ''} shown
-            </div>
+            </span>
           </div>
         </div>
 
-        {/* ── Alerts ────────────────────────────────────────────────────── */}
+        {/* ── Alerts ────────────────────────────────────────────────── */}
         {error && (
-          <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">⚠️</span>
-            {error}
+          <div
+            className="alert alert-error anim-fade-up"
+            style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <AlertTriangle size={16} />
+            <span style={{ flex: 1 }}>{error}</span>
             <button
               onClick={() => setError('')}
-              style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700 }}
-            >✕</button>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex' }}
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
         {successMsg && (
-          <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">✅</span>
+          <div
+            className="alert alert-success anim-fade-up"
+            style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <CheckCircle2 size={16} />
             {successMsg}
           </div>
         )}
 
-        {/* ── Filter bar ────────────────────────────────────────────────── */}
+        {/* ── Filter bar ────────────────────────────────────────────── */}
         <div className="filter-bar">
           <div className="search-input-wrap">
-            <span className="search-icon">🔍</span>
+            <Search size={14} style={{ color: 'var(--text-muted)' }} className="search-icon" />
             <input
               type="text"
               className="form-input search-input"
@@ -199,18 +188,17 @@ export default function ManageVolunteers() {
           </select>
         </div>
 
-        {/* ── Content ───────────────────────────────────────────────────── */}
+        {/* ── Content ───────────────────────────────────────────────── */}
         {loading ? (
           <Loader variant="skeleton" count={4} />
         ) : filteredVolunteers.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">🤝</div>
+            <div className="empty-state-icon"><UserCheck size={36} strokeWidth={1.5} /></div>
             <h3>No volunteers found</h3>
             <p>
               {filters.search || filters.status !== 'all'
                 ? 'Adjust your search or filter to see results.'
-                : 'No volunteer applications yet.'
-              }
+                : 'No volunteer applications yet.'}
             </p>
             {(filters.search || filters.status !== 'all') && (
               <button
@@ -242,11 +230,11 @@ export default function ManageVolunteers() {
 
       </div>
 
-      {/* ── Suspend modal ──────────────────────────────────────────────── */}
+      {/* ── Suspend modal ──────────────────────────────────────────── */}
       <Modal
         isOpen={suspendModal.isOpen}
         title="Suspend Volunteer"
-        icon="🚫"
+        icon={<Ban size={18} />}
         confirmLabel="Confirm Suspension"
         confirmVariant="danger"
         loading={actionLoading}
@@ -265,7 +253,6 @@ export default function ManageVolunteers() {
             <label className="form-label">
               Reason for suspension <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
-            {/* FIX: form-input → form-textarea on textarea element */}
             <textarea
               className={`form-textarea ${suspendReasonError ? 'error' : ''}`}
               rows={3}
@@ -276,7 +263,6 @@ export default function ManageVolunteers() {
                 if (suspendReasonError) setSuspendReasonError('');
               }}
             />
-            {/* FIX: inline reason validation error instead of alert() */}
             {suspendReasonError
               ? <div className="form-error">{suspendReasonError}</div>
               : <div className="form-hint">This reason will be visible to the volunteer.</div>

@@ -2,7 +2,6 @@
 
 // ─── Date Formatters ──────────────────────────────────
 
-// Format: "21 Apr 2026"
 export const formatDate = (date) => {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("en-PK", {
@@ -12,7 +11,6 @@ export const formatDate = (date) => {
   });
 };
 
-// Format: "21 Apr 2026, 10:32 AM"
 export const formatDateTime = (date) => {
   if (!date) return "—";
   return new Date(date).toLocaleString("en-PK", {
@@ -24,14 +22,12 @@ export const formatDateTime = (date) => {
   });
 };
 
-// Format: "2 hours ago", "just now", "3 days ago"
 export const formatTimeAgo = (date) => {
   if (!date) return "—";
   const now     = new Date();
   const past    = new Date(date);
   const seconds = Math.floor((now - past) / 1000);
 
-  // FIX: guard against clock skew / future dates
   if (seconds < 0)      return "just now";
   if (seconds < 60)     return "just now";
   if (seconds < 3600)   return `${Math.floor(seconds / 60)}m ago`;
@@ -40,8 +36,6 @@ export const formatTimeAgo = (date) => {
   return formatDate(date);
 };
 
-// Format minutes into human readable duration
-// e.g. 75 → "1h 15m", 5 → "5m"
 export const formatDuration = (minutes) => {
   if (!minutes && minutes !== 0) return "—";
   if (minutes < 60) return `${minutes}m`;
@@ -52,7 +46,6 @@ export const formatDuration = (minutes) => {
 
 // ─── Name Formatters ──────────────────────────────────
 
-// Get initials from name: "Muhammad Ali" → "MA"
 export const getInitials = (name) => {
   if (!name) return "?";
   return name
@@ -64,13 +57,11 @@ export const getInitials = (name) => {
     .join("");
 };
 
-// Capitalize first letter: "volunteer" → "Volunteer"
 export const capitalize = (str) => {
   if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
-// Format role for display: "volunteer" → "Volunteer"
 export const formatRole = (role) => {
   const roles = {
     user:      "Citizen",
@@ -83,7 +74,6 @@ export const formatRole = (role) => {
 
 // ─── Emergency Formatters ─────────────────────────────
 
-// Format emergency type for display
 export const formatEmergencyType = (type) => {
   const types = {
     medical:  "Medical",
@@ -95,19 +85,10 @@ export const formatEmergencyType = (type) => {
   return types[type] || capitalize(type);
 };
 
-// Get emergency type emoji
-export const getEmergencyEmoji = (type) => {
-  const emojis = {
-    medical:  "🏥",
-    blood:    "🩸",
-    accident: "🚗",
-    disaster: "🌊",
-    other:    "🆘",
-  };
-  return emojis[type] || "🆘";
-};
+// Kept for backward compatibility — returns empty string so nothing renders
+// Icons are now handled by Lucide components in each card/table
+export const getEmergencyEmoji = (_type) => "";
 
-// Format urgency level for display
 export const formatUrgency = (level) => {
   const levels = {
     low:      "Low",
@@ -118,9 +99,6 @@ export const formatUrgency = (level) => {
   return levels[level] || capitalize(level);
 };
 
-// Get urgency badge/chip class
-// FIX: now uses all four urgency-* chip classes from index.css consistently
-// instead of mixing urgency-* and badge-* classes
 export const getUrgencyClass = (level) => {
   const classes = {
     low:      "urgency-low",
@@ -131,7 +109,6 @@ export const getUrgencyClass = (level) => {
   return classes[level] || "badge-stone";
 };
 
-// Format request status for display
 export const formatStatus = (status) => {
   const statuses = {
     posted:      "Posted",
@@ -143,7 +120,6 @@ export const formatStatus = (status) => {
   return statuses[status] || capitalize(status);
 };
 
-// Get status badge class
 export const getStatusClass = (status) => {
   const classes = {
     posted:      "badge-blue",
@@ -157,7 +133,6 @@ export const getStatusClass = (status) => {
 
 // ─── Number Formatters ────────────────────────────────
 
-// Format large numbers: 1200 → "1.2k"
 export const formatNumber = (num) => {
   if (!num && num !== 0) return "0";
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -165,25 +140,17 @@ export const formatNumber = (num) => {
   return num.toString();
 };
 
-// Format percentage.
-// FIX: expects a value already in percent (0–100), not a decimal (0–1).
-// Backend sends reputationScore, acceptanceRate, completionRate as 0–100.
-// Pass raw percent: formatPercent(85.6) → "85.6%"
-// If you have a decimal (0–1) from elsewhere, multiply by 100 before calling.
 export const formatPercent = (value, decimals = 1) => {
   if (!value && value !== 0) return "0%";
   return `${Number(value).toFixed(decimals)}%`;
 };
 
-// Format distance: 1.5 → "1.5 km", 0.3 → "300 m"
 export const formatDistance = (km) => {
   if (!km && km !== 0) return "—";
   if (km < 1) return `${Math.round(km * 1000)}m`;
   return `${km.toFixed(1)}km`;
 };
 
-// Format reputation score with label and color
-// FIX: added null/undefined guard — missing score no longer silently shows "At Risk"
 export const formatScore = (score) => {
   if (score === null || score === undefined) return { label: "N/A", color: "stone" };
   if (score >= 85) return { label: "Elite",      color: "green"  };
@@ -194,7 +161,7 @@ export const formatScore = (score) => {
 };
 
 // ─── Phone Formatter ──────────────────────────────────
-// Format: "03001234567" → "0300-1234567"
+
 export const formatPhone = (phone) => {
   if (!phone) return "—";
   const cleaned = phone.replace(/\D/g, "");
@@ -205,8 +172,7 @@ export const formatPhone = (phone) => {
 };
 
 // ─── Rating Formatter ─────────────────────────────────
-// Returns array of filled/empty stars
-// FIX: use Math.floor(x + 0.5) for consistent rounding across all JS engines
+
 export const formatStars = (rating, max = 5) => {
   const filled = Math.floor((rating || 0) + 0.5);
   return Array.from({ length: max }, (_, i) => i < filled);

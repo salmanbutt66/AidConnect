@@ -1,6 +1,17 @@
 // src/pages/admin/AdminDashboard.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  RefreshCw,
+  BarChart2,
+  Users,
+  UserCheck,
+  Building2,
+  Siren,
+  ChevronRight,
+  WifiOff,
+  AlertTriangle,
+} from 'lucide-react';
 import Navbar from '../../components/common/Navbar.jsx';
 import StatsCard from '../../components/dashboard/StatsCard.jsx';
 import RequestTable from '../../components/dashboard/RequestTable.jsx';
@@ -15,7 +26,6 @@ const isBackendConnectivityIssue = (errOrMsg) => {
     ? errOrMsg
     : errOrMsg?.message || errOrMsg?.code || '';
   const text = String(msg).toLowerCase();
-
   return (
     text.includes('network error') ||
     text.includes('econnrefused') ||
@@ -41,10 +51,13 @@ export default function AdminDashboard() {
     changeRequestStatus,
   } = useRequests();
 
-  const [stats,        setStats]        = useState(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError,   setStatsError]   = useState('');
+  const [stats,               setStats]               = useState(null);
+  const [statsLoading,        setStatsLoading]        = useState(true);
+  const [statsError,          setStatsError]          = useState('');
   const [backendDisconnected, setBackendDisconnected] = useState(false);
+  const [cancelTarget,        setCancelTarget]        = useState(null);
+  const [deleteTarget,        setDeleteTarget]        = useState(null);
+  const [refreshing,          setRefreshing]          = useState(false);
 
   const loadStats = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setStatsLoading(true);
@@ -55,35 +68,29 @@ export default function AdminDashboard() {
       setBackendDisconnected(false);
     } catch (err) {
       setStatsError('Failed to load system analytics.');
-      if (isBackendConnectivityIssue(err)) {
-        setBackendDisconnected(true);
-      }
+      if (isBackendConnectivityIssue(err)) setBackendDisconnected(true);
     } finally {
       if (!silent) setStatsLoading(false);
     }
   }, []);
 
-  // FIX: Modal state instead of window.confirm
-  const [cancelTarget, setCancelTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    await loadStats();
+    setRefreshing(false);
+  };
 
-  // ── Fetch on mount ─────────────────────────────────────────────────────────
   useEffect(() => {
     fetchAllRequests({ ...filters, limit: 10 });
     loadStats();
   }, []);
 
-  // ── Keep overview cards fresh without requiring hard refresh ──────────────
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadStats({ silent: true });
-    }, 15000);
-
+    const interval = setInterval(() => loadStats({ silent: true }), 15000);
     const handleFocus = () => loadStats({ silent: true });
     const handleStatsRefresh = () => loadStats({ silent: true });
     window.addEventListener('focus', handleFocus);
     window.addEventListener(ADMIN_STATS_REFRESH_EVENT, handleStatsRefresh);
-
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
@@ -93,12 +100,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!requestsError) return;
-    if (isBackendConnectivityIssue(requestsError)) {
-      setBackendDisconnected(true);
-    }
+    if (isBackendConnectivityIssue(requestsError)) setBackendDisconnected(true);
   }, [requestsError]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
   const handlePageChange = useCallback((newPage) => {
     fetchAllRequests({ ...filters, page: newPage });
   }, [fetchAllRequests, filters]);
@@ -114,131 +118,100 @@ export default function AdminDashboard() {
     fetchAllRequests({ page: 1, limit: 10 });
   }, [resetFilters, fetchAllRequests]);
 
-  // FIX: use Modal confirmation instead of window.confirm
   const handleCancelConfirm = useCallback(async () => {
     if (!cancelTarget) return;
-    try {
-      await changeRequestStatus(cancelTarget, 'cancelled');
-    } finally {
-      setCancelTarget(null);
-    }
+    try { await changeRequestStatus(cancelTarget, 'cancelled'); }
+    finally { setCancelTarget(null); }
   }, [cancelTarget, changeRequestStatus]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteTarget) return;
-    try {
-      await removeRequest(deleteTarget);
-    } finally {
-      setDeleteTarget(null);
-    }
+    try { await removeRequest(deleteTarget); }
+    finally { setDeleteTarget(null); }
   }, [deleteTarget, removeRequest]);
 
   return (
     <Navbar title="Dashboard">
       <div className="page-wrapper">
 
-        {/* ── Page header ───────────────────────────────────────────────── */}
+        {/* ── Page header ───────────────────────────────────────────── */}
         <div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <h1>Admin Dashboard</h1>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                Admin Dashboard
+              </h1>
               <p>System overview and real-time request monitoring.</p>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => loadStats()}
+                onClick={handleManualRefresh}
+                disabled={refreshing}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                🔄 Refresh Stats
+                <RefreshCw size={14} style={{ transition: 'transform 0.5s', transform: refreshing ? 'rotate(360deg)' : 'none' }} />
+                Refresh Stats
               </button>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => navigate('/admin/analytics')}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                📊 Full Analytics
+                <BarChart2 size={14} />
+                Full Analytics
               </button>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => navigate('/admin/users')}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                👥 Manage Users
+                <Users size={14} />
+                Manage Users
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Stats error ───────────────────────────────────────────────── */}
+        {/* ── Connectivity alerts ───────────────────────────────────── */}
         {backendDisconnected && (
-          <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">⚠️</span>
+          <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <WifiOff size={16} />
             Backend connection lost. Start or restart the API server on port 5000.
           </div>
         )}
-
-        {statsError && (
-          <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">⚠️</span>
+        {statsError && !backendDisconnected && (
+          <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertTriangle size={16} />
             {statsError}
           </div>
         )}
 
-        {/* ── Analytics stats row ───────────────────────────────────────── */}
-        {/* FIX: removed redundant inline display:grid — grid-4 already handles it */}
+        {/* ── Stats row ─────────────────────────────────────────────── */}
         <div className="grid-4" style={{ marginBottom: '28px' }}>
-          <StatsCard
-            label="Total Users"
-            value={stats?.totalUsers ?? 0}
-            icon="👥"
-            color="blue"
-            loading={statsLoading}
-            delay={0}
-          />
-          <StatsCard
-            label="Active Volunteers"
-            value={stats?.activeVolunteers ?? 0}
-            icon="🤝"
-            color="green"
-            loading={statsLoading}
-            delay={100}
-          />
-          <StatsCard
-            label="Verified Providers"
-            value={stats?.verifiedProviders ?? 0}
-            icon="🏥"
-            color="orange"
-            loading={statsLoading}
-            delay={200}
-          />
-          <StatsCard
-            label="Critical Emergencies"
-            value={stats?.criticalRequests ?? 0}
-            icon="🚨"
-            color="red"
-            loading={statsLoading}
-            delay={300}
-          />
+          <StatsCard label="Total Users"          value={stats?.totalUsers        ?? 0} icon={<Users size={20} />}     color="blue"   loading={statsLoading} delay={0} />
+          <StatsCard label="Active Volunteers"    value={stats?.activeVolunteers  ?? 0} icon={<UserCheck size={20} />} color="green"  loading={statsLoading} delay={100} />
+          <StatsCard label="Verified Providers"   value={stats?.verifiedProviders ?? 0} icon={<Building2 size={20} />} color="orange" loading={statsLoading} delay={200} />
+          <StatsCard label="Critical Emergencies" value={stats?.criticalRequests  ?? 0} icon={<Siren size={20} />}    color="red"    loading={statsLoading} delay={300} />
         </div>
 
-        {/* ── Request feed ──────────────────────────────────────────────── */}
+        {/* ── Request feed ──────────────────────────────────────────── */}
         <div className="card anim-fade-up delay-400">
           <div className="card-header">
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>
                 <div className="section-title">System-Wide Request Feed</div>
-                <div className="section-subtitle">
-                  Monitor, filter, and moderate all platform emergencies
-                </div>
+                <div className="section-subtitle">Monitor, filter, and moderate all platform emergencies</div>
               </div>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => navigate('/admin/requests')}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
               >
-                View all →
+                View all <ChevronRight size={14} />
               </button>
             </div>
           </div>
-
-          {/* FIX: removed padding:0 override — RequestTable handles its own spacing */}
           <div className="card-body">
             <RequestTable
               requests={requests}
@@ -259,12 +232,11 @@ export default function AdminDashboard() {
 
       </div>
 
-      {/* ── Cancel confirmation modal ──────────────────────────────────── */}
       <Modal
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         title="Cancel Request"
-        icon="⚠️"
+        icon={<AlertTriangle size={18} />}
         onConfirm={handleCancelConfirm}
         confirmLabel="Yes, Cancel"
         confirmVariant="danger"
@@ -274,12 +246,11 @@ export default function AdminDashboard() {
         and any assigned responders will be notified.
       </Modal>
 
-      {/* ── Delete confirmation modal ──────────────────────────────────── */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         title="Delete Request"
-        icon="🗑"
+        icon={<AlertTriangle size={18} />}
         onConfirm={handleDeleteConfirm}
         confirmLabel="Delete Permanently"
         confirmVariant="danger"

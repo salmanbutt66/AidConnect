@@ -1,5 +1,6 @@
 // src/pages/admin/ManageProviders.jsx
 import React, { useEffect, useState, useCallback } from 'react';
+import { RefreshCw, Search, Building2, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import Navbar from '../../components/common/Navbar.jsx';
 import ProviderCard from '../../components/cards/ProviderCard.jsx';
 import Loader from '../../components/common/Loader.jsx';
@@ -12,21 +13,19 @@ export default function ManageProviders() {
   const [providers,     setProviders]     = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  // FIX: local error state instead of console.error / alert
   const [error,         setError]         = useState('');
   const [successMsg,    setSuccessMsg]    = useState('');
-
-  const [suspendModal, setSuspendModal] = useState({ isOpen: false, providerId: null });
-  const [filters,      setFilters]      = useState({ search: '', status: 'all' });
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [suspendModal,  setSuspendModal]  = useState({ isOpen: false, providerId: null });
+  const [filters,       setFilters]       = useState({ search: '', status: 'all' });
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  // ── Fetch providers ────────────────────────────────────────────────────────
-  const fetchProviders = useCallback(async () => {
-    setLoading(true);
+  const fetchProviders = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const data = await getAllProviders();
@@ -34,23 +33,24 @@ export default function ManageProviders() {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load providers.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    await fetchProviders();
+    setRefreshing(false);
+  };
 
-  // ── Verify ─────────────────────────────────────────────────────────────────
+  useEffect(() => { fetchProviders(); }, [fetchProviders]);
+
   const handleVerify = useCallback(async (id) => {
     setActionLoading(true);
     setError('');
     try {
       await verifyProvider(id);
-      setProviders((prev) =>
-        prev.map((p) => p._id === id ? { ...p, isVerified: true } : p)
-      );
+      setProviders((prev) => prev.map((p) => p._id === id ? { ...p, isVerified: true } : p));
       window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       showSuccess('Provider verified successfully.');
     } catch (err) {
@@ -60,16 +60,13 @@ export default function ManageProviders() {
     }
   }, []);
 
-  // ── Suspend ────────────────────────────────────────────────────────────────
   const handleSuspend = useCallback(async () => {
     setActionLoading(true);
     setError('');
     try {
       await suspendProvider(suspendModal.providerId);
       setProviders((prev) =>
-        prev.map((p) =>
-          p._id === suspendModal.providerId ? { ...p, isAvailable: false } : p
-        )
+        prev.map((p) => p._id === suspendModal.providerId ? { ...p, isAvailable: false } : p)
       );
       window.dispatchEvent(new Event(ADMIN_STATS_REFRESH_EVENT));
       setSuspendModal({ isOpen: false, providerId: null });
@@ -82,17 +79,12 @@ export default function ManageProviders() {
     }
   }, [suspendModal.providerId]);
 
-  // ── Client-side filter ─────────────────────────────────────────────────────
   const filteredProviders = providers.filter((p) => {
-    const matchesSearch = p.organizationName
-      ?.toLowerCase()
-      .includes(filters.search.toLowerCase());
+    const matchesSearch = p.organizationName?.toLowerCase().includes(filters.search.toLowerCase());
     const matchesStatus =
-      filters.status === 'all'
-        ? true
-        : filters.status === 'pending'
-          ? !p.isVerified
-          : p.isVerified;
+      filters.status === 'all'      ? true :
+      filters.status === 'pending'  ? !p.isVerified :
+      p.isVerified;
     return matchesSearch && matchesStatus;
   });
 
@@ -100,49 +92,58 @@ export default function ManageProviders() {
     <Navbar title="Manage Providers">
       <div className="page-wrapper">
 
-        {/* ── Page header ───────────────────────────────────────────────── */}
+        {/* ── Page header ───────────────────────────────────────────── */}
         <div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1>Manage Organizations</h1>
-              <p>Verify, monitor and manage all registered service providers.</p>
+              <p>Verify, monitor, and manage all registered service providers.</p>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={fetchProviders}>
-              🔄 Refresh
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RefreshCw
+                size={14}
+                style={{ transition: 'transform 0.6s', transform: refreshing ? 'rotate(360deg)' : 'none' }}
+              />
+              Refresh
             </button>
           </div>
         </div>
 
-        {/* ── Alerts ────────────────────────────────────────────────────── */}
+        {/* ── Alerts ────────────────────────────────────────────────── */}
         {error && (
-          <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">⚠️</span>
-            {error}
+          <div
+            className="alert alert-error anim-fade-up"
+            style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <AlertTriangle size={16} />
+            <span style={{ flex: 1 }}>{error}</span>
             <button
               onClick={() => setError('')}
-              style={{
-                marginLeft: 'auto',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--danger)',
-                fontWeight: 700,
-              }}
-            >✕</button>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex' }}
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
         {successMsg && (
-          <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">✅</span>
+          <div
+            className="alert alert-success anim-fade-up"
+            style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <CheckCircle2 size={16} />
             {successMsg}
           </div>
         )}
 
-        {/* ── Filter bar ────────────────────────────────────────────────── */}
-        {/* FIX: removed redundant marginBottom — filter-bar class already has it */}
+        {/* ── Filter bar ────────────────────────────────────────────── */}
         <div className="filter-bar">
           <div className="search-input-wrap">
-            <span className="search-icon">🔍</span>
+            <Search size={14} className="search-icon" style={{ color: 'var(--text-muted)' }} />
             <input
               type="text"
               className="form-input search-input"
@@ -161,20 +162,20 @@ export default function ManageProviders() {
             <option value="verified">Verified Only</option>
             <option value="pending">Pending Verification</option>
           </select>
-
-          {/* Result count */}
           <span style={{ fontSize: '13px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
             {filteredProviders.length} result{filteredProviders.length !== 1 ? 's' : ''}
           </span>
         </div>
 
-        {/* ── Content ───────────────────────────────────────────────────── */}
+        {/* ── Content ───────────────────────────────────────────────── */}
         {loading ? (
           <Loader variant="skeleton" count={4} />
         ) : filteredProviders.length === 0 ? (
           <div className="card">
             <div className="empty-state">
-              <div className="empty-state-icon">🏥</div>
+              <div className="empty-state-icon">
+                <Building2 size={36} strokeWidth={1.5} />
+              </div>
               <h3>No providers found</h3>
               <p>
                 {filters.search || filters.status !== 'all'
@@ -193,7 +194,6 @@ export default function ManageProviders() {
           </div>
         ) : (
           <div className="grid-3">
-            {/* FIX: removed unused i parameter */}
             {filteredProviders.map((provider) => (
               <ProviderCard
                 key={provider._id}
@@ -209,12 +209,12 @@ export default function ManageProviders() {
 
       </div>
 
-      {/* ── Suspend confirmation modal ─────────────────────────────────── */}
+      {/* ── Suspend modal ─────────────────────────────────────────── */}
       <Modal
         isOpen={suspendModal.isOpen}
         onClose={() => setSuspendModal({ isOpen: false, providerId: null })}
         title="Suspend Organization"
-        icon="⚠️"
+        icon={<AlertTriangle size={18} />}
         onConfirm={handleSuspend}
         confirmLabel="Suspend"
         confirmVariant="danger"

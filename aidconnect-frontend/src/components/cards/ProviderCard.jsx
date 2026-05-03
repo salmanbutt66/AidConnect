@@ -1,15 +1,41 @@
 // src/components/cards/ProviderCard.jsx
 import React from 'react';
+import {
+  Phone,
+  MapPin,
+  Star,
+  ShieldCheck,
+  Clock,
+  CreditCard,
+  Ambulance,
+  Hospital,
+  Droplets,
+  Users,
+  Heart,
+  Building2,
+  CheckCircle2,
+} from 'lucide-react';
 import { SERVICE_TYPES } from '../../utils/constants.js';
 import { formatPhone } from '../../utils/formatters.js';
 
-// ─── Service type meta lookup ─────────────────────────────────────────────────
-function getServiceMeta(serviceType) {
+// ─── Service type icon lookup ─────────────────────────────────────────────────
+function ServiceIcon({ serviceType, size = 22 }) {
+  const props = { size, strokeWidth: 1.6, color: 'var(--green-700)' };
+  switch (serviceType) {
+    case 'ambulance':   return <Ambulance  {...props} />;
+    case 'hospital':    return <Hospital   {...props} />;
+    case 'blood_bank':  return <Droplets   {...props} />;
+    case 'rescue':      return <Users      {...props} />;
+    case 'ngo':         return <Heart      {...props} />;
+    default:            return <Building2  {...props} />;
+  }
+}
+
+function getServiceLabel(serviceType) {
   return (
-    SERVICE_TYPES.find((s) => s.value === serviceType) || {
-      emoji: '🏥',
-      label: serviceType || 'Provider',
-    }
+    SERVICE_TYPES.find((s) => s.value === serviceType)?.label ||
+    serviceType ||
+    'Provider'
   );
 }
 
@@ -21,12 +47,14 @@ function InfoRow({ icon, text, muted = false }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '7px',
+        gap: '8px',
         fontSize: '13px',
         color: muted ? 'var(--text-muted)' : 'var(--text-mid)',
       }}
     >
-      <span style={{ fontSize: '13px', flexShrink: 0 }}>{icon}</span>
+      <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }}>
+        {icon}
+      </span>
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {text}
       </span>
@@ -35,25 +63,6 @@ function InfoRow({ icon, text, muted = false }) {
 }
 
 // ─── ProviderCard ─────────────────────────────────────────────────────────────
-/**
- * ProviderCard — displays a single provider in list/grid views.
- *
- * Props:
- *   provider   {object}   — provider document from API
- *   onVerify   {fn}       — (providerId) => void  [admin only, optional]
- *   onSuspend  {fn}       — (providerId) => void  [admin only, optional]
- *   onClick    {fn}       — (provider)   => void  [optional, makes card clickable]
- *   loading    {boolean}  — disables action buttons during API call
- *   variant    'default' | 'admin'
- *              default → show contact info, availability
- *              admin   → show verify/suspend actions, license number
- *
- * Provider object shape (from backend):
- *   _id, userId, organizationName, serviceType, licenseNumber,
- *   isVerified, isAvailable, operatingHours: { open, close },
- *   servicesOffered[], contactNumber, address,
- *   location: GeoJSON
- */
 export default function ProviderCard({
   provider,
   onVerify,
@@ -75,12 +84,11 @@ export default function ProviderCard({
     servicesOffered = [],
     contactNumber,
     address,
-    averageRating = 0,
-    totalRatings = 0,
+    averageRating    = 0,
+    totalRatings     = 0,
     credibilityScore = 50,
   } = provider;
 
-  const serviceMeta = getServiceMeta(serviceType);
   const isAdmin     = variant === 'admin';
   const isClickable = typeof onClick === 'function';
 
@@ -91,7 +99,7 @@ export default function ProviderCard({
 
   return (
     <div
-      className={`card card-hover${isClickable ? '' : ''}`}
+      className="card card-hover"
       onClick={isClickable ? () => onClick(provider) : undefined}
       style={{
         cursor: isClickable ? 'pointer' : 'default',
@@ -103,7 +111,7 @@ export default function ProviderCard({
     >
       <div className="card-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-        {/* ── Header: icon + name + badges ─────────────────────────────── */}
+        {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
 
           {/* Service type icon bubble */}
@@ -116,14 +124,13 @@ export default function ProviderCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '22px',
               flexShrink: 0,
             }}
           >
-            {serviceMeta.emoji}
+            <ServiceIcon serviceType={serviceType} size={22} />
           </div>
 
-          {/* Name + service type label */}
+          {/* Name + service type */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
@@ -139,41 +146,50 @@ export default function ProviderCard({
               {organizationName || 'Unnamed Organization'}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
-              {serviceMeta.label}
+              {getServiceLabel(serviceType)}
             </div>
           </div>
 
-          {/* Status badges — stacked top-right */}
+          {/* Status badges */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 }}>
-            <span className={`badge ${isVerified ? 'badge-green' : 'badge-orange'}`}>
-              {isVerified ? '✓ Verified' : 'Unverified'}
+            <span className={`badge ${isVerified ? 'badge-green' : 'badge-orange'}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              {isVerified && <CheckCircle2 size={10} />}
+              {isVerified ? 'Verified' : 'Unverified'}
             </span>
             <span className={`badge ${isAvailable ? 'badge-green' : 'badge-stone'}`}>
-              <span
-                className={`status-dot ${isAvailable ? 'dot-green pulse' : 'dot-stone'}`}
-              />
+              <span className={`status-dot ${isAvailable ? 'dot-green pulse' : 'dot-stone'}`} />
               {isAvailable ? 'Available' : 'Offline'}
             </span>
           </div>
         </div>
 
         {/* ── Info rows ─────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
           {contactNumber && (
-            <InfoRow icon="📞" text={formatPhone(contactNumber)} />
+            <InfoRow icon={<Phone size={13} />} text={formatPhone(contactNumber)} />
           )}
           {address && (
-            <InfoRow icon="📍" text={address} muted />
+            <InfoRow icon={<MapPin size={13} />} text={address} muted />
           )}
           {(totalRatings > 0 || isAdmin) && (
-            <InfoRow icon="⭐" text={`${Number(averageRating || 0).toFixed(1)} / 5 (${totalRatings} ratings)`} muted />
+            <InfoRow
+              icon={<Star size={13} />}
+              text={`${Number(averageRating || 0).toFixed(1)} / 5 (${totalRatings} ratings)`}
+              muted
+            />
           )}
-          <InfoRow icon="🛡️" text={`Credibility: ${credibilityScore}/100`} muted />
+          <InfoRow
+            icon={<ShieldCheck size={13} />}
+            text={`Credibility: ${credibilityScore}/100`}
+            muted
+          />
           {operatingText && (
-            <InfoRow icon="🕐" text={`Open: ${operatingText}`} muted />
+            <InfoRow icon={<Clock size={13} />} text={`Open: ${operatingText}`} muted />
           )}
           {isAdmin && licenseNumber && (
-            <InfoRow icon="🪪" text={`License: ${licenseNumber}`} muted />
+            <InfoRow icon={<CreditCard size={13} />} text={`License: ${licenseNumber}`} muted />
           )}
         </div>
 
@@ -215,25 +231,18 @@ export default function ProviderCard({
 
         {/* ── Admin actions ─────────────────────────────────────────────── */}
         {isAdmin && (typeof onVerify === 'function' || typeof onSuspend === 'function') && (
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            marginTop: 'auto',
-            paddingTop: '4px',
-          }}
-        >
+          <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '4px' }}>
             {!isVerified && typeof onVerify === 'function' && (
               <button
                 className="btn btn-secondary btn-sm"
-                style={{ flex: 1 }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
                 disabled={loading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onVerify(_id);
-                }}
+                onClick={(e) => { e.stopPropagation(); onVerify(_id); }}
               >
-                {loading ? <span className="spinner spinner-green" /> : '✓ Verify'}
+                {loading
+                  ? <span className="spinner spinner-green" />
+                  : <><CheckCircle2 size={13} /> Verify</>
+                }
               </button>
             )}
             {typeof onSuspend === 'function' && (
@@ -241,10 +250,7 @@ export default function ProviderCard({
                 className="btn btn-ghost btn-sm"
                 style={{ flex: 1, color: 'var(--danger)', borderColor: 'var(--danger)' }}
                 disabled={loading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSuspend(_id);
-                }}
+                onClick={(e) => { e.stopPropagation(); onSuspend(_id); }}
               >
                 {loading ? <span className="spinner" /> : 'Suspend'}
               </button>

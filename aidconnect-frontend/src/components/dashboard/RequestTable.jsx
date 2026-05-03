@@ -1,10 +1,27 @@
 // src/components/dashboard/RequestTable.jsx
-import React, { useState } from 'react';
+import React from 'react';
+import {
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  ClipboardList,
+  AlertTriangle,
+  Droplets,
+  Car,
+  CloudRain,
+  HeartPulse,
+  HelpCircle,
+} from 'lucide-react';
 import Badge from '../common/Badge.jsx';
 import {
   formatTimeAgo,
   formatEmergencyType,
-  getEmergencyEmoji,
+  formatStatus,
+  formatUrgency,
+  getUrgencyClass,
+  getStatusClass,
 } from '../../utils/formatters.js';
 import {
   EMERGENCY_TYPES,
@@ -12,14 +29,25 @@ import {
   REQUEST_STATUSES,
 } from '../../utils/constants.js';
 
+// Maps emergency type values to a Lucide icon component
+function EmergencyIcon({ type, size = 15 }) {
+  const props = { size, strokeWidth: 1.8, style: { flexShrink: 0 } };
+  switch (type) {
+    case 'medical':  return <HeartPulse  {...props} style={{ ...props.style, color: '#e74c3c' }} />;
+    case 'blood':    return <Droplets    {...props} style={{ ...props.style, color: '#e74c3c' }} />;
+    case 'accident': return <Car         {...props} style={{ ...props.style, color: '#d68910' }} />;
+    case 'disaster': return <CloudRain   {...props} style={{ ...props.style, color: '#1a6b9a' }} />;
+    default:         return <HelpCircle  {...props} style={{ ...props.style, color: '#6b7a64' }} />;
+  }
+}
+
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 function FilterBar({ filters, onChange, onReset, showSearch = true }) {
   return (
     <div className="filter-bar">
-
       {showSearch && (
         <div className="search-input-wrap">
-          <span className="search-icon">🔍</span>
+          <Search size={14} className="search-icon" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="form-input search-input"
@@ -38,9 +66,7 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
       >
         <option value="">All Types</option>
         {EMERGENCY_TYPES.map((t) => (
-          <option key={t.value} value={t.value}>
-            {t.emoji} {t.label}
-          </option>
+          <option key={t.value} value={t.value}>{t.label}</option>
         ))}
       </select>
 
@@ -52,9 +78,7 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
       >
         <option value="">All Urgency</option>
         {URGENCY_LEVELS.map((u) => (
-          <option key={u.value} value={u.value}>
-            {u.label}
-          </option>
+          <option key={u.value} value={u.value}>{u.label}</option>
         ))}
       </select>
 
@@ -66,15 +90,17 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
       >
         <option value="">All Status</option>
         {REQUEST_STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
+          <option key={s.value} value={s.value}>{s.label}</option>
         ))}
       </select>
 
       {(filters.search || filters.emergencyType || filters.urgencyLevel || filters.status) && (
-        <button className="btn btn-ghost btn-sm" onClick={onReset}>
-          ✕ Clear
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={onReset}
+          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+        >
+          <X size={13} /> Clear
         </button>
       )}
     </div>
@@ -90,33 +116,63 @@ function PaginationBar({ pagination, onPageChange }) {
   const to   = Math.min(page * limit, total);
 
   const pages = new Set(
-    [1, totalPages, page, page - 1, page + 1].filter(
-      (p) => p >= 1 && p <= totalPages
-    )
+    [1, totalPages, page, page - 1, page + 1].filter((p) => p >= 1 && p <= totalPages)
   );
   const pageArr = [...pages].sort((a, b) => a - b);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '16px' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginTop: '16px',
+      }}
+    >
       <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
         Showing {from}–{to} of {total} requests
       </span>
       <div className="pagination">
-        <button className="page-btn" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page">‹</button>
+        <button
+          className="page-btn"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          aria-label="Previous page"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <ChevronLeft size={14} />
+        </button>
+
         {pageArr.map((p, i) => {
           const prev = pageArr[i - 1];
           return (
             <React.Fragment key={p}>
               {prev && p - prev > 1 && (
-                <span style={{ width: '36px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>…</span>
+                <span style={{ width: '36px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
+                  …
+                </span>
               )}
-              <button className={`page-btn${p === page ? ' active' : ''}`} onClick={() => onPageChange(p)}>
+              <button
+                className={`page-btn${p === page ? ' active' : ''}`}
+                onClick={() => onPageChange(p)}
+              >
                 {p}
               </button>
             </React.Fragment>
           );
         })}
-        <button className="page-btn" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page">›</button>
+
+        <button
+          className="page-btn"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          aria-label="Next page"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <ChevronRight size={14} />
+        </button>
       </div>
     </div>
   );
@@ -126,7 +182,12 @@ function PaginationBar({ pagination, onPageChange }) {
 function EmptyState({ filtered }) {
   return (
     <div className="empty-state" style={{ padding: '48px 24px' }}>
-      <div className="empty-state-icon">{filtered ? '🔍' : '📋'}</div>
+      <div className="empty-state-icon">
+        {filtered
+          ? <Search size={36} strokeWidth={1.5} />
+          : <ClipboardList size={36} strokeWidth={1.5} />
+        }
+      </div>
       <h3>{filtered ? 'No matching requests' : 'No requests yet'}</h3>
       <p>
         {filtered
@@ -154,16 +215,11 @@ export default function RequestTable({
   showFilters   = true,
   showSearch    = true,
 }) {
-  const isFiltered = !!(
-    filters.search || filters.emergencyType ||
-    filters.urgencyLevel || filters.status
-  );
-
+  const isFiltered  = !!(filters.search || filters.emergencyType || filters.urgencyLevel || filters.status);
   const isAdmin     = variant === 'admin';
   const isUser      = variant === 'user';
   const isVolunteer = variant === 'volunteer';
 
-  // ── Skeleton rows ──────────────────────────────────────────────────────────
   const skeletonRows = Array.from({ length: 5 }).map((_, i) => (
     <tr key={`sk-${i}`}>
       <td><div className="skeleton" style={{ height: '13px', width: '80%' }} /></td>
@@ -172,7 +228,9 @@ export default function RequestTable({
       <td><div className="skeleton" style={{ height: '20px', width: '80px', borderRadius: 'var(--radius-full)' }} /></td>
       <td><div className="skeleton" style={{ height: '13px', width: '60%' }} /></td>
       <td><div className="skeleton" style={{ height: '13px', width: '50%' }} /></td>
-      <td><div className="skeleton" style={{ height: '28px', width: '80px', borderRadius: 'var(--radius-sm)' }} /></td>
+      {(isAdmin || isUser || isVolunteer) && (
+        <td><div className="skeleton" style={{ height: '28px', width: '80px', borderRadius: 'var(--radius-sm)' }} /></td>
+      )}
     </tr>
   ));
 
@@ -215,13 +273,6 @@ export default function RequestTable({
               requests.map((r) => {
                 const isActive = ['posted', 'accepted', 'in_progress'].includes(r.status);
 
-                // FIX: show city as fallback when address is missing.
-                // r.city is the top-level field always present on HelpRequest.
-                // Previously showed '—' whenever address was null, even though
-                // city was always available.
-                const locationText =
-                  [r.city, r.address].filter(Boolean).join(' · ') || '—';
-
                 return (
                   <tr
                     key={r._id}
@@ -231,20 +282,26 @@ export default function RequestTable({
                     {/* Description */}
                     <td style={{ maxWidth: '220px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '16px', flexShrink: 0 }}>
-                          {getEmergencyEmoji(r.emergencyType)}
-                        </span>
-                        <span style={{
-                          overflow: 'hidden', textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap', fontSize: '13px',
-                          fontWeight: 500, color: 'var(--text-dark)',
-                        }}>
+                        <EmergencyIcon type={r.emergencyType} />
+                        <span
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            color: 'var(--text-dark)',
+                          }}
+                        >
                           {r.description}
                         </span>
                       </div>
                       {r.isDisasterMode && (
-                        <span className="badge badge-red" style={{ fontSize: '9px', marginTop: '4px' }}>
-                          ⚠️ DISASTER
+                        <span
+                          className="badge badge-red"
+                          style={{ fontSize: '9px', marginTop: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                        >
+                          <AlertTriangle size={9} /> DISASTER
                         </span>
                       )}
                     </td>
@@ -268,15 +325,20 @@ export default function RequestTable({
                       />
                     </td>
 
-                    {/* Location — FIX: city · address fallback chain */}
+                    {/* Location */}
                     <td>
-                      <span style={{
-                        fontSize: '12px', color: 'var(--text-muted)',
-                        maxWidth: '150px', display: 'block',
-                        overflow: 'hidden', textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {locationText}
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          color: 'var(--text-muted)',
+                          maxWidth: '150px',
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {r.address || '—'}
                       </span>
                     </td>
 
@@ -302,8 +364,7 @@ export default function RequestTable({
                         )}
 
                         {typeof onCancel === 'function' &&
-                          ((isUser && r.status === 'posted') ||
-                           (isAdmin && isActive)) && (
+                          ((isUser && r.status === 'posted') || (isAdmin && isActive)) && (
                           <button
                             className="btn btn-ghost btn-sm"
                             style={{ color: 'var(--warning)', borderColor: 'var(--warning)' }}
@@ -319,8 +380,13 @@ export default function RequestTable({
                             className="btn btn-danger btn-sm"
                             disabled={actionLoading}
                             onClick={() => onDelete(r._id)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}
+                            title="Delete request"
                           >
-                            {actionLoading ? <span className="spinner" /> : '🗑'}
+                            {actionLoading
+                              ? <span className="spinner" />
+                              : <Trash2 size={13} />
+                            }
                           </button>
                         )}
                       </div>

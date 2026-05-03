@@ -1,5 +1,12 @@
 // src/pages/admin/ManageRequests.jsx
 import React, { useEffect, useState, useCallback } from 'react';
+import {
+  ClipboardList,
+  Siren,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import Navbar from '../../components/common/Navbar.jsx';
 import RequestTable from '../../components/dashboard/RequestTable.jsx';
 import StatsCard from '../../components/dashboard/StatsCard.jsx';
@@ -20,7 +27,6 @@ export default function ManageRequests() {
     changeRequestStatus,
   } = useRequests();
 
-  // FIX: Modal state instead of window.confirm
   const [cancelTarget, setCancelTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [error,        setError]        = useState('');
@@ -31,12 +37,10 @@ export default function ManageRequests() {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  // ── Initial fetch ──────────────────────────────────────────────────────────
   useEffect(() => {
     fetchAllRequests({ ...filters });
   }, [fetchAllRequests]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
   const handlePageChange = useCallback((newPage) => {
     fetchAllRequests({ ...filters, page: newPage });
   }, [fetchAllRequests, filters]);
@@ -78,96 +82,64 @@ export default function ManageRequests() {
     }
   }, [deleteTarget, removeRequest]);
 
-  // FIX: derive success rate from real data instead of hardcoded 78
-  const activeCount    = requests.filter((r) =>
-    ['posted', 'accepted', 'in_progress'].includes(r.status)
-  ).length;
+  const activeCount    = requests.filter((r) => ['posted', 'accepted', 'in_progress'].includes(r.status)).length;
   const completedCount = requests.filter((r) => r.status === 'completed').length;
   const totalCount     = pagination.total || 0;
-  const successRate    = totalCount > 0
-    ? Math.round((completedCount / totalCount) * 100)
-    : 0;
+  const successRate    = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <Navbar title="Manage Requests">
       <div className="page-wrapper">
 
-        {/* ── Page header ───────────────────────────────────────────────── */}
+        {/* ── Page header ───────────────────────────────────────────── */}
         <div className="page-header">
           <h1>Manage Requests</h1>
           <p>Monitor, moderate, and manage all emergency requests on the platform.</p>
         </div>
 
-        {/* ── Alerts ────────────────────────────────────────────────────── */}
+        {/* ── Alerts ────────────────────────────────────────────────── */}
         {error && (
-          <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">⚠️</span>
-            {error}
+          <div
+            className="alert alert-error anim-fade-up"
+            style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <AlertTriangle size={16} />
+            <span style={{ flex: 1 }}>{error}</span>
             <button
               onClick={() => setError('')}
-              style={{
-                marginLeft: 'auto',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--danger)',
-                fontWeight: 700,
-              }}
-            >✕</button>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex' }}
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
         {successMsg && (
-          <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">✅</span>
+          <div
+            className="alert alert-success anim-fade-up"
+            style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <CheckCircle2 size={16} />
             {successMsg}
           </div>
         )}
 
-        {/* ── Stats row ─────────────────────────────────────────────────── */}
+        {/* ── Stats row ─────────────────────────────────────────────── */}
         <div className="grid-3" style={{ marginBottom: '28px' }}>
-          <StatsCard
-            label="Total Requests"
-            value={totalCount}
-            icon="📋"
-            color="blue"
-            loading={loading}
-            delay={0}
-          />
-          <StatsCard
-            label="Active Emergencies"
-            value={activeCount}
-            icon="🚨"
-            color="red"
-            loading={loading}
-            delay={100}
-          />
-          {/* FIX: derived from real data, not hardcoded */}
-          <StatsCard
-            label="Success Rate"
-            value={successRate}
-            icon="✅"
-            color="green"
-            format="percent"
-            loading={loading}
-            delay={200}
-          />
+          <StatsCard label="Total Requests"    value={totalCount}   icon={<ClipboardList size={20} />} color="blue"  loading={loading} delay={0} />
+          <StatsCard label="Active Emergencies" value={activeCount} icon={<Siren size={20} />}         color="red"   loading={loading} delay={100} />
+          <StatsCard label="Success Rate"       value={successRate} icon={<CheckCircle2 size={20} />}  color="green" format="percent" loading={loading} delay={200} />
         </div>
 
-        {/* ── Moderation table ──────────────────────────────────────────── */}
+        {/* ── Moderation table ──────────────────────────────────────── */}
         <div className="card anim-fade-up delay-200">
           <div className="card-header">
-            {/* FIX: section-title on div, section-subtitle wrapped properly */}
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>
                 <div className="section-title">Moderation Queue</div>
-                <div className="section-subtitle">
-                  Monitor and moderate incoming emergency requests
-                </div>
+                <div className="section-subtitle">Monitor and moderate incoming emergency requests</div>
               </div>
             </div>
           </div>
-
-          {/* FIX: removed padding:0 override */}
           <div className="card-body">
             <RequestTable
               requests={requests}
@@ -188,12 +160,12 @@ export default function ManageRequests() {
 
       </div>
 
-      {/* ── Cancel confirmation modal ──────────────────────────────────── */}
+      {/* ── Modals ────────────────────────────────────────────────── */}
       <Modal
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         title="Cancel Request"
-        icon="⚠️"
+        icon={<AlertTriangle size={18} />}
         onConfirm={handleCancelConfirm}
         confirmLabel="Yes, Cancel"
         confirmVariant="danger"
@@ -203,12 +175,11 @@ export default function ManageRequests() {
         volunteer will be notified. This cannot be undone.
       </Modal>
 
-      {/* ── Delete confirmation modal ──────────────────────────────────── */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         title="Delete Request"
-        icon="🗑"
+        icon={<AlertTriangle size={18} />}
         onConfirm={handleDeleteConfirm}
         confirmLabel="Delete Permanently"
         confirmVariant="danger"
