@@ -69,7 +69,6 @@ const corsOptions = {
 };
 
 // ← THIS LINE FIXES PREFLIGHT REQUESTS
-app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
