@@ -2,6 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { validateLogin, hasErrors } from '../../utils/validators.js';
+import { AlertTriangle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 // ─── LoginForm ────────────────────────────────────────────────────────────────
 /**
@@ -66,9 +67,9 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
 
       {/* API / auth error */}
       {apiError && (
-        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">⚠️</span>
-          {apiError}
+        <div className="alert alert-error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} color="var(--danger)" />
+          <span>{apiError}</span>
         </div>
       )}
 
@@ -77,18 +78,21 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
         <label className="form-label" htmlFor="login-email">
           Email address
         </label>
-        <input
-          id="login-email"
-          name="email"
-          type="email"
-          className={`form-input ${errors.email ? 'error' : ''}`}
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={handleChange}
-          autoComplete="email"
-          disabled={loading}
-          required
-        />
+        <div className="input-icon-wrap">
+          <span className="input-icon"><Mail size={18} /></span>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            className={`form-input ${errors.email ? 'error' : ''}`}
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={handleChange}
+            autoComplete="email"
+            disabled={loading}
+            required
+          />
+        </div>
         {errors.email && (
           <div className="form-error">{errors.email}</div>
         )}
@@ -99,7 +103,8 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
         <label className="form-label" htmlFor="login-password">
           Password
         </label>
-        <div style={{ position: 'relative' }}>
+        <div className="input-icon-wrap" style={{ position: 'relative' }}>
+          <span className="input-icon"><Lock size={18} /></span>
           <input
             id="login-password"
             name="password"
@@ -127,11 +132,16 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
               border: 'none',
               cursor: loading ? 'not-allowed' : 'pointer',
               color: 'var(--text-muted)',
-              fontSize: '16px',
-              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px',
+              borderRadius: '4px',
+              transition: 'background 0.2s',
             }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
-            {showPass ? '🙈' : '👁️'}
+            {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
         {errors.password && (

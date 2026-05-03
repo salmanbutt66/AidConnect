@@ -150,7 +150,12 @@ const css = `
 .acl-link{color:#1a6b3c;font-weight:700;text-decoration:none;transition:color .15s}
 .acl-link:hover{color:#2aad60}
 .acl-fg{margin-bottom:20px}
-@media(max-width:860px){.acl-grid{grid-template-columns:1fr!important}.acl-panel{display:none!important}}
+.acl-right{display:flex;align-items:center;justify-content:center;padding:40px 48px;background:#f5f2ed;position:relative}
+@media(max-width:860px){
+  .acl-grid{grid-template-columns:1fr!important}
+  .acl-panel{display:none!important}
+  .acl-right{padding:40px 20px!important}
+}
 `;
 
 export default function Login() {
@@ -286,10 +291,7 @@ export default function Login() {
         </div>
 
         {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
-        <div style={{
-          display:'flex', alignItems:'center', justifyContent:'center',
-          padding:'40px 48px', background:'#f5f2ed', position:'relative',
-        }}>
+        <div className="acl-right">
           {/* Top green accent line */}
           <div style={{
             position:'absolute', top:0, left:0, right:0, height:'3px',

@@ -6,34 +6,38 @@ import useNotifications from '../../hooks/useNotifications.js';
 import { getMyMatches } from '../../api/match.api.js';
 import { getInitials, formatTimeAgo, formatRole } from '../../utils/formatters.js';
 import { APP_NAME } from '../../utils/constants.js';
+import {
+  Home, LifeBuoy, ClipboardList, User, Inbox, AlertTriangle, History, 
+  RefreshCw, Hospital, Users, Handshake, BarChart2, Bell, LogOut, Menu, X as XIcon
+} from 'lucide-react';
 
 // ─── Navigation config per role ───────────────────────────────────────────────
 const NAV_LINKS = {
   user: [
-    { to: '/user/dashboard',      icon: '🏠', label: 'Dashboard'     },
-    { to: '/user/create-request', icon: '🆘', label: 'New Request'   },
-    { to: '/user/my-requests',    icon: '📋', label: 'My Requests'   },
-    { to: '/user/profile',        icon: '👤', label: 'Profile'       },
+    { to: '/user/dashboard',      icon: <Home size={18} />,          label: 'Dashboard'     },
+    { to: '/user/create-request', icon: <LifeBuoy size={18} />,      label: 'New Request'   },
+    { to: '/user/my-requests',    icon: <ClipboardList size={18} />, label: 'My Requests'   },
+    { to: '/user/profile',        icon: <User size={18} />,          label: 'Profile'       },
   ],
   volunteer: [
-    { to: '/volunteer/dashboard',       icon: '🏠', label: 'Dashboard'      },
-    { to: '/volunteer/matches',         icon: '📬', label: 'Incoming Matches' },
-    { to: '/volunteer/active-request',  icon: '🚨', label: 'Active Request' },
-    { to: '/volunteer/history',         icon: '📋', label: 'My History'     },
-    { to: '/volunteer/profile',         icon: '👤', label: 'Profile'        },
+    { to: '/volunteer/dashboard',       icon: <Home size={18} />,          label: 'Dashboard'      },
+    { to: '/volunteer/matches',         icon: <Inbox size={18} />,         label: 'Incoming Matches' },
+    { to: '/volunteer/active-request',  icon: <AlertTriangle size={18} />, label: 'Active Request' },
+    { to: '/volunteer/history',         icon: <History size={18} />,       label: 'My History'     },
+    { to: '/volunteer/profile',         icon: <User size={18} />,          label: 'Profile'        },
   ],
   provider: [
-    { to: '/provider/dashboard',    icon: '🏠', label: 'Dashboard'    },
-    { to: '/provider/availability', icon: '🔄', label: 'Availability' },
-    { to: '/provider/profile',      icon: '🏥', label: 'Profile'      },
+    { to: '/provider/dashboard',    icon: <Home size={18} />,          label: 'Dashboard'    },
+    { to: '/provider/availability', icon: <RefreshCw size={18} />,     label: 'Availability' },
+    { to: '/provider/profile',      icon: <Hospital size={18} />,      label: 'Profile'      },
   ],
   admin: [
-    { to: '/admin/dashboard',   icon: '🏠', label: 'Dashboard'   },
-    { to: '/admin/users',       icon: '👥', label: 'Users'        },
-    { to: '/admin/requests',    icon: '🆘', label: 'Requests'     },
-    { to: '/admin/volunteers',  icon: '🤝', label: 'Volunteers'   },
-    { to: '/admin/providers',   icon: '🏥', label: 'Providers'    },
-    { to: '/admin/analytics',   icon: '📊', label: 'Analytics'    },
+    { to: '/admin/dashboard',   icon: <Home size={18} />,          label: 'Dashboard'   },
+    { to: '/admin/users',       icon: <Users size={18} />,         label: 'Users'        },
+    { to: '/admin/requests',    icon: <LifeBuoy size={18} />,      label: 'Requests'     },
+    { to: '/admin/volunteers',  icon: <Handshake size={18} />,     label: 'Volunteers'   },
+    { to: '/admin/providers',   icon: <Hospital size={18} />,      label: 'Providers'    },
+    { to: '/admin/analytics',   icon: <BarChart2 size={18} />,     label: 'Analytics'    },
   ],
 };
 
@@ -63,9 +67,10 @@ function NotifItem({ notif, onRead }) {
           justifyContent: 'center',
           fontSize: '15px',
           flexShrink: 0,
+          color: notif.isRead ? 'var(--text-muted)' : 'var(--green-700)',
         }}
       >
-        {notif.isRead ? '🔔' : '🔔'}
+        <Bell size={16} />
       </div>
       <div className="notif-item-content" style={{ flex: 1, minWidth: 0 }}>
         <h5 style={{
@@ -209,7 +214,9 @@ export default function Navbar({ title, children }) {
 
         {/* Logo */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">🆘</div>
+          <div className="sidebar-logo-icon">
+            <LifeBuoy size={20} color="white" strokeWidth={2.5} />
+          </div>
           <div>
             <div className="sidebar-logo-text">{APP_NAME}</div>
             <div className="sidebar-logo-sub">Emergency Network</div>
@@ -318,7 +325,7 @@ export default function Navbar({ title, children }) {
               >
                 {loggingOut
                   ? <><span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> Signing out…</>
-                  : <>🚪 Sign Out</>
+                  : <><LogOut size={14} /> Sign Out</>
                 }
               </button>
             </div>
@@ -351,7 +358,7 @@ export default function Navbar({ title, children }) {
               className="mobile-menu-btn"
               aria-label="Toggle sidebar"
             >
-              {sidebarOpen ? '✕' : '☰'}
+              {sidebarOpen ? <XIcon size={18} /> : <Menu size={18} />}
             </button>
             {title && <h1 className="topbar-title">{title}</h1>}
           </div>
@@ -366,7 +373,7 @@ export default function Navbar({ title, children }) {
                 onClick={() => setNotifOpen((p) => !p)}
                 aria-label={`Notifications${hasUnread ? ` (${unreadCount} unread)` : ''}`}
               >
-                🔔
+                <Bell size={18} />
                 {hasUnread && (
                   <span className="notif-count">
                     {unreadCount > 99 ? '99+' : unreadCount}
@@ -424,7 +431,9 @@ export default function Navbar({ title, children }) {
                           color: 'var(--text-muted)',
                         }}
                       >
-                        <div style={{ fontSize: '32px', marginBottom: '10px' }}>🔕</div>
+                        <div style={{ fontSize: '32px', marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
+                          <Bell size={32} color="var(--stone-300)" strokeWidth={1.5} />
+                        </div>
                         <p style={{ fontSize: '13px', margin: 0 }}>No notifications yet</p>
                       </div>
                     ) : (

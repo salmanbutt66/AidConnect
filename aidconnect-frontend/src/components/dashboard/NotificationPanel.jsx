@@ -3,17 +3,22 @@ import React, { useEffect } from 'react';
 import useNotifications from '../../hooks/useNotifications.js';
 import { formatTimeAgo } from '../../utils/formatters.js';
 import { NOTIFICATION_TYPES } from '../../utils/constants.js';
+import { Bell, BellOff, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
 
 // ─── Notification type meta lookup ───────────────────────────────────────────
-function getNotifMeta(type) {
-  return (
-    NOTIFICATION_TYPES[type] || { label: 'Notification', emoji: '🔔' }
-  );
+function getNotifIcon(type) {
+  const props = { size: 18, strokeWidth: 2.5 };
+  switch (type) {
+    case 'alert':
+    case 'warning': return <AlertCircle {...props} color="var(--danger)" />;
+    case 'success': return <CheckCircle {...props} color="var(--green-600)" />;
+    case 'info':    return <Info {...props} color="var(--primary)" />;
+    default:        return <Bell {...props} color="var(--text-dark)" />;
+  }
 }
 
 // ─── Single notification row ──────────────────────────────────────────────────
 function NotifRow({ notif, onRead, onRemove }) {
-  const meta = getNotifMeta(notif.type);
 
   return (
     <div
@@ -45,7 +50,7 @@ function NotifRow({ notif, onRead, onRemove }) {
           flexShrink: 0,
         }}
       >
-        {meta.emoji}
+        {getNotifIcon(notif.type)}
       </div>
 
       {/* Content */}
@@ -117,7 +122,7 @@ function NotifRow({ notif, onRead, onRemove }) {
           aria-label="Delete notification"
           title="Delete"
         >
-          ✕
+          <X size={13} />
         </button>
       </div>
     </div>
@@ -128,7 +133,9 @@ function NotifRow({ notif, onRead, onRemove }) {
 function EmptyNotifications() {
   return (
     <div className="empty-state" style={{ padding: '40px 16px' }}>
-      <div className="empty-state-icon">🔕</div>
+      <div className="empty-state-icon" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+        <BellOff size={36} color="var(--stone-300)" strokeWidth={1.5} />
+      </div>
       <h3>All caught up</h3>
       <p>No notifications yet. We'll let you know when something needs your attention.</p>
     </div>
@@ -165,7 +172,7 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
           {/* Title row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              🔔 Notifications
+              <Bell size={18} /> Notifications
               {hasUnread && (
                 <span className="badge badge-green" style={{ fontSize: '10px' }}>
                   {unreadCount} new

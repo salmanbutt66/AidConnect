@@ -274,6 +274,32 @@ export default function Landing() {
         </button>
       </nav>
 
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div style={{
+          position: 'fixed', top: '64px', left: 0, right: 0,
+          background: 'rgba(7,31,18,0.98)', backdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(255,255,255,0.09)',
+          zIndex: 199, padding: '20px',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          animation: 'fadeSlideDown 0.3s var(--ease)',
+        }}>
+          <Link to="/how-it-works" onClick={() => setMobileMenuOpen(false)} style={{ color: 'white', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>How It Works</Link>
+          <Link to="/about" onClick={() => setMobileMenuOpen(false)} style={{ color: 'white', textDecoration: 'none', fontSize: '15px', fontWeight: 500 }}>About</Link>
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+          <Link to="/login" onClick={() => setMobileMenuOpen(false)} style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: '15px', fontWeight: 600 }}>Sign In</Link>
+          <Link to="/register" onClick={() => setMobileMenuOpen(false)} style={{
+            color: 'white', textDecoration: 'none', fontSize: '15px', fontWeight: 700,
+            background: 'linear-gradient(135deg, var(--green-700), var(--green-600))',
+            padding: '12px', borderRadius: '8px', textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+          }}>
+            Get Started <ChevronRight size={16} />
+          </Link>
+        </div>
+      )}
+
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section style={{
         minHeight: '100vh',

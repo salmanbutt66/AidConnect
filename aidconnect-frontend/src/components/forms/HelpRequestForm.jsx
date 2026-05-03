@@ -8,6 +8,23 @@ import {
 } from '../../utils/constants.js';
 import { validateHelpRequest, hasErrors } from '../../utils/validators.js';
 import { sanitizeString } from '../../utils/validators.js';
+import { Activity, Droplet, Car, CloudLightning, Heart, Users, AlertTriangle, MapPin, CheckCircle, Info } from 'lucide-react';
+
+const getEmergencyIcon = (type, isSelected, disabled) => {
+  const props = {
+    size: 24,
+    color: isSelected ? 'var(--green-800)' : (disabled ? 'var(--stone-400)' : 'var(--text-dark)'),
+    strokeWidth: 1.8,
+  };
+  switch (type) {
+    case 'medical': return <Activity {...props} />;
+    case 'blood': return <Droplet {...props} />;
+    case 'accident': return <Car {...props} />;
+    case 'disaster': return <CloudLightning {...props} />;
+    case 'other': return <Heart {...props} />;
+    default: return <Users {...props} />;
+  }
+};
 
 // ─── Emergency type selector card ─────────────────────────────────────────────
 function EmergencyTypeSelector({ value, onChange, disabled }) {
@@ -34,7 +51,9 @@ function EmergencyTypeSelector({ value, onChange, disabled }) {
                 opacity: disabled ? 0.6 : 1,
               }}
             >
-              <div style={{ fontSize: '22px', marginBottom: '4px' }}>{type.emoji}</div>
+              <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+                {getEmergencyIcon(type.value, isSelected, disabled)}
+              </div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: isSelected ? 'var(--green-800)' : 'var(--text-dark)' }}>
                 {type.label}
               </div>
@@ -149,18 +168,18 @@ function LocationSection({ form, errors, onChange, disabled }) {
       </button>
 
       {geoSuccess && form.latitude && form.longitude && (
-        <div className="alert alert-success" style={{ marginBottom: '10px', padding: '8px 12px' }}>
-          <span className="alert-icon">✅</span>
-          <span style={{ fontSize: '12px' }}>
+        <div className="alert alert-success" style={{ marginBottom: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: 'var(--radius-sm)' }}>
+          <CheckCircle size={16} color="var(--green-700)" />
+          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--green-800)' }}>
             GPS coordinates captured ({form.latitude.toFixed(4)}, {form.longitude.toFixed(4)})
           </span>
         </div>
       )}
 
       {geoError && (
-        <div className="alert alert-warning" style={{ marginBottom: '10px', padding: '8px 12px' }}>
-          <span className="alert-icon">⚠️</span>
-          <span style={{ fontSize: '12px' }}>{geoError}</span>
+        <div className="alert alert-warning" style={{ marginBottom: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: 'var(--radius-sm)' }}>
+          <AlertTriangle size={16} color="var(--warning)" />
+          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--warning)' }}>{geoError}</span>
         </div>
       )}
 
@@ -343,9 +362,9 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false, d
     <form onSubmit={handleSubmit} noValidate>
 
       {apiError && (
-        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">⚠️</span>
-          {apiError}
+        <div className="alert alert-error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} color="var(--danger)" />
+          <span>{apiError}</span>
         </div>
       )}
 
@@ -447,9 +466,9 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false, d
       </div>
 
       {form.urgencyLevel === 'critical' && (
-        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">🚨</span>
-          <div>
+        <div className="alert alert-error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
+          <AlertTriangle size={20} color="var(--danger)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--danger)' }}>
             <strong>Critical emergency?</strong> Call <strong>1122</strong> (Rescue) or{' '}
             <strong>115</strong> (Edhi) immediately — do not rely solely on this platform.
           </div>

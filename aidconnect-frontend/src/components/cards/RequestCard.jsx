@@ -9,6 +9,19 @@ import {
   formatStatus,
   getStatusClass,
 } from '../../utils/formatters.js';
+import { Activity, Droplet, Car, CloudLightning, Heart, Users, MapPin, Clock, X, Star, Check, Trash2, AlertTriangle } from 'lucide-react';
+
+const getEmergencyIcon = (type) => {
+  const props = { size: 20, strokeWidth: 2.5 };
+  switch (type) {
+    case 'medical': return <Activity {...props} color="var(--primary)" />;
+    case 'blood': return <Droplet {...props} color="var(--danger)" />;
+    case 'accident': return <Car {...props} color="var(--warning)" />;
+    case 'disaster': return <CloudLightning {...props} color="var(--danger)" />;
+    case 'other': return <Heart {...props} color="var(--green-600)" />;
+    default: return <Users {...props} color="var(--text-light)" />;
+  }
+};
 
 // ─── Emergency type → request-card stripe class (defined in index.css) ────────
 function getCardTypeClass(emergencyType) {
@@ -118,13 +131,13 @@ export default function RequestCard({
       {/* ── Header: type label + badges ─────────────────────────────────── */}
       <div className="request-card-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '18px' }}>{getEmergencyEmoji(emergencyType)}</span>
+          <span style={{ display: 'flex', alignItems: 'center' }}>{getEmergencyIcon(emergencyType)}</span>
           <span className="request-card-type">
             {formatEmergencyType(emergencyType)}
           </span>
           {isDisasterMode && (
-            <span className="badge badge-red" style={{ fontSize: '9px' }}>
-              ⚠️ DISASTER
+            <span className="badge badge-red" style={{ fontSize: '9px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <AlertTriangle size={10} /> DISASTER
             </span>
           )}
         </div>
@@ -163,7 +176,7 @@ export default function RequestCard({
             marginBottom: '12px',
           }}
         >
-          🩸 Blood needed: {bloodGroupNeeded}
+          <Droplet size={14} /> Blood needed: {bloodGroupNeeded}
         </div>
       )}
 
@@ -173,8 +186,8 @@ export default function RequestCard({
         {/* Meta: location + time */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {address && (
-            <div className="request-card-meta">
-              <span>📍</span>
+            <div className="request-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={14} color="var(--text-light)" />
               <span
                 style={{
                   maxWidth: '200px',
@@ -187,8 +200,8 @@ export default function RequestCard({
               </span>
             </div>
           )}
-          <div className="request-card-meta">
-            <span>🕐</span>
+          <div className="request-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Clock size={14} color="var(--text-light)" />
             <span>{formatTimeAgo(postedAt)}</span>
           </div>
         </div>
@@ -200,7 +213,7 @@ export default function RequestCard({
           {variant === 'user' && status === 'posted' && typeof onCancel === 'function' && (
             <ActionBtn
               label="Cancel"
-              icon="✕"
+              icon={<X size={14} />}
               variant="ghost"
               loading={loading}
               onClick={() => onCancel(_id)}
@@ -211,7 +224,7 @@ export default function RequestCard({
           {variant === 'user' && status === 'completed' && typeof onRate === 'function' && (
             <ActionBtn
               label={request.assignedType === 'Provider' ? 'Rate Service' : 'Rate'}
-              icon="⭐"
+              icon={<Star size={14} />}
               variant="secondary"
               loading={loading}
               onClick={() => onRate(request)}
@@ -222,7 +235,7 @@ export default function RequestCard({
           {variant === 'volunteer' && status === 'posted' && typeof onAccept === 'function' && (
             <ActionBtn
               label="Accept"
-              icon="✓"
+              icon={<Check size={14} />}
               variant="primary"
               loading={loading}
               onClick={() => onAccept(_id)}
@@ -233,7 +246,7 @@ export default function RequestCard({
           {variant === 'admin' && isActive && typeof onCancel === 'function' && (
             <ActionBtn
               label="Cancel"
-              icon="✕"
+              icon={<X size={14} />}
               variant="ghost"
               loading={loading}
               onClick={() => onCancel(_id)}
@@ -244,7 +257,7 @@ export default function RequestCard({
           {variant === 'admin' && typeof onDelete === 'function' && (
             <ActionBtn
               label="Delete"
-              icon="🗑"
+              icon={<Trash2 size={14} />}
               variant="danger"
               loading={loading}
               onClick={() => onDelete(_id)}

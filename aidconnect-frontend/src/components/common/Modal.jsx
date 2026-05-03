@@ -1,5 +1,6 @@
 // src/components/common/Modal.jsx
 import React, { useEffect, useCallback } from 'react';
+import { X } from 'lucide-react';
 
 export default function Modal({
   isOpen,
@@ -78,7 +79,7 @@ export default function Modal({
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div className="modal-header">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {icon && <span style={{ fontSize: '18px' }}>{icon}</span>}
+            {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
             {title}
           </h3>
           <button
@@ -87,7 +88,7 @@ export default function Modal({
             disabled={loading}
             aria-label="Close modal"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 

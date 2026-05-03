@@ -261,7 +261,12 @@ const css = `
 .acr-divider::before,.acr-divider::after{content:'';flex:1;height:1px;background:#e8e3dc}
 .acr-link{color:#1a6b3c;font-weight:700;text-decoration:none;transition:color .15s}
 .acr-link:hover{color:#2aad60}
-@media(max-width:860px){.acr-grid{grid-template-columns:1fr!important}.acr-panel{display:none!important}}
+.acr-right{display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 48px;background:#f5f2ed;position:relative}
+@media(max-width:860px){
+  .acr-grid{grid-template-columns:1fr!important}
+  .acr-panel{display:none!important}
+  .acr-right{padding:40px 20px!important}
+}
 `;
 
 export default function Register() {
@@ -424,10 +429,7 @@ export default function Register() {
         </div>
 
         {/* ── RIGHT ────────────────────────────────────────────────────── */}
-        <div style={{
-          display:'flex', alignItems:'flex-start', justifyContent:'center',
-          overflowY:'auto', padding:'40px 48px', background:'#f5f2ed', position:'relative',
-        }}>
+        <div className="acr-right">
           {/* Top accent */}
           <div style={{
             position:'fixed', top:0, left:'40%', right:0, height:'3px',

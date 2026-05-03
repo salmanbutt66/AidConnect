@@ -37,7 +37,7 @@ import {
  *
  *   dot       {boolean}  — show a status dot before the label
  *   pulse     {boolean}  — dot pulses (only meaningful with dot=true)
- *   icon      {string}   — emoji/icon before the label e.g. "✓"
+ *   icon      {node}     — lucide-react component before the label e.g. <Check size={10} />
  *   children  {node}     — label content; if omitted, formatted value is used
  *   style     {object}   — extra inline styles
  *   className {string}   — extra CSS classes
@@ -118,7 +118,7 @@ export default function Badge({
         <span className={`status-dot ${dotClass}${pulse ? ' pulse' : ''}`} />
       )}
       {icon && (
-        <span style={{ fontSize: '10px' }}>{icon}</span>
+        <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>
       )}
       {label}
     </span>

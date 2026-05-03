@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BLOOD_GROUPS, PAKISTAN_CITIES } from '../../utils/constants.js';
 import { validateProfile, hasErrors } from '../../utils/validators.js';
+import { AlertTriangle, CheckCircle, User, Phone, Droplet, MapPin, Navigation } from 'lucide-react';
 
 // ─── Build form state from user object ───────────────────────────────────────
 // Extracted so both useEffect and the Discard button use the same mapping.
@@ -141,17 +142,17 @@ export default function ProfileForm({
 
       {/* API error */}
       {apiError && (
-        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">⚠️</span>
-          {apiError}
+        <div className="alert alert-error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} color="var(--danger)" />
+          <span>{apiError}</span>
         </div>
       )}
 
       {/* Success message */}
       {successMessage && (
-        <div className="alert alert-success" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">✅</span>
-          {successMessage}
+        <div className="alert alert-success" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle size={18} color="var(--green-700)" />
+          <span>{successMessage}</span>
         </div>
       )}
 
@@ -161,17 +162,20 @@ export default function ProfileForm({
           <label className="form-label" htmlFor="pf-name">
             Full Name <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
-          <input
-            id="pf-name"
-            name="name"
-            type="text"
-            className={`form-input ${errors.name ? 'error' : ''}`}
-            placeholder="Muhammad Ali"
-            value={form.name}
-            onChange={handleChange}
-            disabled={loading}
-            autoComplete="name"
-          />
+          <div className="input-icon-wrap">
+            <span className="input-icon"><User size={18} /></span>
+            <input
+              id="pf-name"
+              name="name"
+              type="text"
+              className={`form-input ${errors.name ? 'error' : ''}`}
+              placeholder="Muhammad Ali"
+              value={form.name}
+              onChange={handleChange}
+              disabled={loading}
+              autoComplete="name"
+            />
+          </div>
           {errors.name && <div className="form-error">{errors.name}</div>}
         </div>
 
@@ -182,17 +186,20 @@ export default function ProfileForm({
               (optional)
             </span>
           </label>
-          <input
-            id="pf-phone"
-            name="phone"
-            type="tel"
-            className={`form-input ${errors.phone ? 'error' : ''}`}
-            placeholder="03001234567"
-            value={form.phone}
-            onChange={handleChange}
-            disabled={loading}
-            autoComplete="tel"
-          />
+          <div className="input-icon-wrap">
+            <span className="input-icon"><Phone size={18} /></span>
+            <input
+              id="pf-phone"
+              name="phone"
+              type="tel"
+              className={`form-input ${errors.phone ? 'error' : ''}`}
+              placeholder="03001234567"
+              value={form.phone}
+              onChange={handleChange}
+              disabled={loading}
+              autoComplete="tel"
+            />
+          </div>
           {errors.phone && <div className="form-error">{errors.phone}</div>}
         </div>
       </div>
@@ -205,19 +212,23 @@ export default function ProfileForm({
             (optional)
           </span>
         </label>
-        <select
-          id="pf-bloodGroup"
-          name="bloodGroup"
-          className="form-select"
-          value={form.bloodGroup}
-          onChange={handleChange}
-          disabled={loading}
-        >
-          <option value="">Select blood group</option>
-          {BLOOD_GROUPS.map((bg) => (
-            <option key={bg} value={bg}>{bg}</option>
-          ))}
-        </select>
+        <div className="input-icon-wrap">
+          <span className="input-icon"><Droplet size={18} /></span>
+          <select
+            id="pf-bloodGroup"
+            name="bloodGroup"
+            className="form-select"
+            value={form.bloodGroup}
+            onChange={handleChange}
+            disabled={loading}
+            style={{ paddingLeft: '38px' }}
+          >
+            <option value="">Select blood group</option>
+            {BLOOD_GROUPS.map((bg) => (
+              <option key={bg} value={bg}>{bg}</option>
+            ))}
+          </select>
+        </div>
         <div className="form-hint">
           Helps us match you with blood donation requests
         </div>
@@ -227,33 +238,40 @@ export default function ProfileForm({
       <div className="form-row cols-2">
         <div className="form-group">
           <label className="form-label" htmlFor="pf-city">City</label>
-          <select
-            id="pf-city"
-            name="city"
-            className="form-select"
-            value={form.city}
-            onChange={handleChange}
-            disabled={loading}
-          >
-            <option value="">Select city</option>
-            {PAKISTAN_CITIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+          <div className="input-icon-wrap">
+            <span className="input-icon"><MapPin size={18} /></span>
+            <select
+              id="pf-city"
+              name="city"
+              className="form-select"
+              value={form.city}
+              onChange={handleChange}
+              disabled={loading}
+              style={{ paddingLeft: '38px' }}
+            >
+              <option value="">Select city</option>
+              {PAKISTAN_CITIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="form-group">
           <label className="form-label" htmlFor="pf-area">Area / Street</label>
-          <input
-            id="pf-area"
-            name="area"
-            type="text"
-            className="form-input"
-            placeholder="e.g. Gulshan-e-Iqbal"
-            value={form.area}
-            onChange={handleChange}
-            disabled={loading}
-          />
+          <div className="input-icon-wrap">
+            <span className="input-icon"><Navigation size={18} /></span>
+            <input
+              id="pf-area"
+              name="area"
+              type="text"
+              className="form-input"
+              placeholder="e.g. Gulshan-e-Iqbal"
+              value={form.area}
+              onChange={handleChange}
+              disabled={loading}
+            />
+          </div>
         </div>
       </div>
 

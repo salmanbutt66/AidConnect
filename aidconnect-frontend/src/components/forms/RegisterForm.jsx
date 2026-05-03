@@ -4,12 +4,13 @@ import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { BLOOD_GROUPS } from '../../utils/constants.js';
 import { validateRegister, hasErrors } from '../../utils/validators.js';
+import { User, HeartHandshake, Building2, AlertTriangle, CheckCircle, Circle, Mail, Lock, Phone, Droplet } from 'lucide-react';
 
 // ─── Role selector cards (same as Register.jsx) ───────────────────────────────
 const ROLES = [
-  { value: 'user',      emoji: '👤', label: 'Citizen',      desc: 'I need emergency help'   },
-  { value: 'volunteer', emoji: '🤝', label: 'Volunteer',    desc: 'I respond to crises'      },
-  { value: 'provider',  emoji: '🏥', label: 'Organization', desc: 'We provide aid services'  },
+  { value: 'user',      icon: <User size={24} />, label: 'Citizen',      desc: 'I need emergency help'   },
+  { value: 'volunteer', icon: <HeartHandshake size={24} />, label: 'Volunteer',    desc: 'I respond to crises'      },
+  { value: 'provider',  icon: <Building2 size={24} />, label: 'Organization', desc: 'We provide aid services'  },
 ];
 
 // ─── Password strength indicator (lifted from Register.jsx) ───────────────────
@@ -47,12 +48,12 @@ function PasswordStrength({ password }) {
           <span
             key={req.text}
             style={{
-              fontSize: '10px', fontWeight: 600,
+              fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px',
               color: req.ok ? 'var(--green-700)' : 'var(--text-light)',
               transition: 'color 0.2s',
             }}
           >
-            {req.ok ? '✓' : '○'} {req.text}
+            {req.ok ? <CheckCircle size={14} color="var(--green-700)" /> : <Circle size={14} color="var(--stone-300)" />} {req.text}
           </span>
         ))}
       </div>
@@ -63,23 +64,26 @@ function PasswordStrength({ password }) {
 // ─── Reusable field (same as Register.jsx) ────────────────────────────────────
 function Field({
   id, name, label, type = 'text', placeholder,
-  required, form, errors, onChange, disabled,
+  required, form, errors, onChange, disabled, icon,
 }) {
   return (
     <div className="form-group">
       <label className="form-label" htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        name={name}
-        type={type}
-        className={`form-input ${errors[name] ? 'error' : ''}`}
-        placeholder={placeholder}
-        value={form[name]}
-        onChange={onChange}
-        required={required}
-        disabled={disabled}
-        autoComplete={type === 'password' ? 'new-password' : undefined}
-      />
+      <div className={icon ? 'input-icon-wrap' : ''}>
+        {icon && <span className="input-icon">{icon}</span>}
+        <input
+          id={id}
+          name={name}
+          type={type}
+          className={`form-input ${errors[name] ? 'error' : ''}`}
+          placeholder={placeholder}
+          value={form[name]}
+          onChange={onChange}
+          required={required}
+          disabled={disabled}
+          autoComplete={type === 'password' ? 'new-password' : undefined}
+        />
+      </div>
       {errors[name] && (
         <div className="form-error">{errors[name]}</div>
       )}
@@ -194,9 +198,9 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
 
       {/* API / backend error */}
       {displayError && (
-        <div className="alert alert-error" style={{ marginBottom: '18px' }}>
-          <span className="alert-icon">⚠️</span>
-          {displayError}
+        <div className="alert alert-error" style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} color="var(--danger)" />
+          <span>{displayError}</span>
         </div>
       )}
 
@@ -228,7 +232,9 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
               opacity: loading ? 0.6 : 1,
             }}
           >
-            <div style={{ fontSize: '20px', marginBottom: '4px' }}>{r.emoji}</div>
+            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center', color: form.role === r.value ? 'var(--green-700)' : 'var(--text-light)' }}>
+              {r.icon}
+            </div>
             <div
               style={{
                 fontWeight: 700,
@@ -259,12 +265,14 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
           placeholder="Muhammad Ali" required
           form={form} errors={errors}
           onChange={handleChange} disabled={loading}
+          icon={<User size={18} />}
         />
         <Field
           id="rf-phone" name="phone" label="Phone (optional)"
           placeholder="03001234567"
           form={form} errors={errors}
           onChange={handleChange} disabled={loading}
+          icon={<Phone size={18} />}
         />
       </div>
 
@@ -274,6 +282,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
         type="email" placeholder="you@example.com" required
         form={form} errors={errors}
         onChange={handleChange} disabled={loading}
+        icon={<Mail size={18} />}
       />
 
       {/* ── Password with strength indicator ────────────────────────────── */}
@@ -281,18 +290,21 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
         <label className="form-label" htmlFor="rf-password">
           Password <span style={{ color: 'var(--danger)' }}>*</span>
         </label>
-        <input
-          id="rf-password"
-          name="password"
-          type="password"
-          className={`form-input ${errors.password ? 'error' : ''}`}
-          placeholder="Min 8 chars, uppercase + number"
-          value={form.password}
-          onChange={handleChange}
-          required
-          disabled={loading}
-          autoComplete="new-password"
-        />
+        <div className="input-icon-wrap">
+          <span className="input-icon"><Lock size={18} /></span>
+          <input
+            id="rf-password"
+            name="password"
+            type="password"
+            className={`form-input ${errors.password ? 'error' : ''}`}
+            placeholder="Min 8 chars, uppercase + number"
+            value={form.password}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            autoComplete="new-password"
+          />
+        </div>
         {errors.password
           ? <div className="form-error">{errors.password}</div>
           : <PasswordStrength password={form.password} />
@@ -306,6 +318,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
         placeholder="Repeat password" required
         form={form} errors={errors}
         onChange={handleChange} disabled={loading}
+        icon={<Lock size={18} />}
       />
 
       {/* ── Blood group (hidden for providers) ──────────────────────────── */}
@@ -317,19 +330,23 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
               (optional)
             </span>
           </label>
-          <select
-            id="rf-bloodGroup"
-            name="bloodGroup"
-            className="form-select"
-            value={form.bloodGroup}
-            onChange={handleChange}
-            disabled={loading}
-          >
+          <div className="input-icon-wrap">
+            <span className="input-icon"><Droplet size={18} /></span>
+            <select
+              id="rf-bloodGroup"
+              name="bloodGroup"
+              className="form-select"
+              value={form.bloodGroup}
+              onChange={handleChange}
+              disabled={loading}
+              style={{ paddingLeft: '38px' }}
+            >
             <option value="">Select blood group</option>
             {BLOOD_GROUPS.map((bg) => (
               <option key={bg} value={bg}>{bg}</option>
             ))}
-          </select>
+            </select>
+          </div>
         </div>
       )}
 

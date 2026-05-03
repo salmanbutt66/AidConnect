@@ -7,12 +7,16 @@ import useAuth from '../../hooks/useAuth.js';
 import { updateProfile, changePassword, deleteAccount } from '../../api/auth.api.js';
 import { validateChangePassword, hasErrors } from '../../utils/validators.js';
 import { getInitials, formatRole, formatDate } from '../../utils/formatters.js';
+import { 
+  User, Lock, AlertTriangle, Trash2, CheckCircle, 
+  Mail, Phone, Shield, Calendar, Lightbulb 
+} from 'lucide-react';
 
 function SectionTabs({ active, onChange }) {
   const tabs = [
-    { value: 'profile',  icon: '👤', label: 'Profile'  },
-    { value: 'password', icon: '🔒', label: 'Password' },
-    { value: 'danger',   icon: '⚠️', label: 'Account'  },
+    { value: 'profile',  icon: <User size={16} />, label: 'Profile'  },
+    { value: 'password', icon: <Lock size={16} />, label: 'Password' },
+    { value: 'danger',   icon: <AlertTriangle size={16} />, label: 'Account'  },
   ];
 
   return (
@@ -90,7 +94,7 @@ function ChangePasswordForm({ onSuccess }) {
     <form onSubmit={handleSubmit} noValidate>
       {apiError && (
         <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">⚠️</span>
+          <span className="alert-icon"><AlertTriangle size={16} /></span>
           {apiError}
         </div>
       )}
@@ -101,9 +105,9 @@ function ChangePasswordForm({ onSuccess }) {
         type="submit"
         className="btn btn-primary btn-lg"
         disabled={loading}
-        style={{ width: '100%' }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
       >
-        {loading ? <><span className="spinner" /> Updating…</> : '🔒 Update Password'}
+        {loading ? <><span className="spinner" /> Updating…</> : <><Lock size={18} /> Update Password</>}
       </button>
     </form>
   );
@@ -113,7 +117,7 @@ function DangerZone({ onDeleteAccount }) {
   return (
     <div>
       <div className="alert alert-warning" style={{ marginBottom: '24px' }}>
-        <span className="alert-icon">⚠️</span>
+        <span className="alert-icon"><AlertTriangle size={16} /></span>
         <div>
           <strong>Danger Zone</strong> — Actions here are irreversible.
           Please proceed with caution.
@@ -137,8 +141,8 @@ function DangerZone({ onDeleteAccount }) {
               This cannot be undone.
             </div>
           </div>
-          <button className="btn btn-danger" onClick={onDeleteAccount}>
-            🗑 Delete Account
+          <button className="btn btn-danger" onClick={onDeleteAccount} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Trash2 size={16} /> Delete Account
           </button>
         </div>
       </div>
@@ -232,13 +236,13 @@ export default function AdminProfile() {
 
         {successMsg && (
           <div className="alert alert-success anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">✅</span>
+            <span className="alert-icon"><CheckCircle size={16} /></span>
             {successMsg}
           </div>
         )}
         {apiError && activeTab === 'profile' && (
           <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
-            <span className="alert-icon">⚠️</span>
+            <span className="alert-icon"><AlertTriangle size={16} /></span>
             {apiError}
           </div>
         )}
@@ -275,10 +279,10 @@ export default function AdminProfile() {
                   Account Info
                 </div>
                 {[
-                  { icon: '📧', label: 'Email', value: user?.email },
-                  { icon: '📱', label: 'Phone', value: user?.phone || 'Not set' },
-                  { icon: '🛡️', label: 'Role', value: formatRole(user?.role) },
-                  { icon: '📅', label: 'Member Since', value: formatDate(user?.createdAt) },
+                  { icon: <Mail size={16} />, label: 'Email', value: user?.email },
+                  { icon: <Phone size={16} />, label: 'Phone', value: user?.phone || 'Not set' },
+                  { icon: <Shield size={16} />, label: 'Role', value: formatRole(user?.role) },
+                  { icon: <Calendar size={16} />, label: 'Member Since', value: formatDate(user?.createdAt) },
                 ].map((item) => (
                   <div
                     key={item.label}
@@ -331,7 +335,7 @@ export default function AdminProfile() {
                   marginBottom: '12px',
                 }}
               >
-                💡 Admin Notes
+                <Lightbulb size={14} style={{ marginRight: '6px' }} /> Admin Notes
               </div>
               {[
                 'Use the Users, Volunteers, Providers, and Analytics pages for platform management',
@@ -364,7 +368,7 @@ export default function AdminProfile() {
         isOpen={showDelete}
         onClose={() => setShowDelete(false)}
         title="Delete Account"
-        icon="🗑"
+        icon={<Trash2 size={24} color="var(--danger)" />}
         onConfirm={handleDeleteConfirm}
         confirmLabel="Delete My Account"
         confirmVariant="danger"
@@ -375,7 +379,7 @@ export default function AdminProfile() {
             This will permanently delete your account and all associated data.
           </p>
           <div className="alert alert-error" style={{ marginTop: '16px' }}>
-            <span className="alert-icon">⚠️</span>
+            <span className="alert-icon"><AlertTriangle size={16} /></span>
             This action is permanent and cannot be undone.
           </div>
         </div>

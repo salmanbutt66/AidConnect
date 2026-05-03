@@ -1,6 +1,7 @@
 // src/components/dashboard/StatsCard.jsx
 import React from 'react';
 import { formatNumber, formatPercent } from '../../utils/formatters.js';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // ─── Trend indicator ──────────────────────────────────────────────────────────
 function Trend({ value, label }) {
@@ -24,8 +25,8 @@ function Trend({ value, label }) {
             : 'var(--danger)',
       }}
     >
-      <span style={{ fontSize: '10px' }}>
-        {isNeutral ? '─' : isPositive ? '▲' : '▼'}
+      <span style={{ display: 'flex', alignItems: 'center' }}>
+        {isNeutral ? <Minus size={12} /> : isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
       </span>
       {isNeutral ? 'No change' : `${Math.abs(value)}% ${label || ''}`}
     </div>
@@ -40,7 +41,7 @@ function Trend({ value, label }) {
  * Props:
  *   label       {string}   metric label e.g. "Total Requests"       required
  *   value       {number}   raw numeric value                         required
- *   icon        {string}   emoji icon e.g. "🆘"                     required
+ *   icon        {node}     lucide-react component e.g. <Users />    required
  *   color       'green' | 'orange' | 'red' | 'blue'   default: 'green'
  *
  *   format      'number' | 'percent' | 'raw'
@@ -113,8 +114,11 @@ export default function StatsCard({
 
   return (
     <div
-      className={`stat-card ${delayClass}`}
-      style={{ cursor: isClickable ? 'pointer' : 'default' }}
+      className={`stat-card ${delayClass} card-hover`}
+      style={{ 
+        cursor: isClickable ? 'pointer' : 'default',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      }}
       onClick={isClickable ? onClick : undefined}
     >
       {/* ── Icon bubble ───────────────────────────────────────────────────── */}

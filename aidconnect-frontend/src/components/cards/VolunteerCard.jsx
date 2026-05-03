@@ -7,6 +7,7 @@ import {
   formatPercent,
   formatStars,
 } from '../../utils/formatters.js';
+import { MapPin, AlertTriangle, Check, Star } from 'lucide-react';
 
 // ─── Stat pill — small label + value pair ─────────────────────────────────────
 function StatPill({ label, value, color = 'var(--text-mid)' }) {
@@ -61,9 +62,14 @@ function StarRow({ rating, totalRatings }) {
         color: 'var(--text-muted)',
       }}
     >
-      <div className="stars">
+      <div style={{ display: 'flex', gap: '2px' }}>
         {stars.map((filled, i) => (
-          <span key={i} className={`star${filled ? ' filled' : ''}`}>★</span>
+          <Star 
+            key={i} 
+            size={14} 
+            fill={filled ? "currentColor" : "none"} 
+            color={filled ? "var(--warning)" : "var(--stone-300)"} 
+          />
         ))}
       </div>
       <span style={{ fontWeight: 600, color: 'var(--text-dark)' }}>
@@ -243,7 +249,7 @@ export default function VolunteerCard({
                   gap: '4px',
                 }}
               >
-                <span>📍</span> {locationText}
+                <MapPin size={12} color="var(--text-light)" /> {locationText}
                 {serviceArea?.radiusKm && (
                   <span style={{ color: 'var(--text-light)' }}>
                     · {serviceArea.radiusKm}km radius
@@ -390,8 +396,8 @@ export default function VolunteerCard({
 
         {/* ── Suspension reason (admin only) ────────────────────────────── */}
         {isAdmin && isSuspended && suspendedReason && (
-          <div className="alert alert-error" style={{ padding: '8px 12px' }}>
-            <span className="alert-icon">⚠️</span>
+          <div className="alert alert-error" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AlertTriangle size={14} color="var(--danger)" />
             <span style={{ fontSize: '12px' }}>{suspendedReason}</span>
           </div>
         )}
@@ -417,7 +423,7 @@ export default function VolunteerCard({
                   onApprove(_id);
                 }}
               >
-                {loading ? <span className="spinner" /> : '✓ Approve'}
+                {loading ? <span className="spinner" /> : <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}><Check size={14} /> Approve</div>}
               </button>
             )}
 
