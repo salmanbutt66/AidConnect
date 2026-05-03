@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   X,
+  XCircle,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -314,10 +315,10 @@ export default function MyRequests() {
 
         {/* ── Stats ────────────────────────────────────────────────────── */}
         <div className="grid-4" style={{ marginBottom: '24px' }}>
-          <StatsCard label="Total Requests" value={pagination.total || requests.length} icon="📋" color="blue"   loading={loading} delay={0}   />
-          <StatsCard label="Active Now"      value={activeCount}                         icon="🚨" color="orange" loading={loading} delay={100} />
-          <StatsCard label="Completed"       value={completedCount}                      icon="✅" color="green"  loading={loading} delay={200} />
-          <StatsCard label="Cancelled"       value={cancelledCount}                      icon="✕" color="red"    loading={loading} delay={300} />
+          <StatsCard label="Total Requests" value={pagination.total || requests.length} icon={<ClipboardList size={22} />} color="blue"   loading={loading} delay={0}   />
+          <StatsCard label="Active Now"      value={activeCount}                         icon={<Siren size={22} />}        color="orange" loading={loading} delay={100} />
+          <StatsCard label="Completed"       value={completedCount}                      icon={<CheckCircle2 size={22} />} color="green"  loading={loading} delay={200} />
+          <StatsCard label="Cancelled"       value={cancelledCount}                      icon={<XCircle size={22} />}      color="red"    loading={loading} delay={300} />
         </div>
 
         {/* ── Alerts ───────────────────────────────────────────────────── */}
@@ -468,7 +469,7 @@ export default function MyRequests() {
         isOpen={!!cancelTarget}
         onClose={() => { setCancelTarget(null); clearError(); }}
         title="Cancel Request"
-        icon="⚠️"
+        icon={<AlertTriangle size={16} color="#d97706" />}
         onConfirm={handleCancelConfirm}
         confirmLabel="Yes, Cancel"
         confirmVariant="danger"

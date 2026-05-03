@@ -1,7 +1,33 @@
 // src/components/dashboard/StatsCard.jsx
 import React from 'react';
 import { formatNumber, formatPercent } from '../../utils/formatters.js';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, Minus,
+  CheckCircle, Zap, Star, Award,
+  Users, AlertCircle, Activity, Clock,
+  Shield, Heart, BarChart2, MapPin,
+  ThumbsUp, Target, Flame, Bell,
+} from 'lucide-react';
+
+// ─── Icon map: string name → Lucide component ─────────────────────────────────
+const ICON_MAP = {
+  check:       CheckCircle,
+  zap:         Zap,
+  star:        Star,
+  award:       Award,
+  users:       Users,
+  alert:       AlertCircle,
+  activity:    Activity,
+  clock:       Clock,
+  shield:      Shield,
+  heart:       Heart,
+  bar:         BarChart2,
+  map:         MapPin,
+  thumbsup:    ThumbsUp,
+  target:      Target,
+  flame:       Flame,
+  bell:        Bell,
+};
 
 // ─── Trend indicator ──────────────────────────────────────────────────────────
 function Trend({ value, label }) {
@@ -26,7 +52,12 @@ function Trend({ value, label }) {
       }}
     >
       <span style={{ display: 'flex', alignItems: 'center' }}>
-        {isNeutral ? <Minus size={12} /> : isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+        {isNeutral
+          ? <Minus size={12} />
+          : isPositive
+            ? <TrendingUp size={12} />
+            : <TrendingDown size={12} />
+        }
       </span>
       {isNeutral ? 'No change' : `${Math.abs(value)}% ${label || ''}`}
     </div>
@@ -36,55 +67,21 @@ function Trend({ value, label }) {
 // ─── StatsCard ────────────────────────────────────────────────────────────────
 /**
  * StatsCard — single metric display card for dashboards.
- * Built on the .stat-card design system class from index.css.
  *
  * Props:
- *   label       {string}   metric label e.g. "Total Requests"       required
- *   value       {number}   raw numeric value                         required
- *   icon        {node}     lucide-react component e.g. <Users />    required
- *   color       'green' | 'orange' | 'red' | 'blue'   default: 'green'
- *
- *   format      'number' | 'percent' | 'raw'
- *               number  → formatNumber (1200 → "1.2k")
- *               percent → formatPercent (85.6 → "85.6%")
- *               raw     → value as-is (for strings like "4.8 ★")
- *               default: 'number'
- *
- *   sub         {string}   small text below the value e.g. "vs last month"
+ *   label       {string}              metric label               required
+ *   value       {number}              raw numeric value          required
+ *   icon        {string | ReactNode}  lucide name OR JSX node    required
+ *                 string → looked up in ICON_MAP (e.g. "check", "zap", "star", "award")
+ *                 node   → rendered directly (e.g. <Users size={22} />)
+ *   color       'green' | 'orange' | 'red' | 'blue'             default: 'green'
+ *   format      'number' | 'percent' | 'raw'                    default: 'number'
+ *   sub         {string}   small text below the value
  *   trend       {number}   percent change — shows ▲/▼ indicator
- *               positive → green ▲, negative → red ▼, zero → neutral
- *   trendLabel  {string}   appended to trend e.g. "this month"
- *
+ *   trendLabel  {string}   appended to trend text
  *   loading     {boolean}  shows skeleton state
  *   onClick     {fn}       makes card clickable
- *   delay       {number}   animation delay in ms (0 | 100 | 200 … 800)
- *               used to stagger cards in a grid
- *
- * USAGE:
- *
- *   // Basic
- *   <StatsCard label="Total Requests" value={342} icon="🆘" color="red" />
- *
- *   // With trend
- *   <StatsCard
- *     label="Completed" value={128} icon="✅" color="green"
- *     trend={12} trendLabel="vs last month"
- *     sub="This month"
- *   />
- *
- *   // Percentage
- *   <StatsCard
- *     label="Response Rate" value={87.5} icon="⚡" color="blue"
- *     format="percent"
- *   />
- *
- *   // Staggered grid (AdminDashboard)
- *   {stats.map((s, i) => (
- *     <StatsCard key={s.label} {...s} delay={i * 100} />
- *   ))}
- *
- *   // Loading skeleton
- *   <StatsCard label="…" value={0} icon="🆘" loading />
+ *   delay       {number}   animation delay in ms (stagger grids)
  */
 export default function StatsCard({
   label,
@@ -109,13 +106,24 @@ export default function StatsCard({
     return value; // raw
   })();
 
+  // ── Resolve icon → either from map or use directly as JSX ─────────────────
+  const resolvedIcon = (() => {
+    if (loading) return null;
+    if (typeof icon === 'string') {
+      const LucideIcon = ICON_MAP[icon.toLowerCase()];
+      return LucideIcon ? <LucideIcon size={22} strokeWidth={2} /> : null;
+    }
+    // Already a React node (e.g. <Users size={22} />)
+    return icon;
+  })();
+
   // ── Animation delay class ──────────────────────────────────────────────────
   const delayClass = delay > 0 ? `delay-${delay}` : '';
 
   return (
     <div
       className={`stat-card ${delayClass} card-hover`}
-      style={{ 
+      style={{
         cursor: isClickable ? 'pointer' : 'default',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
@@ -125,7 +133,7 @@ export default function StatsCard({
       <div className={`stat-icon ${color}`}>
         {loading
           ? <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)' }} />
-          : <span>{icon}</span>
+          : resolvedIcon
         }
       </div>
 
@@ -159,12 +167,8 @@ export default function StatsCard({
               flexWrap: 'wrap',
             }}
           >
-            {sub && (
-              <span className="stat-sub">{sub}</span>
-            )}
-            {trend !== undefined && (
-              <Trend value={trend} label={trendLabel} />
-            )}
+            {sub && <span className="stat-sub">{sub}</span>}
+            {trend !== undefined && <Trend value={trend} label={trendLabel} />}
           </div>
         )}
       </div>
