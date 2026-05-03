@@ -630,8 +630,10 @@ export default function Matches() {
 
   const mountedRef     = useRef(true);
   const actionInFlight = useRef(false);
-
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+useEffect(() => {
+  mountedRef.current = true;
+  return () => { mountedRef.current = false; };
+}, []);
 
   const withTimeout = useCallback((promise, ms = 10000) => {
     return Promise.race([
@@ -644,6 +646,7 @@ export default function Matches() {
 
   const loadMatches = useCallback(async () => {
     if (mountedRef.current) { setLoading(true); setError(''); }
+    
     try {
       const [matchRes, nearbyRes] = await Promise.allSettled([
         withTimeout(getMyMatches({ status: 'notified' })),
@@ -652,6 +655,7 @@ export default function Matches() {
       if (!mountedRef.current) return;
       if (matchRes.status === 'fulfilled') {
         const raw = matchRes.value;
+console.log("Full Match Value:", matchRes.value);
         setMatches(Array.isArray(raw?.data) ? raw.data : []);
       } else {
         setMatches([]);
@@ -666,7 +670,7 @@ export default function Matches() {
       if (mountedRef.current)
         setError(err.response?.data?.message || 'Failed to load your matches.');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
   }, [withTimeout]);
 

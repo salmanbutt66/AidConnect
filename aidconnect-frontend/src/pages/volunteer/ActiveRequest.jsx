@@ -419,7 +419,11 @@ export default function ActiveRequest() {
   const mountedRef     = useRef(true);
   const actionInFlight = useRef(false);
 
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  console.log('requestedId from URL:', requestedId);
+  useEffect(() => {
+  mountedRef.current = true;
+  return () => { mountedRef.current = false; };
+}, []);
 
   const showSuccess = (msg) => {
     if (!mountedRef.current) return;
@@ -427,8 +431,9 @@ export default function ActiveRequest() {
     setTimeout(() => { if (mountedRef.current) setSuccessMsg(''); }, 3500);
   };
 
-  const loadRequest = useCallback(async () => {
-    try {
+  const loadRequest = useCallback(async (silent = false) => {
+  if (!silent) setLoading(true);
+  try {
       const res    = await getActiveRequest();
       const active = unwrapActiveRequest(res);
       if (!mountedRef.current) return;
@@ -440,8 +445,16 @@ export default function ActiveRequest() {
         try {
           const reqRes  = await getRequestById(requestedId);
           const fetched = unwrapRequest(reqRes);
+          // debugging
+          console.log('reqRes:', reqRes);
+  console.log('fetched:', fetched);
+  console.log('fetched status:', fetched?.status);
+  
           if (mountedRef.current) setPendingRequest(fetched?.status === 'posted' ? fetched : null);
-        } catch { if (mountedRef.current) setPendingRequest(null); }
+        } catch(err) { 
+          // debugging 
+          console.log('getRequestById error:', err);
+          if (mountedRef.current) setPendingRequest(null); }
       } else { setPendingRequest(null); }
       try {
         const nearbyRes          = await getNearbyRequests({ limit: 8 });
@@ -451,12 +464,20 @@ export default function ActiveRequest() {
     } catch (err) {
       if (mountedRef.current) setError(err.response?.data?.message || 'Failed to load active request. Please refresh.');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
   }, [requestedId]);
 
-  useEffect(() => { loadRequest(); }, [loadRequest]);
-  useEffect(() => { const i = setInterval(loadRequest, 30000); return () => clearInterval(i); }, [loadRequest]);
+  useEffect(() => {
+  // Wait for searchParams to hydrate before loading
+  const timer = setTimeout(() => { loadRequest(); }, 50);
+  return () => clearTimeout(timer);
+}, [loadRequest]);
+
+useEffect(() => { 
+  const i = setInterval(() => loadRequest(true), 30000); 
+  return () => clearInterval(i); 
+}, [loadRequest]);
 
   const safeNavigate = useCallback((path, delay = 0) => {
     const go = () => { document.body.style.overflow = ''; setShowCancel(false); navigate(path); };
