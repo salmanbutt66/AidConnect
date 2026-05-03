@@ -49,20 +49,21 @@ const getAllowedOrigins = () => {
     return "*";
   }
 
-  return [frontendUrl];
+  // Remove trailing slash if present to ensure exact match with origin header
+  return [frontendUrl.replace(/\/$/, "")];
 };
 
 const allowedOrigins = getAllowedOrigins();
 
 const corsOptions = {
-  origin: allowedOrigins === "*"
-    ? "*"
-    : (origin, callback) => {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) return callback(null, true);
-        console.warn(`CORS blocked request from: ${origin}`);
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
-      },
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins === "*") return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    
+    console.warn(`CORS blocked request from: ${origin}`);
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   credentials:    true,
   methods:        ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
