@@ -1,290 +1,416 @@
 // src/pages/public/HowItWorks.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../../components/common/Footer.jsx';
 import { APP_NAME } from '../../utils/constants.js';
+import {
+  Zap,
+  UserPlus,
+  AlertTriangle,
+  MapPin,
+  Star,
+  ClipboardList,
+  CheckCircle2,
+  Bell,
+  TrendingUp,
+  Building2,
+  ShieldCheck,
+  ToggleRight,
+  FileText,
+  Handshake,
+  ArrowRight,
+  ChevronDown,
+  Upload,
+  Navigation,
+  Activity,
+  PackageCheck,
+  Users,
+  Stethoscope,
+} from 'lucide-react';
 
-// ── Detailed steps per role ────────────────────────────────────────────────
+/* ── Styles ────────────────────────────────────────────────────────────── */
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+  .hiw-page * { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  .hiw-fade-up  { animation: fadeUp  0.52s cubic-bezier(.22,.68,0,1.2) both; }
+  .hiw-fade-in  { animation: fadeIn  0.35s ease both; }
+  .hiw-slide-dn { animation: slideDown 0.28s ease both; }
+
+  /* role tab buttons */
+  .role-tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 22px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    border: 2px solid #e2e8e3;
+    background: white; color: #3a4a35;
+    transition: all 0.22s ease;
+  }
+  .role-tab:hover { border-color: #1a6b3c; color: #1a6b3c; }
+  .role-tab.active-citizen  { background: #0d3d22; border-color: #0d3d22; color: white; box-shadow: 0 6px 20px rgba(13,61,34,0.30); }
+  .role-tab.active-volunteer{ background: #1a6b9a; border-color: #1a6b9a; color: white; box-shadow: 0 6px 20px rgba(26,107,154,0.30); }
+  .role-tab.active-provider { background: #b45309; border-color: #b45309; color: white; box-shadow: 0 6px 20px rgba(180,83,9,0.28);  }
+
+  /* step card */
+  .step-card {
+    background: white;
+    border: 1px solid #e2e8e3;
+    border-radius: 14px;
+    padding: 0;
+    position: relative; z-index: 1;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    overflow: hidden;
+  }
+  .step-card:hover { transform: translateX(6px); box-shadow: 0 8px 28px rgba(0,0,0,0.09); }
+  .step-card-inner { display: flex; gap: 20px; align-items: flex-start; padding: 20px 22px; }
+
+  /* lifecycle stages */
+  .lifecycle-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    flex: 1; min-width: 80px;
+    padding: 20px 12px;
+    border-radius: 14px;
+    border: 1px solid #e2e8e3;
+    background: white;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    cursor: default;
+  }
+  .lifecycle-stage:hover { transform: translateY(-5px); box-shadow: 0 14px 36px rgba(0,0,0,0.09); }
+
+  /* faq */
+  .faq-item {
+    background: white; border: 1px solid #e2e8e3;
+    border-radius: 14px; overflow: hidden;
+    transition: box-shadow 0.22s ease;
+  }
+  .faq-item:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.07); }
+  .faq-question {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 18px 22px; cursor: pointer;
+    user-select: none;
+  }
+  .faq-answer {
+    padding: 0 22px 18px;
+    font-size: 14px; color: #6b7a64; line-height: 1.75;
+    border-top: 1px solid #f0f4f1;
+    padding-top: 14px;
+  }
+  .faq-chevron {
+    flex-shrink: 0; transition: transform 0.25s ease; color: #6b7a64;
+  }
+  .faq-chevron.open { transform: rotate(180deg); color: #1a6b3c; }
+
+  /* cta */
+  .hiw-cta {
+    background: linear-gradient(135deg, #071f12 0%, #0d3d22 60%, #1a6b3c 100%);
+    padding: 80px 24px; text-align: center; color: white;
+    position: relative; overflow: hidden;
+  }
+  .hiw-cta::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .cta-primary-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: white; color: #0d3d22;
+    font-weight: 700; font-size: 14px;
+    padding: 13px 28px; border-radius: 999px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.22);
+  }
+  .cta-primary-btn:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.30); color: #0d3d22; }
+  .cta-ghost-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: white; font-weight: 600; font-size: 14px;
+    padding: 13px 28px; border-radius: 999px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .cta-ghost-btn:hover { background: rgba(255,255,255,0.14); color: white; }
+
+  /* eyebrow */
+  .hiw-eyebrow {
+    display: inline-block;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #1a6b3c;
+    background: #e0f5e9; padding: 4px 14px; border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  .hiw-h2 {
+    font-size: clamp(21px, 3.5vw, 30px); font-weight: 800;
+    color: #141b11; margin: 0 0 10px; letter-spacing: -0.4px;
+  }
+
+  /* connector arrow */
+  .lifecycle-arrow { color: #c4d4c6; font-size: 18px; display: flex; align-items: center; padding-bottom: 24px; }
+`;
+
+/* ── Role step data ────────────────────────────────────────────────────── */
 const ROLE_STEPS = {
   citizen: {
-    label: 'As a Citizen',
-    emoji: '🙋',
-    // FIX: use existing design system var
-    color: 'var(--green-600)',
+    label:    'Citizen',
+    Icon:     Users,
+    activeClass: 'active-citizen',
+    accentColor: '#0d3d22',
+    iconBg:   '#e0f5e9',
+    iconColor: '#1a6b3c',
     steps: [
-      { icon: '📝', title: 'Create Account',  desc: 'Register in under a minute. Just your name, email, and location.' },
-      { icon: '🆘', title: 'Post a Request',  desc: 'Describe your emergency, set urgency level, and confirm your location.' },
-      { icon: '⚡', title: 'Get Matched',     desc: 'Our system instantly finds the nearest verified helpers for your need.' },
-      { icon: '📍', title: 'Track Progress',  desc: 'See real-time status updates as your request moves from posted to completed.' },
-      { icon: '⭐', title: 'Rate & Review',   desc: 'After the emergency, rate your responder to help build community trust.' },
+      { Icon: UserPlus,      title: 'Create Account',  desc: 'Register in under a minute — just your name, email, and location.' },
+      { Icon: AlertTriangle, title: 'Post a Request',  desc: 'Describe your emergency, set urgency level, and confirm your location.' },
+      { Icon: Zap,           title: 'Get Matched',     desc: 'Our engine instantly finds the nearest verified helpers for your need.' },
+      { Icon: Navigation,    title: 'Track Progress',  desc: 'See real-time status updates as your request moves from posted to completed.' },
+      { Icon: Star,          title: 'Rate & Review',   desc: 'After the emergency, rate your responder to help build community trust.' },
     ],
   },
   volunteer: {
-    label: 'As a Volunteer',
-    emoji: '🤝',
-    // FIX: var(--blue-600) doesn't exist → var(--info)
-    color: 'var(--info)',
+    label:    'Volunteer',
+    Icon:     Handshake,
+    activeClass: 'active-volunteer',
+    accentColor: '#1a6b9a',
+    iconBg:   '#dbeafe',
+    iconColor: '#2563eb',
     steps: [
-      { icon: '📋', title: 'Register & Profile', desc: 'Sign up, add your skills, blood group, and set your service radius.' },
-      { icon: '✅', title: 'Get Verified',        desc: 'Admin reviews your profile. Once approved, you can start responding.' },
-      { icon: '🔔', title: 'Receive Alerts',      desc: 'Get notified of nearby emergencies that match your skills and location.' },
-      { icon: '🚀', title: 'Accept & Respond',    desc: 'Accept a request and head to the location. Your status updates in real time.' },
-      { icon: '📈', title: 'Build Reputation',    desc: 'Every completed request improves your reliability score and community ranking.' },
+      { Icon: ClipboardList, title: 'Register & Profile', desc: 'Sign up, add your skills, blood group, and set your service radius.'       },
+      { Icon: ShieldCheck,   title: 'Get Verified',       desc: 'Admin reviews your profile. Once approved, you can start responding.'      },
+      { Icon: Bell,          title: 'Receive Alerts',     desc: 'Get notified of nearby emergencies that match your skills and location.'    },
+      { Icon: Activity,      title: 'Accept & Respond',   desc: 'Accept a request and head to the location. Your status updates in real time.' },
+      { Icon: TrendingUp,    title: 'Build Reputation',   desc: 'Every completed request improves your reliability score and ranking.'       },
     ],
   },
   provider: {
-    label: 'As an Organization',
-    emoji: '🏥',
-    // FIX: var(--orange-600) doesn't exist → var(--warning)
-    color: 'var(--warning)',
+    label:    'Organization',
+    Icon:     Stethoscope,
+    activeClass: 'active-provider',
+    accentColor: '#b45309',
+    iconBg:   '#fef3c7',
+    iconColor: '#d97706',
     steps: [
-      { icon: '🏢', title: 'Register Organization', desc: 'Add your org details, service type, license number, and operating hours.' },
-      { icon: '🛡️', title: 'Admin Verification',    desc: 'Our team verifies your license and organization before you go live.' },
-      { icon: '🟢', title: 'Set Availability',      desc: 'Toggle availability on/off anytime. Set your operating hours easily.' },
-      { icon: '📨', title: 'View Requests',         desc: 'See incoming requests relevant to your service type, sorted by urgency.' },
-      { icon: '🤝', title: 'Accept & Help',         desc: 'Accept a request to get assigned. The requester is notified instantly.' },
+      { Icon: Building2,    title: 'Register Organization', desc: 'Add your org details, service type, license number, and operating hours.' },
+      { Icon: ShieldCheck,  title: 'Admin Verification',    desc: 'Our team verifies your license and organization before you go live.'     },
+      { Icon: ToggleRight,  title: 'Set Availability',      desc: 'Toggle availability on/off anytime. Set your operating hours easily.'    },
+      { Icon: FileText,     title: 'View Requests',         desc: 'See incoming requests relevant to your service type, sorted by urgency.' },
+      { Icon: CheckCircle2, title: 'Accept & Help',         desc: 'Accept a request to get assigned. The requester is notified instantly.'  },
     ],
   },
 };
 
-// ── FAQ data ───────────────────────────────────────────────────────────────
-const FAQS = [
-  {
-    q: 'Is AidConnect free to use?',
-    a: 'Yes — completely free for citizens, volunteers, and organizations.',
-  },
-  {
-    q: 'How are volunteers and providers verified?',
-    a: 'Every volunteer and provider goes through an admin review before they can respond to requests. Providers must submit a valid license number.',
-  },
-  {
-    q: 'How fast is the response?',
-    a: 'Our matching engine notifies nearby responders instantly. Average acceptance time is under 3 minutes.',
-  },
-  {
-    q: 'What cities does AidConnect cover?',
-    a: 'We currently support all major cities in Pakistan including Karachi, Lahore, Islamabad, Rawalpindi, Peshawar, and more.',
-  },
-  {
-    q: 'Can I be both a citizen and a volunteer?',
-    a: 'Currently each account has one role. You can register a second account with a different email to use both roles.',
-  },
-  {
-    q: 'What happens if no one accepts my request?',
-    a: 'Your request stays visible to all nearby responders until accepted. For life-threatening emergencies always call 1122 directly.',
-  },
+/* ── Lifecycle stages ──────────────────────────────────────────────────── */
+const LIFECYCLE = [
+  { label: 'Posted',      Icon: Upload,      bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+  { label: 'Accepted',    Icon: CheckCircle2,bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
+  { label: 'In Progress', Icon: Activity,    bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+  { label: 'Completed',   Icon: PackageCheck,bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
 ];
 
-// ── Shared nav link style ──────────────────────────────────────────────────
+/* ── FAQ data ──────────────────────────────────────────────────────────── */
+const FAQS = [
+  { q: 'Is AidConnect free to use?',               a: 'Yes — completely free for citizens, volunteers, and organizations.' },
+  { q: 'How are volunteers and providers verified?',a: 'Every volunteer and provider goes through an admin review before they can respond to requests. Providers must submit a valid license number.' },
+  { q: 'How fast is the response?',                 a: 'Our matching engine notifies nearby responders instantly. Average acceptance time is under 3 minutes.' },
+  { q: 'What cities does AidConnect cover?',        a: 'We support all major cities in Pakistan including Karachi, Lahore, Islamabad, Rawalpindi, Peshawar, and more.' },
+  { q: 'Can I be both a citizen and a volunteer?',  a: 'Currently each account has one role. You can register a second account with a different email to use both roles.' },
+  { q: 'What if no one accepts my request?',        a: 'Your request stays visible to all nearby responders until accepted. For life-threatening emergencies always call 1122 directly.' },
+];
+
+/* ── Nav link style ────────────────────────────────────────────────────── */
 const navLinkStyle = {
-  fontSize: '13px',
-  color: 'rgba(255,255,255,0.65)',
-  textDecoration: 'none',
-  padding: '6px 12px',
-  borderRadius: 'var(--radius-sm)',
-  transition: 'color var(--t-fast)',
+  fontSize: '13px', color: 'rgba(255,255,255,0.65)',
+  textDecoration: 'none', padding: '6px 12px',
+  borderRadius: '6px', transition: 'color 0.2s',
 };
 
 export default function HowItWorks() {
   const [activeRole, setActiveRole] = useState('citizen');
   const [openFaq,    setOpenFaq]    = useState(null);
+  const observerRef = useRef(null);
+
+  /* scroll-reveal */
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.animationPlayState = 'running';
+          observerRef.current.unobserve(e.target);
+        }
+      }),
+      { threshold: 0.10 }
+    );
+    document.querySelectorAll('.scroll-reveal').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observerRef.current.observe(el);
+    });
+    return () => observerRef.current?.disconnect();
+  }, []);
+
+  /* re-observe when role changes (new step cards mount) */
+  useEffect(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.scroll-reveal').forEach(el => {
+        el.style.animationPlayState = 'paused';
+        observerRef.current?.observe(el);
+      });
+    }, 50);
+  }, [activeRole]);
 
   const current = ROLE_STEPS[activeRole];
 
   return (
-    // FIX: var(--stone-50) doesn't exist → var(--bg-page)
-    <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
+    <div className="hiw-page" style={{ background: '#f5f7f5', minHeight: '100vh' }}>
+      <style>{STYLES}</style>
 
-      {/* ── Navbar ──────────────────────────────────────────────────────── */}
-      {/* FIX: position sticky → fixed, consistent with Landing/AboutUs */}
-      <nav
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          background: 'rgba(7,31,18,0.97)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-          padding: '0 24px',
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Link
-          to="/"
-          style={{ fontWeight: 800, fontSize: '18px', color: 'white', textDecoration: 'none' }}
-        >
-          Aid<span style={{ color: 'var(--green-400)' }}>Connect</span>
+      {/* ── Navbar ──────────────────────────────────────────────────── */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        background: 'rgba(7,31,18,0.97)', backdropFilter: 'blur(14px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        padding: '0 32px', height: '62px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <Link to="/" style={{ fontWeight: 800, fontSize: '18px', color: 'white', textDecoration: 'none', letterSpacing: '-0.3px' }}>
+          Aid<span style={{ color: '#7dd49a' }}>Connect</span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Link
-            to="/about"
-            style={navLinkStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'white')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
-          >
+          <Link to="/about" style={navLinkStyle}
+            onMouseEnter={e => e.currentTarget.style.color = 'white'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}>
             About
           </Link>
-          <Link
-            to="/login"
-            className="btn btn-ghost btn-sm"
-            style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}
-          >
-            Login
-          </Link>
-          <Link to="/register" className="btn btn-primary btn-sm">
-            Get Started
-          </Link>
+          <Link to="/login" className="btn btn-ghost btn-sm" style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}>Login</Link>
+          <Link to="/register" className="btn btn-primary btn-sm">Get Started</Link>
         </div>
       </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      {/* FIX: hardcoded hex → design system vars. paddingTop compensates for fixed nav */}
-      <section
-        style={{
-          background: `linear-gradient(135deg, var(--green-950) 0%, var(--green-900) 100%)`,
-          color: 'white',
-          padding: '140px 24px 80px',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '52px',
-            marginBottom: '20px',
-            animation: 'fadeSlideUp var(--t-page) var(--ease) both',
-          }}
-        >
-          ⚡
+      {/* ── Hero ────────────────────────────────────────────────────── */}
+      <section style={{
+        background: 'linear-gradient(140deg, #071f12 0%, #0d3d22 55%, #1a6b3c 100%)',
+        color: 'white', padding: '148px 24px 88px', textAlign: 'center',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* decorative rings */}
+        {[500, 320].map(size => (
+          <div key={size} style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: `${size}px`, height: `${size}px`,
+            border: '1px solid rgba(125,212,154,0.07)',
+            borderRadius: '50%', pointerEvents: 'none',
+          }} />
+        ))}
+
+        <div className="hiw-fade-up" style={{ animationDelay: '0ms' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '7px',
+            background: 'rgba(125,212,154,0.13)', border: '1px solid rgba(125,212,154,0.28)',
+            borderRadius: '999px', padding: '6px 16px',
+            fontSize: '11px', fontWeight: 700, color: '#7dd49a',
+            letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '20px',
+          }}>
+            <Zap size={11} />
+            Emergency to Response in Under 3 Minutes
+          </div>
         </div>
-        <h1
-          style={{
-            fontSize: 'clamp(28px, 5vw, 48px)',
-            fontWeight: 900,
-            marginBottom: '16px',
-            animation: 'fadeSlideUp var(--t-page) var(--ease) 100ms both',
-          }}
-        >
-          How {APP_NAME} Works
+
+        <h1 className="hiw-fade-up" style={{
+          fontSize: 'clamp(28px, 6vw, 52px)', fontWeight: 900,
+          marginBottom: '18px', letterSpacing: '-1px', lineHeight: 1.1,
+          animationDelay: '80ms',
+        }}>
+          How <span style={{
+            background: 'linear-gradient(90deg, #7dd49a, #34d399)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>{APP_NAME}</span> Works
         </h1>
-        <p
-          style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.65)',
-            maxWidth: '520px',
-            margin: '0 auto',
-            lineHeight: 1.7,
-            animation: 'fadeSlideUp var(--t-page) var(--ease) 200ms both',
-          }}
-        >
-          From emergency to response in under 3 minutes.
-          Here's exactly how the platform works for each type of user.
+
+        <p className="hiw-fade-up" style={{
+          fontSize: '16px', color: 'rgba(255,255,255,0.62)',
+          maxWidth: '500px', margin: '0 auto', lineHeight: 1.8,
+          animationDelay: '160ms',
+        }}>
+          A smart, real-time coordination platform. Here's exactly how it works
+          for each type of user — step by step.
         </p>
       </section>
 
-      {/* ── Role tabs ───────────────────────────────────────────────────── */}
-      <section style={{ padding: '64px 24px', maxWidth: '860px', margin: '0 auto' }}>
+      {/* ── Role Tabs + Steps ────────────────────────────────────────── */}
+      <section style={{ padding: '72px 24px', maxWidth: '820px', margin: '0 auto' }}>
 
         {/* Tab switcher */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '8px',
-            marginBottom: '48px',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '52px', flexWrap: 'wrap' }}>
           {Object.entries(ROLE_STEPS).map(([key, val]) => (
             <button
               key={key}
               onClick={() => setActiveRole(key)}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 'var(--radius-full)',
-                border: activeRole === key
-                  ? `2px solid ${val.color}`
-                  : '2px solid var(--stone-200)',
-                background: activeRole === key ? val.color : 'white',
-                color: activeRole === key ? 'white' : 'var(--text-mid)',
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all var(--t-base) var(--ease)',
-              }}
+              className={`role-tab ${activeRole === key ? val.activeClass : ''}`}
             >
-              {val.emoji} {val.label}
+              <val.Icon size={15} />
+              {val.label}
             </button>
           ))}
         </div>
 
-        {/* Steps for active role */}
+        {/* Steps */}
         <div style={{ position: 'relative' }}>
-          {/* Vertical connector line */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '27px',
-              top: '40px',
-              bottom: '40px',
-              width: '2px',
-              background: 'var(--stone-200)',
-              zIndex: 0,
-            }}
-          />
+          {/* Vertical line */}
+          <div style={{
+            position: 'absolute', left: '31px', top: '44px', bottom: '44px',
+            width: '2px',
+            background: `linear-gradient(to bottom, ${current.accentColor}40, ${current.accentColor}10)`,
+            borderRadius: '2px', zIndex: 0,
+          }} />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {current.steps.map((step, index) => (
-              // FIX: inline padding on .card → .card-body wrapper
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {current.steps.map((step, i) => (
               <div
                 key={step.title}
-                className="card anim-fade-up"
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  animationDelay: `${index * 80}ms`,
-                }}
+                className="step-card scroll-reveal hiw-fade-up"
+                style={{ animationDelay: `${i * 75}ms` }}
               >
-                <div
-                  className="card-body"
-                  style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}
-                >
-                  {/* Step number circle */}
-                  <div
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: 'var(--radius-full)',
-                      background: current.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontWeight: 800,
-                      fontSize: '16px',
-                      flexShrink: 0,
-                      boxShadow: '0 0 0 4px white',
-                    }}
-                  >
-                    {index + 1}
+                <div className="step-card-inner">
+                  {/* number bubble */}
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '50%',
+                    background: current.accentColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontWeight: 800, fontSize: '15px', flexShrink: 0,
+                    boxShadow: `0 0 0 4px white, 0 0 0 5px ${current.accentColor}30`,
+                  }}>
+                    {i + 1}
                   </div>
 
-                  {/* Content */}
+                  {/* icon + text */}
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '20px' }}>{step.icon}</span>
-                      <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-dark)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '8px',
+                        background: current.iconBg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <step.Icon size={15} color={current.iconColor} />
+                      </div>
+                      <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: '#141b11' }}>
                         {step.title}
                       </h3>
                     </div>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                    <p style={{ fontSize: '13.5px', color: '#6b7a64', lineHeight: 1.65, margin: 0, paddingLeft: '40px' }}>
                       {step.desc}
                     </p>
                   </div>
@@ -295,64 +421,44 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* ── Request lifecycle ────────────────────────────────────────────── */}
+      {/* ── Request Lifecycle ────────────────────────────────────────── */}
       <section style={{ background: 'white', padding: '80px 24px' }}>
-        <div style={{ maxWidth: '860px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <div className="section-eyebrow">The Journey</div>
-            <h2 className="section-h2">Request Lifecycle</h2>
-            <p className="section-p" style={{ margin: '0 auto' }}>
-              Every help request goes through these stages
+        <div style={{ maxWidth: '820px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '44px' }}>
+            <div className="hiw-eyebrow">The Journey</div>
+            <h2 className="hiw-h2">Request Lifecycle</h2>
+            <p style={{ fontSize: '14px', color: '#6b7a64', maxWidth: '380px', margin: '0 auto', lineHeight: 1.7 }}>
+              Every help request moves through these four stages
             </p>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}
-          >
-            {[
-              // FIX: var(--blue-500), var(--orange-500), var(--orange-600) don't exist
-              { label: 'Posted',      color: 'var(--info)',        emoji: '📤' },
-              { label: 'Accepted',    color: 'var(--warning)',     emoji: '✅' },
-              { label: 'In Progress', color: 'var(--danger)',      emoji: '🚀' },
-              { label: 'Completed',   color: 'var(--green-600)',   emoji: '🎉' },
-            ].map((stage, i, arr) => (
+          <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {LIFECYCLE.map((stage, i) => (
               <React.Fragment key={stage.label}>
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: 'var(--radius-full)',
-                      background: stage.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '22px',
-                      margin: '0 auto 8px',
-                      boxShadow: 'var(--shadow-md)',
-                    }}
-                  >
-                    {stage.emoji}
+                <div
+                  className="lifecycle-stage scroll-reveal hiw-fade-up"
+                  style={{
+                    animationDelay: `${i * 90}ms`,
+                    borderColor: stage.border,
+                    background: stage.bg,
+                  }}
+                >
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '12px',
+                    background: 'white', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 4px 14px ${stage.color}22`,
+                    border: `1px solid ${stage.border}`,
+                  }}>
+                    <stage.Icon size={22} color={stage.color} />
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-mid)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#3a4a35', textAlign: 'center' }}>
                     {stage.label}
-                  </div>
+                  </span>
                 </div>
-                {i < arr.length - 1 && (
-                  <div
-                    style={{
-                      fontSize: '20px',
-                      color: 'var(--stone-300)',
-                      marginBottom: '20px',
-                    }}
-                  >
-                    →
+                {i < LIFECYCLE.length - 1 && (
+                  <div className="lifecycle-arrow">
+                    <ArrowRight size={18} />
                   </div>
                 )}
               </React.Fragment>
@@ -361,62 +467,28 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* ── FAQ ─────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 24px', maxWidth: '720px', margin: '0 auto' }}>
+      {/* ── FAQ ─────────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 24px', maxWidth: '700px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div className="section-eyebrow">Got Questions?</div>
-          <h2 className="section-h2">Frequently Asked Questions</h2>
+          <div className="hiw-eyebrow">Got Questions?</div>
+          <h2 className="hiw-h2">Frequently Asked Questions</h2>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {FAQS.map((faq, i) => (
-            // FIX: inline padding on .card → .card-body, overflow hidden kept for accordion
             <div
               key={i}
-              className="card"
-              style={{ overflow: 'hidden', cursor: 'pointer' }}
-              onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              className="faq-item scroll-reveal hiw-fade-up"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
-              {/* Question row */}
-              <div
-                className="card-body"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  paddingBottom: openFaq === i ? '8px' : '24px',
-                }}
-              >
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)' }}>
+              <div className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#141b11', lineHeight: 1.4 }}>
                   {faq.q}
                 </span>
-                <span
-                  style={{
-                    fontSize: '18px',
-                    color: 'var(--text-muted)',
-                    flexShrink: 0,
-                    transition: 'transform 0.2s',
-                    transform: openFaq === i ? 'rotate(45deg)' : 'none',
-                  }}
-                >
-                  +
-                </span>
+                <ChevronDown size={18} className={`faq-chevron ${openFaq === i ? 'open' : ''}`} />
               </div>
-
-              {/* Answer */}
               {openFaq === i && (
-                <div
-                  style={{
-                    padding: '0 24px 20px',
-                    fontSize: '14px',
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.7,
-                    // FIX: var(--stone-100) doesn't exist → var(--stone-200)
-                    borderTop: '1px solid var(--stone-200)',
-                    paddingTop: '14px',
-                  }}
-                >
+                <div className="faq-answer hiw-slide-dn">
                   {faq.a}
                 </div>
               )}
@@ -425,59 +497,37 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────────────────── */}
-      {/* FIX: hardcoded hex → design system vars */}
-      <section
-        style={{
-          background: `linear-gradient(135deg, var(--green-950), var(--green-900))`,
-          color: 'white',
-          padding: '64px 24px',
-          textAlign: 'center',
-        }}
-      >
-        <h2 style={{ fontSize: '28px', fontWeight: 900, marginBottom: '12px' }}>
-          Ready to Get Started?
-        </h2>
-        <p
-          style={{
-            fontSize: '15px',
-            color: 'rgba(255,255,255,0.65)',
-            maxWidth: '400px',
-            margin: '0 auto 28px',
-            lineHeight: 1.7,
-          }}
-        >
-          {/* FIX: hardcoded "AidConnect" → APP_NAME */}
-          Join {APP_NAME} today — whether you need help or want to give it.
-        </p>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link
-            to="/register"
-            className="btn btn-primary"
-            style={{ fontSize: '15px', padding: '12px 28px' }}
-          >
-            Create Account
-          </Link>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '12px 28px',
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 'var(--radius-md)',
-              color: 'white',
-              fontSize: '15px',
-              textDecoration: 'none',
-              fontWeight: 600,
-              transition: 'background var(--t-fast)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.13)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-          >
-            Back to Home
-          </Link>
+      {/* ── CTA ─────────────────────────────────────────────────────── */}
+      <section className="hiw-cta">
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            width: '54px', height: '54px', borderRadius: '15px',
+            background: 'rgba(125,212,154,0.14)', border: '1px solid rgba(125,212,154,0.24)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <Zap size={24} color="#7dd49a" />
+          </div>
+          <h2 style={{
+            fontSize: 'clamp(22px, 4vw, 32px)', fontWeight: 900,
+            marginBottom: '12px', letterSpacing: '-0.5px',
+          }}>
+            Ready to Get Started?
+          </h2>
+          <p style={{
+            fontSize: '15px', color: 'rgba(255,255,255,0.60)',
+            maxWidth: '360px', margin: '0 auto 32px', lineHeight: 1.75,
+          }}>
+            Join {APP_NAME} today — whether you need help or want to give it.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/register" className="cta-primary-btn">
+              Create Account <ArrowRight size={15} />
+            </Link>
+            <Link to="/" className="cta-ghost-btn">
+              Back to Home
+            </Link>
+          </div>
         </div>
       </section>
 
