@@ -54,21 +54,23 @@ const getAllowedOrigins = () => {
 
 const allowedOrigins = getAllowedOrigins();
 
-app.use(
-  cors({
-    origin: allowedOrigins === "*"
-      ? "*"
-      : (origin, callback) => {
-          if (!origin) return callback(null, true);
-          if (allowedOrigins.includes(origin)) return callback(null, true);
-          console.warn(`CORS blocked request from: ${origin}`);
-          callback(new Error(`Origin ${origin} not allowed by CORS`));
-        },
-    credentials:    true,
-    methods:        ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+const corsOptions = {
+  origin: allowedOrigins === "*"
+    ? "*"
+    : (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        console.warn(`CORS blocked request from: ${origin}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      },
+  credentials:    true,
+  methods:        ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+// ← THIS LINE FIXES PREFLIGHT REQUESTS
+app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(helmet());
@@ -115,8 +117,6 @@ const startServer = async () => {
     await connectDB();
 
     // ── Migration 1: backfill new rating/availability fields ────────────────
-    // Adds averageRating, totalRatings, credibilityScore, isAvailable to any
-    // provider document created before these fields existed in the schema.
     const migration1Result = await Provider.updateMany(
       { availabilityInitialized: { $ne: true } },
       {
@@ -135,15 +135,6 @@ const startServer = async () => {
     }
 
     // ── Migration 2: backfill city field from address ────────────────────────
-    // Provider.model now has a flat top-level `city` field used for request
-    // matching. Existing providers stored their city in the `address` field
-    // (which was a city dropdown value, not a street address). This migration
-    // copies address → city for any provider where city is still null but
-    // address has a value — so existing providers immediately see local
-    // requests without needing to re-save their profile.
-    //
-    // This is safe to run on every startup because the $exists: false /
-    // address $ne "" filter means it only touches documents that still need it.
     const needsCityBackfill = await Provider.find({
       city:    { $in: [null, ""] },
       address: { $nin: [null, ""] },
