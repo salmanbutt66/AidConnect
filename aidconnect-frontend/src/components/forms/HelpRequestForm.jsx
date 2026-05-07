@@ -495,7 +495,7 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false, d
         >
           {loading
             ? <><span className="spinner" /> Submitting request…</>
-            : '🆘 Submit Request →'
+            : 'Submit Request →'
           }
         </button>
       </div>
