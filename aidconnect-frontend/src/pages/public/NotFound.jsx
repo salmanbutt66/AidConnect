@@ -1,7 +1,7 @@
 // src/pages/public/NotFound.jsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, MapOff } from 'lucide-react';
+import { ArrowLeft, Home, MapPin } from 'lucide-react';
 import { APP_NAME } from '../../utils/constants.js';
 
 export default function NotFound() {

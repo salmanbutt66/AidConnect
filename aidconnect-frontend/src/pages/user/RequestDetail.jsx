@@ -716,7 +716,7 @@ export default function RequestDetail() {
         isOpen={showCancel}
         onClose={() => { if (cancelSubmitting) return; setShowCancel(false); clearError(); }}
         title="Cancel Request"
-        icon="⚠️"
+        icon={<AlertTriangle size={16} color="#d97706" />}
         onConfirm={handleCancelConfirm}
         confirmLabel={cancelSubmitting ? 'Cancelling…' : 'Yes, Cancel'}
         confirmVariant="danger"
@@ -730,7 +730,7 @@ export default function RequestDetail() {
         isOpen={showRating}
         onClose={handleCloseRatingModal}
         title={assignedType === 'Provider' ? 'Rate Your Service Provider' : 'Rate Your Responder'}
-        icon="⭐"
+        icon={<Star size={16} color="#f59e0b" fill="#f59e0b" />}
         size="md"
         footer={<span />}
       >

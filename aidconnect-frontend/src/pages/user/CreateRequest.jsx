@@ -319,7 +319,7 @@ export default function CreateRequest() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '22px', alignItems: 'start' }}>
 
           {/* Form / Success */}
-          <div style={{ background: 'white', border: '1px solid #e2e8e3', borderRadius: '16px', overflow: 'hidden' }} className="cr-anim" style={{ animationDelay: '100ms' }}>
+          <div style={{ background: 'white', border: '1px solid #e2e8e3', borderRadius: '16px', overflow: 'hidden', animationDelay: '100ms' }} className="cr-anim">
             <div style={{ padding: '24px' }}>
               {submitted ? (
                 <SuccessScreen
