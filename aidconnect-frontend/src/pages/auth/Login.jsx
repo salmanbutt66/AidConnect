@@ -1,4 +1,3 @@
-// src/pages/auth/Login.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -204,30 +203,25 @@ export default function Login() {
     <>
       <style>{css}</style>
       <div className="acl acl-grid" style={{ minHeight:'100vh', display:'grid', gridTemplateColumns:'46% 1fr' }}>
-
-        {/* ── LEFT PANEL ─────────────────────────────────────────────── */}
-        <div className="acl-panel" style={{
+<div className="acl-panel" style={{
           background: 'linear-gradient(155deg, #081f10 0%, #0c3820 35%, #125430 70%, #176b3c 100%)',
           display: 'flex', flexDirection: 'column', padding: '48px 52px',
           color: 'white', position: 'relative', overflow: 'hidden',
         }}>
-          {/* Decorative rings top-right */}
-          <svg style={{ position:'absolute', right:'-90px', top:'-90px', opacity:0.06, pointerEvents:'none' }}
+<svg style={{ position:'absolute', right:'-90px', top:'-90px', opacity:0.06, pointerEvents:'none' }}
             width="520" height="520" viewBox="0 0 520 520" fill="none">
             <circle cx="360" cy="160" r="290" stroke="white" strokeWidth="1"/>
             <circle cx="360" cy="160" r="210" stroke="white" strokeWidth="1"/>
             <circle cx="360" cy="160" r="130" stroke="white" strokeWidth="0.8"/>
             <circle cx="360" cy="160" r="65"  stroke="white" strokeWidth="0.6"/>
           </svg>
-          {/* Bottom ambient glow */}
-          <div style={{
+<div style={{
             position:'absolute', bottom:'-120px', left:'-60px',
             width:'380px', height:'380px', borderRadius:'50%',
             background:'radial-gradient(circle, rgba(34,148,80,0.2) 0%, transparent 68%)',
             pointerEvents:'none',
           }}/>
-          {/* Subtle diagonal lines */}
-          <svg style={{ position:'absolute', inset:0, opacity:0.03, pointerEvents:'none' }}
+<svg style={{ position:'absolute', inset:0, opacity:0.03, pointerEvents:'none' }}
             width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="diag" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -236,9 +230,7 @@ export default function Login() {
             </defs>
             <rect width="100%" height="100%" fill="url(#diag)"/>
           </svg>
-
-          {/* Logo */}
-          <div className="acl-logo" style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+<div className="acl-logo" style={{ display:'flex', alignItems:'center', gap:'12px' }}>
             <LogoMark dark />
             <div>
               <div style={{ fontSize:'19px', fontWeight:800, letterSpacing:'-0.5px', lineHeight:1.1 }}>
@@ -249,9 +241,7 @@ export default function Login() {
               </div>
             </div>
           </div>
-
-          {/* Tagline block */}
-          <div className="acl-tag" style={{ marginTop:'auto', marginBottom:'32px' }}>
+<div className="acl-tag" style={{ marginTop:'auto', marginBottom:'32px' }}>
             <div style={{
               display:'inline-flex', alignItems:'center', gap:'7px',
               padding:'5px 13px', borderRadius:'99px',
@@ -281,26 +271,20 @@ export default function Login() {
               <Feat iconPath={<><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></>} text="Geo-aware resource coordination" />
             </div>
           </div>
-
-          {/* Stats */}
-          <div className="acl-stats" style={{ display:'flex', gap:'10px' }}>
+<div className="acl-stats" style={{ display:'flex', gap:'10px' }}>
             <StatPill value="12K+" label="Active volunteers" />
             <StatPill value="98%"  label="Response rate" />
             <StatPill value="4"    label="Cities covered" />
           </div>
         </div>
-
-        {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
-        <div className="acl-right">
-          {/* Top green accent line */}
-          <div style={{
+<div className="acl-right">
+<div style={{
             position:'absolute', top:0, left:0, right:0, height:'3px',
             background:'linear-gradient(90deg, transparent, #1a6b3c 30%, #2aad60 60%, transparent)',
           }}/>
 
           <div className="acl-form" style={{ width:'100%', maxWidth:'400px' }}>
-            {/* Card */}
-            <div style={{
+<div style={{
               background:'white', borderRadius:'20px', padding:'40px 38px',
               boxShadow:'0 2px 4px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.09)',
               border:'1px solid rgba(0,0,0,0.055)',
@@ -358,9 +342,7 @@ export default function Login() {
                 <Link to="/register" className="acl-link">Create one free</Link>
               </p>
             </div>
-
-            {/* Trust line */}
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', marginTop:'18px' }}>
+<div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', marginTop:'18px' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aaa93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>

@@ -1,4 +1,3 @@
-// src/pages/provider/ProviderDashboard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -157,9 +156,7 @@ export default function ProviderDashboard() {
             <CheckCircle2 size={16} style={{ flexShrink: 0 }} />{successMsg}
           </div>
         )}
-
-        {/* ── PROFILE HERO ────────────────────────────────────────── */}
-        {loadingProfile ? <Loader variant="card" message="Loading your profile…" /> : profile ? (
+{loadingProfile ? <Loader variant="card" message="Loading your profile…" /> : profile ? (
           <>
             <div className="anim-fade-up" style={{
               background: 'linear-gradient(135deg, var(--green-900) 0%, var(--green-700) 55%, var(--green-600) 100%)',
@@ -168,10 +165,8 @@ export default function ProviderDashboard() {
               position: 'relative', overflow: 'hidden',
               boxShadow: '0 8px 40px rgba(13,61,34,0.25)',
             }}>
-              {/* dot pattern */}
-              <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px', pointerEvents: 'none' }} />
-              {/* glow */}
-              <div style={{ position: 'absolute', right: '-40px', top: '-40px', width: '200px', height: '200px', borderRadius: '50%', background: 'rgba(42,173,96,0.2)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+<div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px', pointerEvents: 'none' }} />
+<div style={{ position: 'absolute', right: '-40px', top: '-40px', width: '200px', height: '200px', borderRadius: '50%', background: 'rgba(42,173,96,0.2)', filter: 'blur(40px)', pointerEvents: 'none' }} />
 
               <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Building2 size={28} color="white" strokeWidth={1.8} />
@@ -209,9 +204,7 @@ export default function ProviderDashboard() {
             )}
           </>
         ) : null}
-
-        {/* ── ACTIVE REQUEST ──────────────────────────────────────── */}
-        <div className="section-header" style={{ marginBottom: '16px' }}>
+<div className="section-header" style={{ marginBottom: '16px' }}>
           <div>
             <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Radio size={14} color="var(--green-700)" />
@@ -237,8 +230,7 @@ export default function ProviderDashboard() {
             </div>
           ) : (
             <div className="card anim-fade-up" style={{ marginBottom: '20px', overflow: 'hidden' }}>
-              {/* urgency stripe */}
-              <div style={{ height: '4px', background: EMERGENCY_ACCENT[activeRequest.emergencyType]?.color || 'var(--stone-400)' }} />
+<div style={{ height: '4px', background: EMERGENCY_ACCENT[activeRequest.emergencyType]?.color || 'var(--stone-400)' }} />
               <div className="card-body">
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
@@ -292,9 +284,7 @@ export default function ProviderDashboard() {
             </div>
           )
         }
-
-        {/* ── INCOMING REQUESTS ───────────────────────────────────── */}
-        <div className="section-header" style={{ marginBottom: '16px' }}>
+<div className="section-header" style={{ marginBottom: '16px' }}>
           <div>
             <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Inbox size={15} color="var(--green-700)" />

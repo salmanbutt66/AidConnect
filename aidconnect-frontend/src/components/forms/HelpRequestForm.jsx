@@ -1,4 +1,3 @@
-// src/components/forms/HelpRequestForm.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   EMERGENCY_TYPES,
@@ -25,8 +24,6 @@ const getEmergencyIcon = (type, isSelected, disabled) => {
     default: return <Users {...props} />;
   }
 };
-
-// ─── Emergency type selector card ─────────────────────────────────────────────
 function EmergencyTypeSelector({ value, onChange, disabled }) {
   return (
     <div className="form-group">
@@ -64,8 +61,6 @@ function EmergencyTypeSelector({ value, onChange, disabled }) {
     </div>
   );
 }
-
-// ─── Urgency level selector ───────────────────────────────────────────────────
 function UrgencySelector({ value, onChange, disabled }) {
   const styles = {
     low:      { border: 'var(--green-400)',  bg: 'var(--green-50)',   text: 'var(--green-800)' },
@@ -108,8 +103,6 @@ function UrgencySelector({ value, onChange, disabled }) {
     </div>
   );
 }
-
-// ─── Location section ─────────────────────────────────────────────────────────
 function LocationSection({ form, errors, onChange, disabled }) {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError,   setGeoError]   = useState('');
@@ -149,9 +142,7 @@ function LocationSection({ form, errors, onChange, disabled }) {
       <label className="form-label">
         Location <span style={{ color: 'var(--danger)' }}>*</span>
       </label>
-
-      {/* Geolocation button */}
-      <button
+<button
         type="button"
         className="btn btn-secondary btn-full"
         onClick={handleGetLocation}
@@ -186,9 +177,7 @@ function LocationSection({ form, errors, onChange, disabled }) {
       <div className="divider-text" style={{ margin: '10px 0', fontSize: '12px' }}>
         or enter manually
       </div>
-
-      {/* City + Area */}
-      <div className="form-row cols-2">
+<div className="form-row cols-2">
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label" htmlFor="city">
             City <span style={{ color: 'var(--danger)' }}>*</span>
@@ -246,11 +235,6 @@ function LocationSection({ form, errors, onChange, disabled }) {
     </div>
   );
 }
-
-// ─── HelpRequestForm ──────────────────────────────────────────────────────────
-// FIX: accepts `defaultCity` prop so CreateRequest.jsx can pass in the
-//      logged-in user's saved city — prevents users from having to re-select
-//      their city on every request.
 export default function HelpRequestForm({ onSubmit, onCancel, loading = false, defaultCity = '' }) {
   const [form, setForm] = useState({
     emergencyType:    '',
@@ -267,8 +251,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false, d
 
   const [errors,   setErrors]   = useState({});
   const [apiError, setApiError] = useState('');
-
-  // FIX: if defaultCity arrives after first render (async auth), sync it in
   useEffect(() => {
     if (defaultCity && !form.city) {
       setForm((prev) => ({ ...prev, city: defaultCity }));
@@ -295,8 +277,6 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false, d
       longitude:     form.longitude ?? (form.city ? 0 : null),
       latitude:      form.latitude  ?? (form.city ? 0 : null),
     });
-
-    // City is required — matching engine depends on it
     if (!form.city) {
       errs.city = 'Please select your city so we can find nearby volunteers';
     }
@@ -318,23 +298,16 @@ export default function HelpRequestForm({ onSubmit, onCancel, loading = false, d
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-
-    // ── Build payload ──────────────────────────────────────────────────────
     const payload = {
       emergencyType: form.emergencyType,
       urgencyLevel:  form.urgencyLevel,
       description:   sanitizeString(form.description),
-      // city is the primary field the matching service reads as request.city
       city:          form.city,
     };
-
-    // GPS coords — only include if actually captured
     if (form.latitude != null && form.longitude != null) {
       payload.latitude  = form.latitude;
       payload.longitude = form.longitude;
     } 
-
-    // Build address string from fields if not manually entered
     payload.address = form.address.trim() ||
       [form.area, form.city].filter(Boolean).join(', ');
 

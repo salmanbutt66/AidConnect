@@ -1,4 +1,3 @@
-// src/pages/admin/AdminProfile.jsx
 import React, { useState, useCallback } from 'react';
 import Navbar from '../../components/common/Navbar.jsx';
 import ProfileForm from '../../components/forms/ProfileForm.jsx';
@@ -11,6 +10,27 @@ import {
   User, Lock, AlertTriangle, Trash2, CheckCircle, 
   Mail, Phone, Shield, Calendar, Lightbulb 
 } from 'lucide-react';
+
+const STYLES = `
+  .ap-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .ap-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  @media (max-width: 980px) {
+    .ap-main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
 
 function SectionTabs({ active, onChange }) {
   const tabs = [
@@ -193,6 +213,7 @@ export default function AdminProfile() {
 
   return (
     <Navbar title="Admin Profile">
+      <style>{STYLES}</style>
       <div className="page-wrapper">
         <div className="profile-hero">
           {user?.profilePicture ? (
@@ -247,7 +268,7 @@ export default function AdminProfile() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }}>
+        <div className="ap-main-grid">
           <div className="card anim-fade-up delay-100">
             <div className="card-body">
               <SectionTabs active={activeTab} onChange={setActiveTab} />
@@ -272,7 +293,7 @@ export default function AdminProfile() {
             </div>
           </div>
 
-          <div className="anim-fade-up delay-200" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="ap-sidebar anim-fade-up delay-200">
             <div className="card">
               <div className="card-body">
                 <div className="section-title" style={{ marginBottom: '16px' }}>

@@ -1,4 +1,3 @@
-// src/components/common/Navbar.jsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth.js';
@@ -10,8 +9,6 @@ import {
   Home, LifeBuoy, ClipboardList, User, Inbox, AlertTriangle, History, 
   RefreshCw, Hospital, Users, Handshake, BarChart2, Bell, LogOut, Menu, X as XIcon
 } from 'lucide-react';
-
-// ─── Navigation config per role ───────────────────────────────────────────────
 const NAV_LINKS = {
   user: [
     { to: '/user/dashboard',      icon: <Home size={18} />,          label: 'Dashboard'     },
@@ -40,16 +37,12 @@ const NAV_LINKS = {
     { to: '/admin/analytics',   icon: <BarChart2 size={18} />,     label: 'Analytics'    },
   ],
 };
-
-// ─── Section labels per role ──────────────────────────────────────────────────
 const NAV_SECTIONS = {
   user:      'Citizen',
   volunteer: 'Responder',
   provider:  'Organization',
   admin:     'Administration',
 };
-
-// ─── Notification item ────────────────────────────────────────────────────────
 function NotifItem({ notif, onRead }) {
   return (
     <div
@@ -105,8 +98,6 @@ function NotifItem({ notif, onRead }) {
     </div>
   );
 }
-
-// ─── Navbar (Sidebar + Topbar layout wrapper) ─────────────────────────────────
 export default function Navbar({ title, children }) {
   const { user, logout, isAdmin } = useAuth();
   const {
@@ -134,10 +125,6 @@ export default function Navbar({ title, children }) {
   const navLinks = NAV_LINKS[user?.role] || [];
   const section  = NAV_SECTIONS[user?.role] || '';
   const initials = getInitials(user?.name);
-
-  // ── Close dropdowns on outside click ──────────────────────────────────────
-  // FIX: changed from mousedown to click so modal confirm buttons
-  // aren't interrupted before their click event fires
   useEffect(() => {
     const handleClick = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -150,13 +137,9 @@ export default function Navbar({ title, children }) {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
-
-  // ── Fetch notifications when dropdown opens ────────────────────────────────
   useEffect(() => {
     if (notifOpen) fetchNotifications();
   }, [notifOpen, fetchNotifications]);
-
-  // ── Fetch volunteer match count for navbar badge ─────────────────────────
   useEffect(() => {
     if (user?.role !== 'volunteer') {
       setPendingMatchesCount(0);
@@ -184,13 +167,9 @@ export default function Navbar({ title, children }) {
       window.clearInterval(intervalId);
     };
   }, [user?.role]);
-
-  // ── Close sidebar on mobile when nav item clicked ─────────────────────────
   const handleNavClick = useCallback(() => {
     setSidebarOpen(false);
   }, []);
-
-  // ── Logout ─────────────────────────────────────────────────────────────────
   const handleLogout = useCallback(async () => {
     setLoggingOut(true);
     try {
@@ -200,20 +179,14 @@ export default function Navbar({ title, children }) {
       setLoggingOut(false);
     }
   }, [logout, navigate]);
-
-  // ── Mark notification read + close dropdown ────────────────────────────────
   const handleNotifRead = useCallback(async (id) => {
     await markRead(id);
   }, [markRead]);
 
   return (
     <div className="app-layout">
-
-      {/* ══ SIDEBAR ══════════════════════════════════════════════════════════ */}
-      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
-
-        {/* Logo */}
-        <div className="sidebar-logo">
+<aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
+<div className="sidebar-logo">
           <div className="sidebar-logo-icon">
             <LifeBuoy size={20} color="white" strokeWidth={2.5} />
           </div>
@@ -222,9 +195,7 @@ export default function Navbar({ title, children }) {
             <div className="sidebar-logo-sub">Emergency Network</div>
           </div>
         </div>
-
-        {/* Nav links */}
-        <nav className="sidebar-nav">
+<nav className="sidebar-nav">
           {section && (
             <div className="sidebar-section-label">{section}</div>
           )}
@@ -264,9 +235,7 @@ export default function Navbar({ title, children }) {
             </NavLink>
           ))}
         </nav>
-
-        {/* Sidebar footer — user info + logout */}
-        <div className="sidebar-footer">
+<div className="sidebar-footer">
           <div className="sidebar-user" onClick={() => setUserMenuOpen((p) => !p)}>
             {user?.profilePicture ? (
               <img
@@ -286,9 +255,7 @@ export default function Navbar({ title, children }) {
               ⌄
             </span>
           </div>
-
-          {/* User mini-menu */}
-          {userMenuOpen && (
+{userMenuOpen && (
             <div
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -332,15 +299,9 @@ export default function Navbar({ title, children }) {
           )}
         </div>
       </aside>
-
-      {/* ══ MAIN CONTENT ═════════════════════════════════════════════════════ */}
-      <div className="app-content">
-
-        {/* ── Topbar ──────────────────────────────────────────────────────── */}
-        <header className="topbar">
-
-          {/* Left: hamburger (mobile) + page title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+<div className="app-content">
+<header className="topbar">
+<div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button
               onClick={() => setSidebarOpen((p) => !p)}
               style={{
@@ -362,12 +323,8 @@ export default function Navbar({ title, children }) {
             </button>
             {title && <h1 className="topbar-title">{title}</h1>}
           </div>
-
-          {/* Right: notifications + user avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-
-            {/* Notification bell */}
-            <div style={{ position: 'relative' }} ref={notifRef}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+<div style={{ position: 'relative' }} ref={notifRef}>
               <button
                 className="notif-btn"
                 onClick={() => setNotifOpen((p) => !p)}
@@ -380,9 +337,7 @@ export default function Navbar({ title, children }) {
                   </span>
                 )}
               </button>
-
-              {/* Notification dropdown */}
-              {notifOpen && (
+{notifOpen && (
                 <div className="notif-dropdown" style={{ overflow: 'hidden' }}>
                   <div className="notif-dropdown-header">
                     <h4>
@@ -449,9 +404,7 @@ export default function Navbar({ title, children }) {
                 </div>
               )}
             </div>
-
-            {/* User avatar — links to profile */}
-            <Link
+<Link
               to={`/${user?.role}/profile`}
               style={{ textDecoration: 'none' }}
               title={user?.name}
@@ -472,16 +425,12 @@ export default function Navbar({ title, children }) {
 
           </div>
         </header>
-
-        {/* ── Page content ────────────────────────────────────────────────── */}
-        <main className="main-inner">
+<main className="main-inner">
           {children}
         </main>
 
       </div>
-
-      {/* ── Mobile sidebar overlay backdrop ─────────────────────────────── */}
-      {sidebarOpen && (
+{sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{

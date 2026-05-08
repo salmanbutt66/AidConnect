@@ -1,4 +1,3 @@
-// src/pages/volunteer/ActiveRequest.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -18,8 +17,6 @@ import {
   formatTimeAgo,
   formatEmergencyType,
 } from '../../utils/formatters.js';
-
-// ─── Injected styles ──────────────────────────────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -56,7 +53,7 @@ const STYLES = `
     50%      { transform: translateY(-4px); }
   }
 
-  /* Page header */
+  
   .ar-page-header { margin-bottom: 28px; animation: arFadeSlide 0.4s ease both; }
   .ar-back-btn {
     display: inline-flex; align-items: center; gap: 6px;
@@ -72,7 +69,7 @@ const STYLES = `
   .ar-page-header h1 { font-size: 24px; font-weight: 800; color: var(--text-dark,#141b11); letter-spacing: -0.6px; margin: 0 0 4px; }
   .ar-page-header p  { font-size: 14px; color: var(--text-muted,#6b7a64); margin: 0; }
 
-  /* Alert */
+  
   .ar-alert {
     display: flex; align-items: flex-start; gap: 12px;
     padding: 14px 18px; border-radius: 14px; font-size: 13px;
@@ -84,7 +81,7 @@ const STYLES = `
   .ar-alert.warning { background:#fffbeb; border-color:#fcd34d; color:#92400e; }
   .ar-alert-icon { width:18px; height:18px; flex-shrink:0; margin-top:1px; }
 
-  /* Card */
+  
   .ar-card {
     background:#fff; border-radius:18px;
     border:1px solid #e8eee8;
@@ -99,7 +96,7 @@ const STYLES = `
   }
   .ar-section-title svg { width:15px; height:15px; color:var(--green-600,#229450); }
 
-  /* Info row */
+  
   .ar-info-row {
     display:flex; align-items:flex-start; gap:14px;
     padding:12px 0; border-bottom:1px solid #f0f5f0;
@@ -116,7 +113,7 @@ const STYLES = `
   .ar-info-lbl { font-size:11px; font-weight:600; color:var(--text-muted,#6b7a64); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:3px; }
   .ar-info-val { font-size:14px; color:var(--text-dark,#141b11); font-weight:500; line-height:1.5; }
 
-  /* Timeline */
+  
   .ar-timeline { display:flex; align-items:flex-start; position:relative; }
   .ar-timeline-line {
     position:absolute; top:17px; left:16%; right:16%;
@@ -142,7 +139,7 @@ const STYLES = `
   .ar-tl-label.done   { font-weight:700; color:var(--green-700,#1e7d46); }
   .ar-tl-label.active { font-weight:700; color:var(--green-800,#1a6b3c); }
 
-  /* Action buttons */
+  
   .ar-btn {
     flex:1; padding:12px 18px; border-radius:12px; border:none; cursor:pointer;
     font-size:14px; font-weight:700; font-family:'Plus Jakarta Sans',sans-serif;
@@ -167,7 +164,7 @@ const STYLES = `
   .ar-btn.danger:hover:not(:disabled) { background:#dc2626; color:#fff; box-shadow:0 4px 14px rgba(220,38,38,0.3); }
   .ar-btn svg { width:15px; height:15px; }
 
-  /* Spinner */
+  
   .ar-spinner {
     display:inline-block; width:14px; height:14px;
     border:2px solid rgba(255,255,255,0.35); border-top-color:#fff;
@@ -180,7 +177,7 @@ const STYLES = `
     border-color:rgba(220,38,38,0.25); border-top-color:#dc2626;
   }
 
-  /* Status card */
+  
   .ar-status-icon {
     width:64px; height:64px; border-radius:20px; margin:0 auto 16px;
     display:flex; align-items:center; justify-content:center;
@@ -193,7 +190,7 @@ const STYLES = `
   .ar-status-icon.green svg { color:var(--green-600,#229450); }
   .ar-status-icon.stone svg { color:#9ca3af; }
 
-  /* Contact card */
+  
   .ar-avatar {
     width:44px; height:44px; border-radius:14px; flex-shrink:0;
     background:linear-gradient(135deg,var(--green-600,#229450),var(--green-800,#1a6b3c));
@@ -212,7 +209,7 @@ const STYLES = `
   .ar-call-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(26,107,60,0.35); }
   .ar-call-btn svg { width:16px; height:16px; }
 
-  /* Emergency contacts */
+  
   .ar-emergency-card {
     padding:20px;
     background:linear-gradient(135deg,#fff5f5,#fff);
@@ -236,7 +233,7 @@ const STYLES = `
   .ar-contact-label svg { width:13px; height:13px; color:#dc2626; }
   .ar-contact-num { font-size:16px; font-weight:800; color:#dc2626; letter-spacing:-0.3px; }
 
-  /* Warning notice */
+  
   .ar-warning-notice {
     margin-top:14px; padding:11px 14px;
     background:#fffbeb; border:1px solid #fcd34d; border-radius:10px;
@@ -245,7 +242,7 @@ const STYLES = `
   }
   .ar-warning-notice svg { width:14px; height:14px; flex-shrink:0; color:#d97706; }
 
-  /* Empty state */
+  
   .ar-empty-card {
     background:#fff; border-radius:18px; border:1px solid #e8eee8;
     box-shadow:0 2px 16px rgba(13,61,34,0.06);
@@ -262,7 +259,7 @@ const STYLES = `
   .ar-empty-card h3 { font-size:18px; font-weight:800; color:var(--text-dark,#141b11); margin:0 0 10px; letter-spacing:-0.3px; }
   .ar-empty-card p  { font-size:14px; color:var(--text-muted,#6b7a64); max-width:600px; margin:0 auto 20px; line-height:1.7; }
 
-  /* Available requests list */
+  
   .ar-avail-card {
     background:#fff; border-radius:14px; border:1px solid #e8eee8;
     border-left:4px solid var(--stone-300,#d1d5cf);
@@ -288,17 +285,17 @@ const STYLES = `
   .ar-avail-accept:disabled { opacity:0.65; cursor:not-allowed; }
   .ar-avail-accept svg { width:13px; height:13px; }
 
-  /* Urgency pill */
+  
   .ar-urg-pill {
     display:inline-flex; align-items:center; padding:2px 9px; border-radius:99px;
     font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px;
   }
 
-  /* Blood badge */
+  
   .ar-blood { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; background:rgba(220,38,38,0.1); color:#dc2626; font-size:10px; font-weight:700; }
   .ar-blood svg { width:10px; height:10px; }
 
-  /* Pending preview banner */
+  
   .ar-pending-banner {
     background:linear-gradient(135deg,#f0fdf4,#fff);
     border:1.5px solid #86efac; border-radius:18px;
@@ -315,17 +312,15 @@ const STYLES = `
   .ar-pending-title { font-size:20px; font-weight:800; color:var(--text-dark,#141b11); margin:0 0 10px; letter-spacing:-0.4px; }
   .ar-pending-desc  { font-size:14px; color:var(--text-muted,#6b7a64); max-width:600px; margin:0 auto 18px; line-height:1.7; }
 
-  /* Main grid */
+  
   .ar-main-grid { display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:start; }
   @media (max-width:860px) { .ar-main-grid { grid-template-columns:1fr; } }
 
-  /* Delay helpers */
+  
   .ar-d1 { animation-delay:0.08s; }
   .ar-d2 { animation-delay:0.16s; }
   .ar-d3 { animation-delay:0.24s; }
 `;
-
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Icons = {
   ArrowLeft:    () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>,
   Siren:        () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M4.93 4.93l2.83 2.83M2 12h4M4.93 19.07l2.83-2.83M12 22v-4M19.07 19.07l-2.83-2.83M22 12h-4M19.07 4.93l-2.83 2.83"/><circle cx="12" cy="12" r="4"/></svg>,
@@ -350,8 +345,6 @@ const Icons = {
   List:         () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
   Activity:     () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
 };
-
-// Emergency meta
 const EMERGENCY_META = {
   medical:  { Icon: Icons.Ambulance,  color: '#2563eb', bg: '#eff6ff' },
   blood:    { Icon: Icons.Drop,       color: '#dc2626', bg: '#fef2f2' },
@@ -361,8 +354,6 @@ const EMERGENCY_META = {
 };
 
 const URGENCY_COLOR = { critical:'#dc2626', high:'#d97706', medium:'#2563eb', low:'#229450' };
-
-// ─── Response unwrappers ──────────────────────────────────────────────────────
 const unwrapActiveRequest = (res) => res?.activeRequest ?? null;
 const unwrapNearby = (res) => ({
   requests: Array.isArray(res?.data) ? res.data : [],
@@ -370,8 +361,6 @@ const unwrapNearby = (res) => ({
   city:     res?.pagination?.city  ?? '',
 });
 const unwrapRequest = (res) => res?.data ?? null;
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 function InfoRow({ IconComp, label, value }) {
   if (!value) return null;
   return (
@@ -398,8 +387,6 @@ function TimelineStep({ StepIcon, label, state }) {
     </div>
   );
 }
-
-// ─── Main component ───────────────────────────────────────────────────────────
 export default function ActiveRequest() {
   const navigate       = useNavigate();
   const [searchParams] = useSearchParams();
@@ -445,14 +432,12 @@ export default function ActiveRequest() {
         try {
           const reqRes  = await getRequestById(requestedId);
           const fetched = unwrapRequest(reqRes);
-          // debugging
           console.log('reqRes:', reqRes);
   console.log('fetched:', fetched);
   console.log('fetched status:', fetched?.status);
   
           if (mountedRef.current) setPendingRequest(fetched?.status === 'posted' ? fetched : null);
         } catch(err) { 
-          // debugging 
           console.log('getRequestById error:', err);
           if (mountedRef.current) setPendingRequest(null); }
       } else { setPendingRequest(null); }
@@ -469,7 +454,6 @@ export default function ActiveRequest() {
   }, [requestedId]);
 
   useEffect(() => {
-  // Wait for searchParams to hydrate before loading
   const timer = setTimeout(() => { loadRequest(); }, 50);
   return () => clearTimeout(timer);
 }, [loadRequest]);
@@ -572,9 +556,7 @@ useEffect(() => {
     <Navbar title="Active Request">
       <style>{STYLES}</style>
       <div className="page-wrapper ar-root">
-
-        {/* Page header */}
-        <div className="ar-page-header">
+<div className="ar-page-header">
           <button className="ar-back-btn" onClick={() => safeNavigate('/volunteer/dashboard')}>
             <Icons.ArrowLeft /> Dashboard
           </button>
@@ -601,9 +583,7 @@ useEffect(() => {
                 {successMsg}
               </div>
             )}
-
-            {/* ── No active assignment ── */}
-            {!request && (
+{!request && (
               <>
                 {pendingRequest ? (
                   <div className="ar-pending-banner">
@@ -707,16 +687,10 @@ useEffect(() => {
                 )}
               </>
             )}
-
-            {/* ── Active request management view ── */}
-            {request && (
+{request && (
               <div className="ar-main-grid">
-
-                {/* Left column */}
-                <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
-
-                  {/* Timeline */}
-                  <div className="ar-card ar-d1">
+<div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
+<div className="ar-card ar-d1">
                     <div className="ar-card-header">
                       <div className="ar-section-title"><Icons.Activity />Request Progress</div>
                     </div>
@@ -729,9 +703,7 @@ useEffect(() => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Request details */}
-                  <div className="ar-card ar-d2">
+<div className="ar-card ar-d2">
                     <div className="ar-card-header">
                       <div>
                         <div className="ar-section-title"><Icons.ClipboardText />Request Details</div>
@@ -752,9 +724,7 @@ useEffect(() => {
                       )}
                     </div>
                   </div>
-
-                  {/* Action buttons */}
-                  <div className="ar-card ar-d3">
+<div className="ar-card ar-d3">
                     <div className="ar-card-header">
                       <div className="ar-section-title"><Icons.Activity />Update Status</div>
                     </div>
@@ -789,12 +759,8 @@ useEffect(() => {
                     </div>
                   </div>
                 </div>
-
-                {/* Right column */}
-                <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
-
-                  {/* Status card */}
-                  <div className="ar-card ar-d1">
+<div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
+<div className="ar-card ar-d1">
                     <div className="ar-card-body" style={{ textAlign:'center', padding:'28px 22px' }}>
                       {statusIconMeta && (
                         <div className={`ar-status-icon ${statusIconMeta.cls}`}>
@@ -813,9 +779,7 @@ useEffect(() => {
                       </p>
                     </div>
                   </div>
-
-                  {/* Requester contact */}
-                  {request.requesterId && (
+{request.requesterId && (
                     <div className="ar-card ar-d2">
                       <div className="ar-card-header">
                         <div className="ar-section-title"><Icons.User />Requester Contact</div>
@@ -842,9 +806,7 @@ useEffect(() => {
                       </div>
                     </div>
                   )}
-
-                  {/* Emergency contacts */}
-                  <div className="ar-emergency-card ar-d3">
+<div className="ar-emergency-card ar-d3">
                     <div className="ar-emergency-title">
                       <Icons.Phone /> Emergency Contacts
                     </div>
@@ -865,9 +827,7 @@ useEffect(() => {
           </>
         )}
       </div>
-
-      {/* Cancel modal */}
-      <Modal
+<Modal
         isOpen={showCancel}
         onClose={() => { if (actionLoading === 'cancel') return; setShowCancel(false); setCancelReason(''); }}
         title="Cancel Request?"

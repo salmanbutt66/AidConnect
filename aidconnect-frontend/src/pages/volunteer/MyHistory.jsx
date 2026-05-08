@@ -1,4 +1,3 @@
-// src/pages/volunteer/MyHistory.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -16,7 +15,6 @@ import {
   getInitials,
 } from '../../utils/formatters.js';
 
-/* ─── Scoped styles ─────────────────────────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
@@ -192,7 +190,7 @@ const STYLES = `
     transform: translateY(-1px);
   }
 
-  /* Filter tabs */
+  
   .history-root .filter-bar {
     display: flex; gap: 6px; flex-wrap: wrap;
     padding: 16px 20px;
@@ -219,7 +217,7 @@ const STYLES = `
   }
   .history-root .filter-btn.active:hover { transform: translateY(-1px); }
 
-  /* Stats row */
+  
   .history-root .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -254,7 +252,7 @@ const STYLES = `
     letter-spacing: 0.6px; margin-top: 4px;
   }
 
-  /* Pagination */
+  
   .history-root .pag-row {
     display: flex; align-items: center; justify-content: center;
     gap: 6px; margin-top: 24px; flex-wrap: wrap;
@@ -278,7 +276,7 @@ const STYLES = `
   }
   .history-root .pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Alert */
+  
   .history-root .alert-banner {
     display: flex; align-items: center; gap: 12px;
     padding: 13px 16px; border-radius: 10px;
@@ -322,7 +320,6 @@ const STYLES = `
   }
 `;
 
-/* ─── SVG Icons ─────────────────────────────────────────────────────────────── */
 const Icon = {
   Medical: ({ s = 18 }) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -441,7 +438,6 @@ const Icon = {
   ),
 };
 
-/* ─── Emergency icon + colour map ───────────────────────────────────────────── */
 const emergencyStyle = {
   medical:  { bg: '#fff0ef', color: '#c0392b', Icon: Icon.Medical  },
   blood:    { bg: '#fff0ef', color: '#c0392b', Icon: Icon.Blood    },
@@ -463,7 +459,6 @@ const urgencyConfig = {
   low:      { color: '#229450', bg: '#f0fdf5', label: 'Low'      },
 };
 
-/* ─── Expandable History Row ────────────────────────────────────────────────── */
 function HistoryRow({ request, index }) {
   const [expanded, setExpanded] = useState(false);
   const requester = request.requesterId;
@@ -491,24 +486,18 @@ function HistoryRow({ request, index }) {
       className="hist-card"
       style={{ animationDelay: `${index * 0.06}s` }}
     >
-      {/* Collapsed header */}
-      <div className="hist-header" onClick={() => setExpanded(p => !p)}>
+<div className="hist-header" onClick={() => setExpanded(p => !p)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '13px', flex: 1, minWidth: 0 }}>
-
-          {/* Emergency icon */}
-          <div className="icon-box" style={{ background: eStyle.bg, color: eStyle.color }}>
+<div className="icon-box" style={{ background: eStyle.bg, color: eStyle.color }}>
             <EIcon s={19} />
           </div>
 
           <div style={{ minWidth: 0 }}>
-            {/* Tag row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap', marginBottom: '5px' }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap', marginBottom: '5px' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#141b11' }}>
                 {formatEmergencyType(request.emergencyType)}
               </span>
-
-              {/* Urgency */}
-              {uConfig && (
+{uConfig && (
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   background: uConfig.bg, color: uConfig.color,
@@ -520,9 +509,7 @@ function HistoryRow({ request, index }) {
                   {uConfig.label}
                 </span>
               )}
-
-              {/* Status */}
-              <span style={{
+<span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '4px',
                 background: sStyle.bg, color: sStyle.color,
                 border: `1px solid ${sStyle.color}33`,
@@ -533,9 +520,7 @@ function HistoryRow({ request, index }) {
                 {sStyle.label}
               </span>
             </div>
-
-            {/* Meta line */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '12px', color: '#6b7a64' }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '12px', color: '#6b7a64' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Icon.Calendar s={12} />
                 {formatDateTime(request.createdAt)}
@@ -555,9 +540,7 @@ function HistoryRow({ request, index }) {
             </div>
           </div>
         </div>
-
-        {/* Right side */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           {request.resolutionTime && (
             <span className="time-pill">
               <Icon.Clock s={11} />
@@ -569,13 +552,9 @@ function HistoryRow({ request, index }) {
           </span>
         </div>
       </div>
-
-      {/* Expanded panel */}
-      {expanded && (
+{expanded && (
         <div className="hist-expanded">
-
-          {/* Description */}
-          {request.description && (
+{request.description && (
             <div>
               <div className="desc-label">
                 <Icon.Clipboard s={11} /> Description
@@ -583,9 +562,7 @@ function HistoryRow({ request, index }) {
               <div className="desc-block">{request.description}</div>
             </div>
           )}
-
-          {/* Detail grid */}
-          {details.length > 0 && (
+{details.length > 0 && (
             <div className="detail-grid">
               {details.map((d) => (
                 <div key={d.label}>
@@ -598,9 +575,7 @@ function HistoryRow({ request, index }) {
               ))}
             </div>
           )}
-
-          {/* Requester info */}
-          {requester && (
+{requester && (
             <div className="requester-box">
               <div className="avatar-circle">
                 {getInitials(requester.name)}
@@ -633,7 +608,6 @@ function HistoryRow({ request, index }) {
   );
 }
 
-/* ─── Filter config ─────────────────────────────────────────────────────────── */
 const FILTERS = [
   { label: 'All',         value: 'all',         Icon: Icon.List        },
   { label: 'Completed',   value: 'completed',   Icon: Icon.CheckCircle },
@@ -641,7 +615,6 @@ const FILTERS = [
   { label: 'In Progress', value: 'in_progress', Icon: Icon.Zap         },
 ];
 
-/* ─── Stat tile ─────────────────────────────────────────────────────────────── */
 function StatTile({ value, label, iconEl, iconBg, iconColor, delay = 0 }) {
   return (
     <div className="stat-tile" style={{ animationDelay: `${delay}ms` }}>
@@ -654,7 +627,6 @@ function StatTile({ value, label, iconEl, iconBg, iconColor, delay = 0 }) {
   );
 }
 
-/* ─── MyHistory page ────────────────────────────────────────────────────────── */
 export default function MyHistory() {
   const navigate = useNavigate();
 
@@ -703,15 +675,11 @@ export default function MyHistory() {
       <Navbar title="Request History">
         <div className="history-root">
           <div className="page-wrapper-inner">
-
-            {/* Page header */}
-            <div style={{ marginBottom: '26px' }}>
+<div style={{ marginBottom: '26px' }}>
               <h1 className="page-title">Request History</h1>
               <p className="page-subtitle">All emergency requests you've handled as a volunteer.</p>
             </div>
-
-            {/* Stats row */}
-            {!loading && requests.length > 0 && (
+{!loading && requests.length > 0 && (
               <div className="stats-row">
                 <StatTile
                   value={requests.length}
@@ -743,12 +711,8 @@ export default function MyHistory() {
                 />
               </div>
             )}
-
-            {/* Main card */}
-            <div className="outer-card">
-
-              {/* Filter bar */}
-              <div className="filter-bar">
+<div className="outer-card">
+<div className="filter-bar">
                 {FILTERS.map(({ label, value, Icon: FIcon }) => (
                   <button
                     key={value}
@@ -760,12 +724,8 @@ export default function MyHistory() {
                   </button>
                 ))}
               </div>
-
-              {/* Body */}
-              <div style={{ padding: '20px' }}>
-
-                {/* Error */}
-                {error && (
+<div style={{ padding: '20px' }}>
+{error && (
                   <div className="alert-banner alert-error">
                     <Icon.AlertCircle s={18} />
                     <span style={{ flex: 1 }}>{error}</span>
@@ -818,9 +778,7 @@ export default function MyHistory() {
                     ))}
                   </div>
                 )}
-
-                {/* Pagination */}
-                {!loading && pagination && pagination.pages > 1 && (
+{!loading && pagination && pagination.pages > 1 && (
                   <>
                     <div className="pag-row">
                       <button

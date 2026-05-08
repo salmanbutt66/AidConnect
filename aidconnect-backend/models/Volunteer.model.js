@@ -1,4 +1,3 @@
-// models/Volunteer.model.js
 import mongoose from "mongoose";
 
 const volunteerSchema = new mongoose.Schema(
@@ -9,11 +8,6 @@ const volunteerSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-
-    // FIX: default false — a volunteer should start unavailable until they
-    // have been approved and manually go available. true caused newly
-    // registered volunteers to appear "available" in admin lists before
-    // any approval had been granted.
     isAvailable: {
       type: Boolean,
       default: false,
@@ -55,26 +49,15 @@ const volunteerSchema = new mongoose.Schema(
       ],
       default: [],
     },
-
-    // ── GPS LOCATION (optional) ───────────────────────────────────────────
-    // FIX: removed default [0, 0] from coordinates. Storing [0,0] for every
-    // volunteer caused the 2dsphere index to index a point in the middle of
-    // the ocean for all documents, polluting geo queries and the index.
-    // City-based matching (serviceArea.city) is the primary mechanism —
-    // GPS is cosmetic only and should only be stored when actually captured.
     location: {
       type: {
         type: String,
         enum: ["Point"],
-        // no default
       },
       coordinates: {
         type: [Number],
-        // no default — omitting keeps the doc out of the 2dsphere index
       },
     },
-
-    // ── SERVICE AREA (primary matching field) ─────────────────────────────
     serviceArea: {
       city:     { type: String, trim: true, default: null },
       area:     { type: String, trim: true, default: null },
@@ -147,10 +130,6 @@ const volunteerSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// ─── Pre-save Hook: Strip empty coordinates ───────────────────────────────────
-// FIX: if location has no real coordinates (or is [0,0] from old data),
-// remove the geo sub-fields entirely so the 2dsphere index is not triggered.
 volunteerSchema.pre("save", function () {
   if (!this.location) return;
   const coords = this.location.coordinates;
@@ -159,8 +138,6 @@ volunteerSchema.pre("save", function () {
     this.location = undefined;
   }
 });
-
-// ─── Virtuals ─────────────────────────────────────────────────────────────────
 volunteerSchema.virtual("acceptanceRate").get(function () {
   if (!this.totalAssigned) return 0;
   return parseFloat(((this.totalAccepted / this.totalAssigned) * 100).toFixed(1));
@@ -175,8 +152,6 @@ volunteerSchema.virtual("cancellationRate").get(function () {
   if (!this.totalAccepted) return 0;
   return parseFloat(((this.totalCancelled / this.totalAccepted) * 100).toFixed(1));
 });
-
-// ─── Instance Methods ─────────────────────────────────────────────────────────
 volunteerSchema.methods.addRating = function (userId, requestId, score, comment = "") {
   this.ratings.push({ givenBy: userId, requestId, score, comment });
   this.totalRatings += 1;
@@ -194,16 +169,11 @@ volunteerSchema.methods.freeUp = function () {
   this.currentRequestId = null;
   this.isAvailable      = true;
 };
-
-// ─── Indexes ──────────────────────────────────────────────────────────────────
 volunteerSchema.index({ isAvailable: 1, isApproved: 1 });
 volunteerSchema.index({ reputationScore: -1 });
-// FIX: sparse:true so volunteers without GPS coordinates are skipped by
-// the 2dsphere index instead of causing an indexing error
 volunteerSchema.index({ location: "2dsphere" }, { sparse: true });
 volunteerSchema.index({ emergencyTypes: 1 });
 volunteerSchema.index({ skills: 1 });
-// Primary city-matching index — the most important index in the system
 volunteerSchema.index({ "serviceArea.city": 1, isAvailable: 1, isApproved: 1 });
 
 volunteerSchema.set("toJSON",   { virtuals: true });

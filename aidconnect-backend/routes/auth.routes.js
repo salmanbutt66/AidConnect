@@ -1,4 +1,3 @@
-// routes/auth.routes.js
 
 import express from "express";
 import {
@@ -21,38 +20,14 @@ import {
 } from "../utils/validators.js";
 
 const router = express.Router();
-
-// ─── Public Routes (no auth required) ────────────────────────────────────────
-
-// POST /api/auth/register
 router.post("/register", validateRegister, register);
-
-// POST /api/auth/login
 router.post("/login", validateLogin, login);
-
-// POST /api/auth/refresh-token
 router.post("/refresh-token", refreshToken);
-
-// ─── Private Routes (must be logged in) ──────────────────────────────────────
-
-// POST /api/auth/logout
 router.post("/logout", protect, logout);
-
-// GET /api/auth/me
 router.get("/me", protect, getMe);
-
-// PUT /api/auth/update-profile
 router.put("/update-profile", protect, validateUpdateProfile, updateProfile);
-
-// PUT /api/auth/change-password
 router.put("/change-password", protect, validateChangePassword, changePassword);
-
-// DELETE /api/auth/delete-account
 router.delete("/delete-account", protect, deleteAccount);
-
-// ─── Admin Only Routes ────────────────────────────────────────────────────────
-
-// GET /api/auth/users — get all users (admin panel)
 router.get(
   "/users",
   protect,
@@ -100,8 +75,6 @@ router.get(
     }
   }
 );
-
-// PUT /api/auth/users/:id/ban — ban a user
 router.put(
   "/users/:id/ban",
   protect,
@@ -137,8 +110,6 @@ router.put(
     }
   }
 );
-
-// PUT /api/auth/users/:id/unban — unban a user
 router.put(
   "/users/:id/unban",
   protect,
@@ -166,8 +137,6 @@ router.put(
     }
   }
 );
-
-// PUT /api/auth/users/:id/role — change a user's role
 router.put(
   "/users/:id/role",
   protect,
@@ -194,8 +163,6 @@ router.put(
       const oldRole = user.role;
       user.role     = role;
       await user.save({ validateBeforeSave: false });
-
-      // Auto-create volunteer profile if promoted to volunteer
       if (role === "volunteer" && oldRole !== "volunteer") {
         const exists = await Volunteer.findOne({ user: user._id });
         if (!exists) {
@@ -212,8 +179,6 @@ router.put(
     }
   }
 );
-
-// DELETE /api/auth/users/:id — hard delete a user (admin only)
 router.delete(
   "/users/:id",
   protect,

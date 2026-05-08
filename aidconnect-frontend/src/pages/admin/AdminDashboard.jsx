@@ -1,4 +1,3 @@
-// src/pages/admin/AdminDashboard.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -133,9 +132,7 @@ export default function AdminDashboard() {
   return (
     <Navbar title="Dashboard">
       <div className="page-wrapper">
-
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -172,9 +169,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-
-        {/* ── Connectivity alerts ───────────────────────────────────── */}
-        {backendDisconnected && (
+{backendDisconnected && (
           <div className="alert alert-warning anim-fade-up" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <WifiOff size={16} />
             Backend connection lost. Start or restart the API server on port 5000.
@@ -186,17 +181,13 @@ export default function AdminDashboard() {
             {statsError}
           </div>
         )}
-
-        {/* ── Stats row ─────────────────────────────────────────────── */}
-        <div className="grid-4" style={{ marginBottom: '28px' }}>
+<div className="grid-4" style={{ marginBottom: '28px' }}>
           <StatsCard label="Total Users"          value={stats?.totalUsers        ?? 0} icon={<Users size={20} />}     color="blue"   loading={statsLoading} delay={0} />
           <StatsCard label="Active Volunteers"    value={stats?.activeVolunteers  ?? 0} icon={<UserCheck size={20} />} color="green"  loading={statsLoading} delay={100} />
           <StatsCard label="Verified Providers"   value={stats?.verifiedProviders ?? 0} icon={<Building2 size={20} />} color="orange" loading={statsLoading} delay={200} />
           <StatsCard label="Critical Emergencies" value={stats?.criticalRequests  ?? 0} icon={<Siren size={20} />}    color="red"    loading={statsLoading} delay={300} />
         </div>
-
-        {/* ── Request feed ──────────────────────────────────────────── */}
-        <div className="card anim-fade-up delay-400">
+<div className="card anim-fade-up delay-400">
           <div className="card-header">
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>

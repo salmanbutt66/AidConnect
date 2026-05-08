@@ -1,4 +1,3 @@
-// src/pages/volunteer/VolunteerDashboard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -16,16 +15,12 @@ import {
 import { getNearbyRequests } from '../../api/request.api.js';
 import { formatScore, formatTimeAgo } from '../../utils/formatters.js';
 import { EMERGENCY_TYPES } from '../../utils/constants.js';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const unwrapActive = (res) => res?.activeRequest ?? null;
 const unwrapNearby = (res) => ({
   requests: Array.isArray(res?.data) ? res.data : [],
   total:    res?.pagination?.total ?? 0,
   city:     res?.pagination?.city  ?? '',
 });
-
-// ─── Injected styles ──────────────────────────────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -58,7 +53,7 @@ const STYLES = `
     to   { transform: translateX(0);    opacity: 1; }
   }
 
-  /* Page header */
+  
   .vd-page-header {
     margin-bottom: 28px;
     animation: vdFadeSlide 0.4s ease both;
@@ -72,7 +67,7 @@ const STYLES = `
     font-size: 14px; color: var(--text-muted, #6b7a64); margin: 0;
   }
 
-  /* Alert */
+  
   .vd-alert {
     display: flex; align-items: flex-start; gap: 12px;
     padding: 14px 18px; border-radius: 14px;
@@ -84,7 +79,7 @@ const STYLES = `
   .vd-alert.warning { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
   .vd-alert-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
 
-  /* Active request banner */
+  
   .vd-active-banner {
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     padding: 18px 22px;
@@ -117,7 +112,7 @@ const STYLES = `
   .vd-active-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(220,38,38,0.35); }
   .vd-active-btn svg { width: 14px; height: 14px; }
 
-  /* Stats grid */
+  
   .vd-stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -126,7 +121,7 @@ const STYLES = `
   @media (max-width: 900px) { .vd-stats-grid { grid-template-columns: repeat(2,1fr); } }
   @media (max-width: 520px) { .vd-stats-grid { grid-template-columns: 1fr; } }
 
-  /* Main grid */
+  
   .vd-main-grid {
     display: grid;
     grid-template-columns: 1fr 300px;
@@ -134,7 +129,7 @@ const STYLES = `
   }
   @media (max-width: 860px) { .vd-main-grid { grid-template-columns: 1fr; } }
 
-  /* Card */
+  
   .vd-card {
     background: #fff; border-radius: 18px;
     border: 1px solid #e8eee8;
@@ -154,7 +149,7 @@ const STYLES = `
   .vd-section-title svg { width: 15px; height: 15px; color: var(--green-600,#229450); }
   .vd-section-sub { font-size: 12px; color: var(--text-muted,#6b7a64); }
 
-  /* Availability card */
+  
   .vd-avail-card {
     background: #fff; border-radius: 18px;
     border: 2px solid var(--stone-200, #e5e7e3);
@@ -209,7 +204,7 @@ const STYLES = `
   .vd-avail-note.danger { color: #dc2626; }
   .vd-avail-btn svg { width: 14px; height: 14px; }
 
-  /* Reputation card */
+  
   .vd-rep-card {
     background: #fff; border-radius: 18px;
     border: 1px solid #e8eee8;
@@ -229,7 +224,7 @@ const STYLES = `
   }
   .vd-rep-note { font-size: 11px; color: var(--text-muted,#6b7a64); line-height: 1.5; }
 
-  /* Filter chips */
+  
   .vd-chip {
     padding: 5px 13px; border-radius: 99px;
     border: 1.5px solid var(--stone-300,#d1d5cf);
@@ -247,7 +242,7 @@ const STYLES = `
     box-shadow: 0 2px 8px rgba(34,148,80,0.12);
   }
 
-  /* Incoming request card */
+  
   .vd-req-card {
     background: #fff; border-radius: 14px;
     border: 1px solid #e8eee8;
@@ -289,7 +284,7 @@ const STYLES = `
   .vd-req-chevron { color: var(--text-light,#aab5a5); flex-shrink: 0; align-self: center; }
   .vd-req-chevron svg { width: 16px; height: 16px; }
 
-  /* Performance bar */
+  
   .vd-perf-bar { margin-bottom: 16px; }
   .vd-perf-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
   .vd-perf-label { font-size: 13px; color: var(--text-muted,#6b7a64); display: flex; align-items: center; gap: 6px; }
@@ -302,13 +297,13 @@ const STYLES = `
     animation-delay: 0.2s;
   }
 
-  /* Perf stats row */
+  
   .vd-perf-stats { display: flex; justify-content: space-around; padding-top: 20px; border-top: 1px solid #e8eee8; }
   .vd-perf-stat  { text-align: center; }
   .vd-perf-stat-num { font-size: 20px; font-weight: 800; color: var(--text-dark,#141b11); letter-spacing: -0.5px; }
   .vd-perf-stat-lbl { font-size: 11px; color: var(--text-muted,#6b7a64); margin-top: 2px; font-weight: 600; }
 
-  /* Quick actions */
+  
   .vd-quick-btn {
     display: flex; align-items: center; gap: 14px;
     padding: 14px 16px; background: #fff;
@@ -338,7 +333,7 @@ const STYLES = `
   .vd-quick-arrow svg { width: 16px; height: 16px; color: var(--text-light,#aab5a5); transition: transform 0.2s ease; }
   .vd-quick-btn:hover .vd-quick-arrow svg { transform: translateX(3px); color: var(--green-600,#229450); }
 
-  /* Empty state */
+  
   .vd-empty {
     padding: 32px 20px; text-align: center;
   }
@@ -352,7 +347,7 @@ const STYLES = `
   .vd-empty-icon svg { width: 24px; height: 24px; color: var(--green-600,#229450); }
   .vd-empty p { font-size: 13px; color: var(--text-muted,#6b7a64); margin: 0; line-height: 1.6; }
 
-  /* Refresh btn */
+  
   .vd-refresh-btn {
     padding: 7px 14px; border-radius: 10px;
     border: 1.5px solid #e8eee8; background: #fff;
@@ -366,7 +361,7 @@ const STYLES = `
   .vd-refresh-btn:hover { border-color: var(--green-300,#7dd49a); color: var(--green-700,#1e7d46); }
   .vd-refresh-btn svg { width: 13px; height: 13px; }
 
-  /* View all btn */
+  
   .vd-view-all {
     padding: 8px 16px; border-radius: 10px;
     border: 1.5px solid #e8eee8; background: #fff;
@@ -379,7 +374,7 @@ const STYLES = `
   .vd-view-all:hover { background: var(--green-50,#f2fbf6); border-color: var(--green-300,#7dd49a); }
   .vd-view-all svg { width: 13px; height: 13px; }
 
-  /* Spinner */
+  
   .vd-spinner {
     display: inline-block; width: 14px; height: 14px;
     border: 2px solid rgba(255,255,255,0.35);
@@ -392,7 +387,7 @@ const STYLES = `
     border-top-color: var(--green-700,#1e7d46);
   }
 
-  /* Blood badge */
+  
   .vd-blood-badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 2px 8px; border-radius: 99px;
@@ -401,15 +396,13 @@ const STYLES = `
   }
   .vd-blood-badge svg { width: 10px; height: 10px; }
 
-  /* Delay helpers */
+  
   .vd-d0 { animation-delay: 0.0s; }
   .vd-d1 { animation-delay: 0.08s; }
   .vd-d2 { animation-delay: 0.16s; }
   .vd-d3 { animation-delay: 0.24s; }
   .vd-d4 { animation-delay: 0.32s; }
 `;
-
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Icons = {
   Siren: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -561,8 +554,6 @@ const Icons = {
     </svg>
   ),
 };
-
-// Emergency type → icon + color
 const EMERGENCY_META = {
   medical:  { Icon: Icons.Ambulance, color: '#2563eb', bg: '#eff6ff' },
   blood:    { Icon: Icons.Drop,      color: '#dc2626', bg: '#fef2f2' },
@@ -574,8 +565,6 @@ const EMERGENCY_META = {
 const URGENCY_COLOR = {
   critical: '#dc2626', high: '#d97706', medium: '#2563eb', low: '#229450',
 };
-
-// ─── Availability card ────────────────────────────────────────────────────────
 function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onToggle }) {
   return (
     <div className={`vd-avail-card${isAvailable ? ' available' : ''}`}>
@@ -607,8 +596,6 @@ function AvailabilityCard({ isAvailable, isApproved, isSuspended, toggling, onTo
     </div>
   );
 }
-
-// ─── Performance bar ──────────────────────────────────────────────────────────
 function PerformanceBar({ label, value, color, Icon: BarIcon }) {
   return (
     <div className="vd-perf-bar">
@@ -624,8 +611,6 @@ function PerformanceBar({ label, value, color, Icon: BarIcon }) {
     </div>
   );
 }
-
-// ─── Active request banner ────────────────────────────────────────────────────
 function ActiveRequestBanner({ request, onView }) {
   return (
     <div className="vd-active-banner">
@@ -643,8 +628,6 @@ function ActiveRequestBanner({ request, onView }) {
     </div>
   );
 }
-
-// ─── Incoming request card ────────────────────────────────────────────────────
 function IncomingRequestCard({ request, onView, delay = 0 }) {
   const meta   = EMERGENCY_META[request.emergencyType] || EMERGENCY_META.other;
   const uColor = URGENCY_COLOR[request.urgencyLevel] || '#6b7a64';
@@ -694,8 +677,6 @@ function IncomingRequestCard({ request, onView, delay = 0 }) {
     </div>
   );
 }
-
-// ─── VolunteerDashboard ───────────────────────────────────────────────────────
 export default function VolunteerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -750,7 +731,7 @@ export default function VolunteerDashboard() {
       setNearbyRequests(requests);
       setRequestsTotal(total);
       if (city) setRequestsCity(city);
-    } catch { /* fail silently */ }
+    } catch {  }
   }, []);
 
   const handleFilterChange = (type) => {
@@ -790,9 +771,7 @@ export default function VolunteerDashboard() {
     <Navbar title="Dashboard">
       <style>{STYLES}</style>
       <div className="page-wrapper vd-root">
-
-        {/* Page header */}
-        <div className="vd-page-header">
+<div className="vd-page-header">
           <h1>Welcome back, {firstName}</h1>
           <p>Your volunteer activity and performance overview.</p>
         </div>
@@ -801,8 +780,7 @@ export default function VolunteerDashboard() {
 
         {!loading && (
           <>
-            {/* Error */}
-            {error && (
+{error && (
               <div className="vd-alert error">
                 <span className="vd-alert-icon"><Icons.AlertCircle /></span>
                 <div style={{ flex: 1 }}>{error}</div>
@@ -814,9 +792,7 @@ export default function VolunteerDashboard() {
                 </button>
               </div>
             )}
-
-            {/* Pending approval */}
-            {!isApproved && (
+{!isApproved && (
               <div className="vd-alert warning">
                 <span className="vd-alert-icon"><Icons.Hourglass /></span>
                 <div>
@@ -824,9 +800,7 @@ export default function VolunteerDashboard() {
                 </div>
               </div>
             )}
-
-            {/* Suspended */}
-            {isSuspended && (
+{isSuspended && (
               <div className="vd-alert error">
                 <span className="vd-alert-icon"><Icons.Ban /></span>
                 <div>
@@ -835,31 +809,21 @@ export default function VolunteerDashboard() {
                 </div>
               </div>
             )}
-
-            {/* Active request banner */}
-            {activeRequest && (
+{activeRequest && (
               <ActiveRequestBanner
                 request={activeRequest}
                 onView={() => navigate('/volunteer/active-request')}
               />
             )}
-
-            {/* Stats row */}
-            <div className="vd-stats-grid">
+<div className="vd-stats-grid">
               <StatsCard label="Completed"       value={stats?.totalCompleted ?? 0}                                  icon="check" color="green" sub="Total resolved"                    delay={0}   />
               <StatsCard label="Acceptance Rate" value={stats?.acceptanceRate ?? 0}                                  icon="zap"   color="blue"  format="percent"                        delay={100} />
               <StatsCard label="Avg Rating"      value={stats?.averageRating ? Number(stats.averageRating).toFixed(1) : '—'} icon="star" color="orange" format="raw" sub={`${stats?.totalRatings ?? 0} ratings`} delay={200} />
               <StatsCard label="Reputation"      value={reputationScore}                                             icon="award" color="green" sub={scoreMeta.label}                   delay={300} />
             </div>
-
-            {/* Main grid */}
-            <div className="vd-main-grid">
-
-              {/* ── Left column ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-                {/* Requests feed */}
-                <div className="vd-card vd-d1">
+<div className="vd-main-grid">
+<div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+<div className="vd-card vd-d1">
                   <div className="vd-card-header">
                     <div>
                       <div className="vd-section-title">
@@ -881,9 +845,7 @@ export default function VolunteerDashboard() {
                       <Icons.Refresh /> Refresh
                     </button>
                   </div>
-
-                  {/* Filter chips */}
-                  <div style={{ padding: '0 20px 14px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+<div style={{ padding: '0 20px 14px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     <button className={`vd-chip${filterType === '' ? ' active' : ''}`} onClick={() => handleFilterChange('')}>All</button>
                     {EMERGENCY_TYPES.map((t) => (
                       <button
@@ -895,9 +857,7 @@ export default function VolunteerDashboard() {
                       </button>
                     ))}
                   </div>
-
-                  {/* Request list */}
-                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+<div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {!isApproved ? (
                       <div className="vd-empty">
                         <div className="vd-empty-icon"><Icons.Hourglass /></div>
@@ -938,9 +898,7 @@ export default function VolunteerDashboard() {
                     </div>
                   )}
                 </div>
-
-                {/* Performance summary */}
-                <div className="vd-card vd-d2">
+<div className="vd-card vd-d2">
                   <div className="vd-card-header">
                     <div>
                       <div className="vd-section-title"><Icons.BarChart />Performance Summary</div>
@@ -968,9 +926,7 @@ export default function VolunteerDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Quick actions */}
-                <div className="vd-card vd-d3">
+<div className="vd-card vd-d3">
                   <div className="vd-card-header">
                     <div className="vd-section-title"><Icons.Zap />Quick Actions</div>
                   </div>
@@ -997,9 +953,7 @@ export default function VolunteerDashboard() {
                   </div>
                 </div>
               </div>
-
-              {/* ── Right column ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
                 <div className="vd-d1">
                   <AvailabilityCard
@@ -1010,9 +964,7 @@ export default function VolunteerDashboard() {
                     onToggle={handleToggleAvailability}
                   />
                 </div>
-
-                {/* Reputation card */}
-                <div className="vd-rep-card vd-d2">
+<div className="vd-rep-card vd-d2">
                   <div className="vd-section-title" style={{ marginBottom: '14px' }}>
                     <Icons.Award />Reputation Score
                   </div>
@@ -1030,9 +982,7 @@ export default function VolunteerDashboard() {
                     Out of 100 — based on response rate, completion &amp; ratings
                   </div>
                 </div>
-
-                {/* Notifications */}
-                <div className="vd-d3">
+<div className="vd-d3">
                   <NotificationPanel limit={5} />
                 </div>
               </div>

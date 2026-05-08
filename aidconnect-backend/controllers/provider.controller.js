@@ -1,15 +1,9 @@
-// controllers/provider.controller.js
 import Provider from "../models/Provider.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import Notification from "../models/Notification.model.js";
 import User from "../models/User.model.js";
 import { AppError } from "../middleware/error.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
-// ─────────────────────────────────────────
-// POST /api/providers/register
-// Access: Private (logged in user)
-// ─────────────────────────────────────────
 export const registerProvider = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
@@ -29,17 +23,10 @@ export const registerProvider = asyncHandler(async (req, res) => {
     city,
     location,
   } = req.body;
-
-  // FIX: city is now a flat top-level field on Provider (not location.city).
-  // Accept it from either req.body.city (flat) or req.body.location.city
-  // (legacy nested) so existing frontend forms keep working.
   const resolvedCity =
     city?.trim() ||
     location?.city?.trim() ||
     null;
-
-  // Only store GPS location when valid coordinates are provided.
-  // City-based matching does not need coordinates.
   let resolvedLocation;
   if (
     location?.coordinates?.length === 2 &&
@@ -74,11 +61,6 @@ export const registerProvider = asyncHandler(async (req, res) => {
     data: provider,
   });
 });
-
-// ─────────────────────────────────────────
-// GET /api/providers/profile
-// Access: Private (provider only)
-// ─────────────────────────────────────────
 export const getProviderProfile = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id })
     .populate("userId", "name email phone profileImage");
@@ -96,11 +78,6 @@ export const getProviderProfile = asyncHandler(async (req, res) => {
     data: provider,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/providers/profile
-// Access: Private (provider only)
-// ─────────────────────────────────────────
 export const updateProviderProfile = asyncHandler(async (req, res) => {
   const allowedFields = [
     "organizationName",
@@ -118,9 +95,6 @@ export const updateProviderProfile = asyncHandler(async (req, res) => {
       updates[field] = req.body[field];
     }
   });
-
-  // FIX: city is now a flat field — update it directly.
-  // Also accept city from the nested location.city path for compatibility.
   if (req.body.city !== undefined) {
     updates.city = req.body.city?.trim() || null;
   } else if (req.body.location?.city !== undefined) {
@@ -143,11 +117,6 @@ export const updateProviderProfile = asyncHandler(async (req, res) => {
     data: provider,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/providers/availability
-// Access: Private (provider only)
-// ─────────────────────────────────────────
 export const toggleAvailability = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
 
@@ -176,16 +145,6 @@ export const toggleAvailability = asyncHandler(async (req, res) => {
     },
   });
 });
-
-// ─────────────────────────────────────────
-// GET /api/providers/requests
-// Access: Private (provider only)
-//
-// FIX: now reads the flat provider.city field instead of the
-// non-existent provider.location.city. The city field on both
-// Provider and HelpRequest is a flat indexed string so the
-// case-insensitive regex query is fast and always resolves.
-// ─────────────────────────────────────────
 export const getRelevantRequests = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
 
@@ -213,8 +172,6 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
       message:  "You are currently unavailable, so no new requests are shown.",
     });
   }
-
-  // Map service type → relevant emergency types
   const typeMap = {
   ambulance:  ["medical", "accident", "disaster", "other"],
   hospital:   ["medical", "accident", "disaster", "other"],
@@ -225,9 +182,6 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
 };
 
   const relevantTypes = typeMap[provider.serviceType] || [];
-
-  // FIX: read city from the flat provider.city field.
-  // address is a secondary fallback only when city is unset.
   const providerCity = provider.city?.trim() || provider.address?.trim() || null;
 
   const query = {
@@ -236,12 +190,8 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
   };
 
   if (providerCity) {
-    // Case-insensitive exact city match — same logic as volunteer matching.
     query.city = new RegExp(`^${providerCity}$`, "i");
   } else {
-    // No city configured — warn and return nationwide results so the
-    // provider isn't silently blocked. Dashboard shows a "set your city"
-    // prompt in this case.
     console.warn(
       `[getRelevantRequests] Provider ${provider._id} has no city set — returning nationwide results`
     );
@@ -258,11 +208,6 @@ export const getRelevantRequests = asyncHandler(async (req, res) => {
     data:    requests,
   });
 });
-
-// ─────────────────────────────────────────
-// GET /api/providers/requests/active
-// Access: Private (provider only)
-// ─────────────────────────────────────────
 export const getActiveRequest = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
 
@@ -287,11 +232,6 @@ export const getActiveRequest = asyncHandler(async (req, res) => {
     activeRequest: activeRequest || null,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/providers/requests/:id/accept
-// Access: Private (provider only)
-// ─────────────────────────────────────────
 export const acceptRequest = asyncHandler(async (req, res) => {
   const provider = await Provider.findOne({ userId: req.user.id });
 
@@ -310,8 +250,6 @@ export const acceptRequest = asyncHandler(async (req, res) => {
   request.acceptedAt   = new Date();
   request.responseTime = Math.round((new Date() - request.postedAt) / 60000);
   await request.save();
-
-  // Mark provider unavailable while they handle this request
   provider.isAvailable = false;
   await provider.save();
 
@@ -329,11 +267,6 @@ export const acceptRequest = asyncHandler(async (req, res) => {
     data:    request,
   });
 });
-
-// ─────────────────────────────────────────
-// GET /api/providers/
-// Access: Private (admin only)
-// ─────────────────────────────────────────
 export const getAllProviders = asyncHandler(async (req, res) => {
   const { serviceType, isVerified, isAvailable, city, page = 1, limit = 10 } = req.query;
 
@@ -362,11 +295,6 @@ export const getAllProviders = asyncHandler(async (req, res) => {
     data:  providers,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/providers/:id/verify
-// Access: Private (admin only)
-// ─────────────────────────────────────────
 export const verifyProvider = asyncHandler(async (req, res) => {
   const provider = await Provider.findByIdAndUpdate(
     req.params.id,
@@ -389,11 +317,6 @@ export const verifyProvider = asyncHandler(async (req, res) => {
     data:    provider,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/providers/:id/suspend
-// Access: Private (admin only)
-// ─────────────────────────────────────────
 export const suspendProvider = asyncHandler(async (req, res) => {
   const provider = await Provider.findByIdAndUpdate(
     req.params.id,

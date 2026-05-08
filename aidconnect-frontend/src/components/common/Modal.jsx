@@ -1,5 +1,5 @@
-// src/components/common/Modal.jsx
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export default function Modal({
@@ -9,20 +9,15 @@ export default function Modal({
   icon,
   children,
   footer,
-
-  // Confirm/cancel shorthand
   onConfirm,
   confirmLabel   = 'Confirm',
   confirmVariant = 'primary',
   cancelLabel    = 'Cancel',
   loading        = false,
-
-  // Config
   size           = 'md',
   closeOnOverlay = true,
 }) {
-
-  // ── Close on Escape key ────────────────────────────────────────────────────
+  const canUsePortal = typeof document !== 'undefined';
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape' && !loading) onClose();
   }, [onClose, loading]);
@@ -31,20 +26,11 @@ export default function Modal({
     if (!isOpen) return;
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
-
-    // FIX: always restore body overflow on cleanup, even if the parent
-    // component unmounts mid-action (e.g. navigate() called while modal
-    // is open). Without this guard the body stays locked as overflow:hidden
-    // permanently — which is what caused the dark/frozen screen bug.
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
   }, [isOpen, handleKeyDown]);
-
-  // FIX: also restore overflow whenever isOpen flips to false while the
-  // effect is still alive (covers the case where parent sets isOpen=false
-  // externally without unmounting the Modal component).
   useEffect(() => {
     if (!isOpen) {
       document.body.style.overflow = '';
@@ -62,7 +48,7 @@ export default function Modal({
 
   const hasFooter = footer !== undefined || typeof onConfirm === 'function';
 
-  return (
+  const modalContent = (
     <div
       className="modal-overlay"
       onClick={(e) => {
@@ -75,9 +61,7 @@ export default function Modal({
         className="modal"
         style={{ maxWidth: maxWidths[size] }}
       >
-
-        {/* ── Header ────────────────────────────────────────────────────── */}
-        <div className="modal-header">
+<div className="modal-header">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}
             {title}
@@ -91,9 +75,7 @@ export default function Modal({
             <X size={20} />
           </button>
         </div>
-
-        {/* ── Body ──────────────────────────────────────────────────────── */}
-        <div className="modal-body">
+<div className="modal-body">
           {typeof children === 'string' ? (
             <p style={{ fontSize: '14px', color: 'var(--text-mid)', lineHeight: 1.7, margin: 0 }}>
               {children}
@@ -102,9 +84,7 @@ export default function Modal({
             children
           )}
         </div>
-
-        {/* ── Footer ────────────────────────────────────────────────────── */}
-        {hasFooter && (
+{hasFooter && (
           <div className="modal-footer">
             {footer !== undefined ? (
               footer
@@ -142,4 +122,6 @@ export default function Modal({
       </div>
     </div>
   );
+
+  return canUsePortal ? createPortal(modalContent, document.body) : modalContent;
 }

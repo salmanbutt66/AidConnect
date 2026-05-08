@@ -1,14 +1,8 @@
-// controllers/match.controller.js
 import Match from "../models/Match.model.js";
 import Volunteer from "../models/Volunteer.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import { handleVolunteerResponse } from "../services/matching.service.js";
-
-// ─────────────────────────────────────────
-// GET REQUEST MATCHES
-// GET /api/matches/request/:id
-// ─────────────────────────────────────────
 export const getRequestMatches = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -40,11 +34,6 @@ export const getRequestMatches = asyncHandler(async (req, res) => {
     summary,
   });
 });
-
-// ─────────────────────────────────────────
-// DECLINE MATCH
-// PUT /api/matches/:id/decline
-// ─────────────────────────────────────────
 export const declineMatch = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -52,16 +41,6 @@ export const declineMatch = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Match declined successfully", match);
 });
-
-// ─────────────────────────────────────────
-// GET MY MATCHES
-// GET /api/matches/my
-// FIX: was filtering by matchedTo: req.user.id (User _id) but
-//      matchedTo stores the Volunteer profile _id. Resolve the
-//      profile first, then filter by profile._id.
-//      Also added city to the requestId populate select so the
-//      frontend can display which city the request is from.
-// ─────────────────────────────────────────
 export const getMyMatches = asyncHandler(async (req, res) => {
   const { status, page = 1, limit = 10 } = req.query;
 

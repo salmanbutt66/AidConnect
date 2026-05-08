@@ -1,4 +1,3 @@
-// src/components/cards/VolunteerCard.jsx
 import React from 'react';
 import { VOLUNTEER_SKILLS } from '../../utils/constants.js';
 import {
@@ -8,8 +7,6 @@ import {
   formatStars,
 } from '../../utils/formatters.js';
 import { MapPin, AlertTriangle, Check, Star } from 'lucide-react';
-
-// ─── Stat pill — small label + value pair ─────────────────────────────────────
 function StatPill({ label, value, color = 'var(--text-mid)' }) {
   return (
     <div
@@ -47,8 +44,6 @@ function StatPill({ label, value, color = 'var(--text-mid)' }) {
     </div>
   );
 }
-
-// ─── Star rating row ──────────────────────────────────────────────────────────
 function StarRow({ rating, totalRatings }) {
   if (!totalRatings) return null;
   const stars = formatStars(rating);
@@ -79,8 +74,6 @@ function StarRow({ rating, totalRatings }) {
     </div>
   );
 }
-
-// ─── Skill chip ───────────────────────────────────────────────────────────────
 function SkillChip({ skill }) {
   return (
     <span
@@ -100,33 +93,6 @@ function SkillChip({ skill }) {
   );
 }
 
-// ─── VolunteerCard ────────────────────────────────────────────────────────────
-/**
- * VolunteerCard — displays a single volunteer in list/grid views.
- *
- * Props:
- *   volunteer   {object}   — Volunteer document from API (with user populated)
- *   onClick     {fn}       — (volunteer) => void  [optional, makes card clickable]
- *   loading     {boolean}  — disables action buttons during API calls
- *   variant     'default' | 'admin'
- *               default → availability, skills, stats, rating
- *               admin   → adds approve / suspend / unsuspend actions
- *
- * Admin-only action props:
- *   onApprove   {fn}  — (volunteerId) => void
- *   onSuspend   {fn}  — (volunteerId) => void
- *   onUnsuspend {fn}  — (volunteerId) => void
- *
- * Volunteer object shape (from backend):
- *   _id, user: { name, email, profilePicture },
- *   isAvailable, isApproved, isSuspended, suspendedReason,
- *   skills[], emergencyTypes[],
- *   reputationScore (0–100),
- *   totalCompleted, totalAssigned,
- *   averageRating, totalRatings,
- *   serviceArea: { city, area, radiusKm },
- *   bio
- */
 export default function VolunteerCard({
   volunteer,
   onClick,
@@ -160,18 +126,12 @@ export default function VolunteerCard({
   const scoreMeta   = formatScore(reputationScore);
   const isAdmin     = variant === 'admin';
   const isClickable = typeof onClick === 'function';
-
-  // Acceptance rate — guard divide-by-zero
   const acceptanceRate = totalAssigned > 0
     ? formatPercent((totalCompleted / totalAssigned) * 100)
     : '—';
-
-  // Location string
   const locationText = serviceArea?.city
     ? [serviceArea.city, serviceArea.area].filter(Boolean).join(', ')
     : null;
-
-  // Status label + colour
   const statusLabel = isSuspended
     ? 'Suspended'
     : isApproved
@@ -206,12 +166,8 @@ export default function VolunteerCard({
         className="card-body"
         style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}
       >
-
-        {/* ── Header: avatar + name + status ──────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-
-          {/* Avatar — profile picture or initials fallback */}
-          {user?.profilePicture ? (
+<div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+{user?.profilePicture ? (
             <img
               src={user.profilePicture}
               alt={name}
@@ -223,9 +179,7 @@ export default function VolunteerCard({
               {initials}
             </div>
           )}
-
-          {/* Name + location */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+<div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 fontWeight: 700,
@@ -258,16 +212,12 @@ export default function VolunteerCard({
               </div>
             )}
           </div>
-
-          {/* Status badge */}
-          <span className={`badge ${statusBadgeClass}`} style={{ flexShrink: 0 }}>
+<span className={`badge ${statusBadgeClass}`} style={{ flexShrink: 0 }}>
             <span className={`status-dot ${dotClass}`} />
             {statusLabel}
           </span>
         </div>
-
-        {/* ── Reputation score bar ─────────────────────────────────────── */}
-        {reputationScore !== undefined && reputationScore !== null && (
+{reputationScore !== undefined && reputationScore !== null && (
           <div>
             <div
               style={{
@@ -315,12 +265,8 @@ export default function VolunteerCard({
             </div>
           </div>
         )}
-
-        {/* ── Star rating ───────────────────────────────────────────────── */}
-        <StarRow rating={averageRating} totalRatings={totalRatings} />
-
-        {/* ── Stats row ─────────────────────────────────────────────────── */}
-        <div
+<StarRow rating={averageRating} totalRatings={totalRatings} />
+<div
           style={{
             display: 'flex',
             gap: '8px',
@@ -352,9 +298,7 @@ export default function VolunteerCard({
             }
           />
         </div>
-
-        {/* ── Skills chips ──────────────────────────────────────────────── */}
-        {skills.length > 0 && (
+{skills.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
             {skills.slice(0, 4).map((s) => (
               <SkillChip key={s} skill={s} />
@@ -375,9 +319,7 @@ export default function VolunteerCard({
             )}
           </div>
         )}
-
-        {/* ── Bio snippet ───────────────────────────────────────────────── */}
-        {bio && (
+{bio && (
           <p
             style={{
               fontSize: '12px',
@@ -393,17 +335,13 @@ export default function VolunteerCard({
             {bio}
           </p>
         )}
-
-        {/* ── Suspension reason (admin only) ────────────────────────────── */}
-        {isAdmin && isSuspended && suspendedReason && (
+{isAdmin && isSuspended && suspendedReason && (
           <div className="alert alert-error" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <AlertTriangle size={14} color="var(--danger)" />
             <span style={{ fontSize: '12px' }}>{suspendedReason}</span>
           </div>
         )}
-
-        {/* ── Admin actions ─────────────────────────────────────────────── */}
-        {isAdmin && (
+{isAdmin && (
           <div
             style={{
               display: 'flex',
@@ -412,8 +350,7 @@ export default function VolunteerCard({
               paddingTop: '4px',
             }}
           >
-            {/* Approve — only shown if not yet approved */}
-            {!isApproved && typeof onApprove === 'function' && (
+{!isApproved && typeof onApprove === 'function' && (
               <button
                 className="btn btn-primary btn-sm"
                 style={{ flex: 1 }}
@@ -426,9 +363,7 @@ export default function VolunteerCard({
                 {loading ? <span className="spinner" /> : <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}><Check size={14} /> Approve</div>}
               </button>
             )}
-
-            {/* Suspend / Unsuspend toggle */}
-            {isSuspended
+{isSuspended
               ? typeof onUnsuspend === 'function' && (
                   <button
                     className="btn btn-secondary btn-sm"

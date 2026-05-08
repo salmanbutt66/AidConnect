@@ -1,4 +1,3 @@
-// src/pages/admin/ManageVolunteers.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Search,
@@ -124,9 +123,7 @@ export default function ManageVolunteers() {
   return (
     <Navbar title="Manage Volunteers">
       <div className="page-wrapper">
-
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1>Manage Volunteers</h1>
@@ -137,9 +134,7 @@ export default function ManageVolunteers() {
             </span>
           </div>
         </div>
-
-        {/* ── Alerts ────────────────────────────────────────────────── */}
-        {error && (
+{error && (
           <div
             className="alert alert-error anim-fade-up"
             style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -163,9 +158,7 @@ export default function ManageVolunteers() {
             {successMsg}
           </div>
         )}
-
-        {/* ── Filter bar ────────────────────────────────────────────── */}
-        <div className="filter-bar">
+<div className="filter-bar">
           <div className="search-input-wrap">
             <Search size={14} style={{ color: 'var(--text-muted)' }} className="search-icon" />
             <input
@@ -187,9 +180,7 @@ export default function ManageVolunteers() {
             <option value="pending">Pending Approval</option>
           </select>
         </div>
-
-        {/* ── Content ───────────────────────────────────────────────── */}
-        {loading ? (
+{loading ? (
           <Loader variant="skeleton" count={4} />
         ) : filteredVolunteers.length === 0 ? (
           <div className="empty-state">
@@ -229,9 +220,7 @@ export default function ManageVolunteers() {
         )}
 
       </div>
-
-      {/* ── Suspend modal ──────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={suspendModal.isOpen}
         title="Suspend Volunteer"
         icon={<Ban size={18} />}

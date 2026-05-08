@@ -1,14 +1,7 @@
-// controllers/notification.controller.js
 
 import Notification from "../models/Notification.model.js";
 import { AppError } from "../middleware/error.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
-// ─────────────────────────────────────────
-// GET /api/notifications
-// Access: Private (any logged in user)
-// Gets all notifications for the logged in user, newest first
-// ─────────────────────────────────────────
 export const getMyNotifications = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
   const skip = (page - 1) * limit;
@@ -34,12 +27,6 @@ export const getMyNotifications = asyncHandler(async (req, res) => {
     data: notifications,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/notifications/:id/read
-// Access: Private (any logged in user)
-// Marks a single notification as read
-// ─────────────────────────────────────────
 export const markAsRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findOne({
     _id: req.params.id,
@@ -67,12 +54,6 @@ export const markAsRead = asyncHandler(async (req, res) => {
     data: notification,
   });
 });
-
-// ─────────────────────────────────────────
-// PUT /api/notifications/read-all
-// Access: Private (any logged in user)
-// Marks ALL unread notifications as read
-// ─────────────────────────────────────────
 export const markAllAsRead = asyncHandler(async (req, res) => {
   const result = await Notification.updateMany(
     { recipientId: req.user.id, isRead: false },
@@ -84,12 +65,6 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
     message: `${result.modifiedCount} notifications marked as read`,
   });
 });
-
-// ─────────────────────────────────────────
-// DELETE /api/notifications/:id
-// Access: Private (any logged in user)
-// Deletes a single notification
-// ─────────────────────────────────────────
 export const deleteNotification = asyncHandler(async (req, res) => {
   const notification = await Notification.findOneAndDelete({
     _id: req.params.id,
@@ -105,12 +80,6 @@ export const deleteNotification = asyncHandler(async (req, res) => {
     message: "Notification deleted",
   });
 });
-
-// ─────────────────────────────────────────
-// DELETE /api/notifications
-// Access: Private (any logged in user)
-// Clears ALL notifications for the logged in user
-// ─────────────────────────────────────────
 export const clearAllNotifications = asyncHandler(async (req, res) => {
   const result = await Notification.deleteMany({ recipientId: req.user.id });
 
@@ -119,12 +88,6 @@ export const clearAllNotifications = asyncHandler(async (req, res) => {
     message: `${result.deletedCount} notifications cleared`,
   });
 });
-
-// ─────────────────────────────────────────
-// GET /api/notifications/unread-count
-// Access: Private (any logged in user)
-// Lightweight endpoint for frontend badge number
-// ─────────────────────────────────────────
 export const getUnreadCount = asyncHandler(async (req, res) => {
   const count = await Notification.countDocuments({
     recipientId: req.user.id,

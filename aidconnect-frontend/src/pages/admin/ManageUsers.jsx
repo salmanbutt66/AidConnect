@@ -1,4 +1,3 @@
-// src/pages/admin/ManageUsers.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   RefreshCw,
@@ -107,9 +106,7 @@ export default function ManageUsers() {
   return (
     <Navbar title="Manage Users">
       <div className="page-wrapper">
-
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1>Manage Users</h1>
@@ -129,9 +126,7 @@ export default function ManageUsers() {
             </button>
           </div>
         </div>
-
-        {/* ── Alerts ────────────────────────────────────────────────── */}
-        {error && (
+{error && (
           <div
             className="alert alert-error anim-fade-up"
             style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -155,9 +150,7 @@ export default function ManageUsers() {
             {successMsg}
           </div>
         )}
-
-        {/* ── User table card ───────────────────────────────────────── */}
-        <div className="card anim-fade-up delay-100">
+<div className="card anim-fade-up delay-100">
           <div className="card-header">
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>
@@ -193,9 +186,7 @@ export default function ManageUsers() {
                   <tbody>
                     {users.map((u) => (
                       <tr key={u._id}>
-
-                        {/* User info */}
-                        <td>
+<td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div className="avatar avatar-sm">{getInitials(u.name)}</div>
                             <div>
@@ -208,12 +199,8 @@ export default function ManageUsers() {
                             </div>
                           </div>
                         </td>
-
-                        {/* Role */}
-                        <td><Badge role={u.role} /></td>
-
-                        {/* Status */}
-                        <td>
+<td><Badge role={u.role} /></td>
+<td>
                           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                             {u.isBanned && <Badge color="red">Banned</Badge>}
                             <Badge color={u.isVerified ? 'green' : 'orange'}>
@@ -221,14 +208,10 @@ export default function ManageUsers() {
                             </Badge>
                           </div>
                         </td>
-
-                        {/* Joined */}
-                        <td style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+<td style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                           {formatDate(u.createdAt)}
                         </td>
-
-                        {/* Actions */}
-                        <td onClick={(e) => e.stopPropagation()}>
+<td onClick={(e) => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                             {!u.isVerified && (
                               <button
@@ -275,9 +258,7 @@ export default function ManageUsers() {
         </div>
 
       </div>
-
-      {/* ── Ban modal ──────────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={banModal.isOpen}
         onClose={() => setBanModal({ isOpen: false, userId: null, reason: '', reasonError: '' })}
         title="Ban User"
@@ -303,9 +284,7 @@ export default function ManageUsers() {
           )}
         </div>
       </Modal>
-
-      {/* ── Delete modal ───────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, userId: null })}
         title="Delete Account"

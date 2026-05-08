@@ -1,4 +1,3 @@
-// src/pages/public/NotFound.jsx
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, MapPin } from 'lucide-react';
@@ -21,14 +20,12 @@ export default function NotFound() {
         overflow: 'hidden',
       }}
     >
-      {/* Subtle background texture */}
-      <div style={{
+<div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
         backgroundImage: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)',
         backgroundSize: '28px 28px',
       }} />
-      {/* Glow orb */}
-      <div style={{
+<div style={{
         position: 'absolute', top: '30%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: '500px', height: '300px', borderRadius: '50%',
@@ -37,9 +34,7 @@ export default function NotFound() {
       }} />
 
       <div style={{ maxWidth: '480px', width: '100%', position: 'relative', zIndex: 1 }}>
-
-        {/* 404 number */}
-        <div
+<div
           style={{
             fontSize: 'clamp(80px, 20vw, 140px)',
             fontWeight: 900,
@@ -55,9 +50,7 @@ export default function NotFound() {
         >
           404
         </div>
-
-        {/* Icon — replaces 🗺️ emoji */}
-        <div
+<div
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -79,9 +72,7 @@ export default function NotFound() {
             <MapOff size={32} color="var(--green-400)" strokeWidth={1.6} />
           </div>
         </div>
-
-        {/* Heading */}
-        <h1
+<h1
           style={{
             fontSize: 'clamp(22px, 4vw, 30px)',
             fontWeight: 800,
@@ -93,9 +84,7 @@ export default function NotFound() {
         >
           Page Not Found
         </h1>
-
-        {/* Description */}
-        <p
+<p
           style={{
             fontSize: '15px',
             color: 'rgba(255,255,255,0.5)',
@@ -107,9 +96,7 @@ export default function NotFound() {
           The page you're looking for doesn't exist or has been moved.
           Let's get you back to safety.
         </p>
-
-        {/* Action buttons */}
-        <div
+<div
           style={{
             display: 'flex',
             gap: '12px',
@@ -171,9 +158,7 @@ export default function NotFound() {
             Back to Home
           </Link>
         </div>
-
-        {/* Divider */}
-        <div style={{
+<div style={{
           borderTop: '1px solid rgba(255,255,255,0.07)',
           paddingTop: '28px',
           animation: 'fadeSlideUp var(--t-page) var(--ease) 300ms both',
@@ -224,9 +209,7 @@ export default function NotFound() {
             ))}
           </div>
         </div>
-
-        {/* Branding */}
-        <div style={{
+<div style={{
           marginTop: '48px',
           fontSize: '13px',
           color: 'rgba(255,255,255,0.18)',

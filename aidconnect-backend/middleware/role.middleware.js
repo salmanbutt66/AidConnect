@@ -1,12 +1,5 @@
-// middleware/role.middleware.js
 
 import Volunteer from "../models/Volunteer.model.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// restrictTo — role-based access control gate
-// Usage: router.get("/admin-only", protect, restrictTo("admin"), handler)
-//        router.get("/multi",      protect, restrictTo("admin", "volunteer"), handler)
-// ─────────────────────────────────────────────────────────────────────────────
 export const restrictTo = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -27,13 +20,6 @@ export const restrictTo = (...allowedRoles) => {
     next();
   };
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// restrictToSelf — user can only access their own resource
-// Admin can access any resource
-// Usage: router.get("/:userId/data", protect, restrictToSelf, handler)
-// Expects the route param to be :userId
-// ─────────────────────────────────────────────────────────────────────────────
 export const restrictToSelf = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
@@ -55,12 +41,6 @@ export const restrictToSelf = (req, res, next) => {
 
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// requireApprovedVolunteer — volunteer must be approved + not suspended
-// Lighter version of checkVolunteerApproval from auth.middleware
-// Use when you only need the approval check without re-fetching profile
-// ─────────────────────────────────────────────────────────────────────────────
 export const requireApprovedVolunteer = async (req, res, next) => {
   try {
     if (req.user.role !== "volunteer") {
@@ -98,21 +78,13 @@ export const requireApprovedVolunteer = async (req, res, next) => {
         code: "VOLUNTEER_SUSPENDED",
       });
     }
-
-    // Attach profile snapshot to req so downstream handlers can use it
     req.volunteerProfile = profile;
     next();
   } catch (error) {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// requireAvailableVolunteer — volunteer must be available to take new requests
-// Chain after requireApprovedVolunteer
-// ─────────────────────────────────────────────────────────────────────────────
 export const requireAvailableVolunteer = (req, res, next) => {
-  // Uses profile attached by requireApprovedVolunteer
   const profile = req.volunteerProfile;
 
   if (!profile) {
@@ -132,11 +104,6 @@ export const requireAvailableVolunteer = (req, res, next) => {
 
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// guardAdminSelfAction — prevents admin from performing destructive
-// actions on their own account (ban self, delete self, change own role)
-// ─────────────────────────────────────────────────────────────────────────────
 export const guardAdminSelfAction = (req, res, next) => {
   if (req.user.role !== "admin") return next();
 
@@ -152,12 +119,6 @@ export const guardAdminSelfAction = (req, res, next) => {
 
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// logRoleAccess — dev/debug middleware to log role-based access attempts
-// Only active when NODE_ENV is development
-// Place after protect, before restrictTo for visibility
-// ─────────────────────────────────────────────────────────────────────────────
 export const logRoleAccess = (req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     console.log(
@@ -169,18 +130,7 @@ export const logRoleAccess = (req, res, next) => {
   }
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// requireAnyOf — allows access if user has ANY of the given roles
-// Alias of restrictTo but reads more clearly in complex route chains
-// Usage: requireAnyOf("admin", "volunteer")
-// ─────────────────────────────────────────────────────────────────────────────
 export const requireAnyOf = (...roles) => restrictTo(...roles);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROLE CONSTANTS — use these instead of hardcoding strings in routes
-// Import in route files: import { ROLES } from "../middleware/role.middleware.js"
-// ─────────────────────────────────────────────────────────────────────────────
 export const ROLES = {
   USER:      "user",
   VOLUNTEER: "volunteer",

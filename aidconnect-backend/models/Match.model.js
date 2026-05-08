@@ -1,19 +1,12 @@
-// models/Match.model.js
 import mongoose from "mongoose";
 
 const matchSchema = new mongoose.Schema(
   {
-    // ── WHICH REQUEST ──────────────────────
     requestId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "HelpRequest",
       required: [true, "Request ID is required"],
     },
-
-    // ── WHO WAS MATCHED ────────────────────
-    // NOTE: matchedTo stores the Volunteer profile _id (not User _id)
-    // or the Provider _id. Any query filtering by matchedTo must
-    // resolve the profile _id first — never use req.user.id directly.
     matchedTo: {
       type: mongoose.Schema.Types.ObjectId,
       refPath: "matchedType",
@@ -28,23 +21,17 @@ const matchSchema = new mongoose.Schema(
       },
       required: [true, "Match type is required"],
     },
-
-    // ── MATCH QUALITY SCORE ────────────────
     matchScore: {
       type: Number,
       min: 0,
       max: 100,
       default: 0,
     },
-
-    // ── DISTANCE ───────────────────────────
     distanceKm: {
       type: Number,
       min: 0,
       default: 0,
     },
-
-    // ── MATCH STATUS ───────────────────────
     status: {
       type: String,
       enum: {
@@ -53,8 +40,6 @@ const matchSchema = new mongoose.Schema(
       },
       default: "notified",
     },
-
-    // ── TIMING ─────────────────────────────
     notifiedAt: {
       type: Date,
       default: Date.now,
@@ -64,8 +49,6 @@ const matchSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-
-    // ── RESPONSE TIME ──────────────────────
     responseTimeMinutes: {
       type: Number,
       default: null,
@@ -73,13 +56,9 @@ const matchSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// ─── Indexes ──────────────────────────────────────────────────────────────────
 matchSchema.index({ requestId: 1, status: 1 });
 matchSchema.index({ matchedTo: 1, status: 1 });
 matchSchema.index({ matchedTo: 1, matchedType: 1, status: 1 });
-
-// ─── Pre-save Hook ────────────────────────────────────────────────────────────
 matchSchema.pre("save", function () {
   if (
     this.isModified("respondedAt") &&
@@ -90,12 +69,6 @@ matchSchema.pre("save", function () {
     this.responseTimeMinutes = Math.round(diffMs / 1000 / 60);
   }
 });
-
-// ─── Static Methods ───────────────────────────────────────────────────────────
-// IMPORTANT: both statics take a Volunteer profile _id, not a User _id.
-// Callers must resolve the profile first:
-//   const profile = await Volunteer.findOne({ user: req.user.id });
-//   Match.getVolunteerMatches(profile._id)
 matchSchema.statics.getRequestMatches = async function (requestId) {
   return await this.find({ requestId })
     .populate("matchedTo")

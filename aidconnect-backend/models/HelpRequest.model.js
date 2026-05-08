@@ -1,4 +1,3 @@
-// models/HelpRequest.model.js
 import mongoose from "mongoose";
 
 const helpRequestSchema = new mongoose.Schema(
@@ -55,20 +54,6 @@ const helpRequestSchema = new mongoose.Schema(
       },
       default: null,
     },
-
-    // ── LOCATION ───────────────────────────────────────────────────────────
-    // FIX (CRITICAL): The previous schema defined location with a default
-    // `type: "Point"` even when coordinates were absent. MongoDB's 2dsphere
-    // index then tried to index { type:"Point", coordinates:[] } and either
-    // threw a validation error OR silently refused to index the document,
-    // making it invisible to ALL queries on that collection — not just geo
-    // queries. City-only requests were disappearing because of this.
-    //
-    // Solution: make the entire location field optional at the schema level.
-    // Only store it when the frontend actually provides valid coordinates.
-    // The pre-save hook below sets location to undefined when coordinates
-    // are missing, which tells MongoDB to omit the field entirely and keeps
-    // the 2dsphere index healthy.
     location: {
       type: {
         type: String,
@@ -95,10 +80,6 @@ const helpRequestSchema = new mongoose.Schema(
       trim: true,
       default: null,
     },
-
-    // ── CITY (PRIMARY MATCHING FIELD) ──────────────────────────────────────
-    // All volunteer/provider matching is driven by this field.
-    // GPS coordinates are cosmetic only — never required for matching.
     city: {
       type: String,
       trim: true,
@@ -139,32 +120,20 @@ const helpRequestSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// ─── Indexes ──────────────────────────────────────────────────────────────────
-// 2dsphere index is sparse so documents without a location field are skipped
-// rather than causing an index error.
 helpRequestSchema.index({ location: "2dsphere" }, { sparse: true });
 helpRequestSchema.index({ status: 1, urgencyScore: -1 });
 helpRequestSchema.index({ requesterId: 1, status: 1 });
 helpRequestSchema.index({ emergencyType: 1, status: 1 });
 helpRequestSchema.index({ city: 1, status: 1, urgencyScore: -1 }); // ← primary query path
-
-// ─── Pre-save Hook ────────────────────────────────────────────────────────────
 helpRequestSchema.pre("save", function () {
-  // Recalculate urgency score whenever urgencyLevel changes
   if (this.isModified("urgencyLevel")) {
     this.urgencyScore = calculateUrgencyScore(this.urgencyLevel);
   }
-
-  // FIX: if location has no valid coordinates, remove the field entirely
-  // so the 2dsphere index is not triggered and the document saves cleanly.
   const coords = this.location?.coordinates;
   if (!coords || coords.length !== 2) {
     this.location = undefined;
   }
 });
-
-// ─── Urgency Score Calculator ─────────────────────────────────────────────────
 const calculateUrgencyScore = (urgencyLevel) => {
   const ranges = {
     critical: { min: 90, max: 100 },
@@ -176,8 +145,6 @@ const calculateUrgencyScore = (urgencyLevel) => {
   if (!range) return 1;
   return Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
 };
-
-// ─── Virtual ──────────────────────────────────────────────────────────────────
 helpRequestSchema.virtual("isActive").get(function () {
   return ["posted", "accepted", "in_progress"].includes(this.status);
 });

@@ -1,4 +1,3 @@
-// src/pages/provider/ManageAvailability.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   CheckCircle2, Clock, Edit2, Save, X,
@@ -8,6 +7,30 @@ import {
 import Navbar from '../../components/common/Navbar.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import { getProviderProfile, toggleAvailability } from '../../api/provider.api.js';
+
+const STYLES = `
+  .ma-hours-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .ma-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 700px) {
+    .ma-hours-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .ma-actions .btn {
+      width: 100%;
+    }
+  }
+`;
 
 export default function ManageAvailability() {
   const [profile,    setProfile]   = useState(null);
@@ -64,6 +87,7 @@ export default function ManageAvailability() {
 
   return (
     <Navbar title="Manage Availability">
+      <style>{STYLES}</style>
       <div className="page-wrapper">
 
         <div className="page-header">
@@ -83,9 +107,7 @@ export default function ManageAvailability() {
             <CheckCircle2 size={16} style={{ flexShrink: 0 }} />{successMsg}
           </div>
         )}
-
-        {/* ── BIG STATUS CARD ───────────────────────────────────── */}
-        <div
+<div
           className="anim-fade-up"
           style={{
             marginBottom: '20px',
@@ -96,8 +118,7 @@ export default function ManageAvailability() {
             transition: 'box-shadow 0.5s ease, border-color 0.5s ease',
           }}
         >
-          {/* Gradient hero band */}
-          <div style={{
+<div style={{
             background: isAvailable
               ? 'linear-gradient(135deg, var(--green-900) 0%, var(--green-700) 60%, var(--green-500) 100%)'
               : 'linear-gradient(135deg, #2c2c2c 0%, #4a4a4a 60%, #686868 100%)',
@@ -106,15 +127,13 @@ export default function ManageAvailability() {
             overflow: 'hidden',
             transition: 'background 0.6s ease',
           }}>
-            {/* dot pattern overlay */}
-            <div style={{
+<div style={{
               position: 'absolute', inset: 0, opacity: 0.07,
               backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
               backgroundSize: '28px 28px',
               pointerEvents: 'none',
             }} />
-            {/* glow orb */}
-            <div style={{
+<div style={{
               position: 'absolute', right: '-60px', top: '-60px',
               width: '280px', height: '280px', borderRadius: '50%',
               background: isAvailable ? 'rgba(42,173,96,0.3)' : 'rgba(255,255,255,0.05)',
@@ -123,8 +142,7 @@ export default function ManageAvailability() {
             }} />
 
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-              {/* Animated icon ring */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
+<div style={{ position: 'relative', flexShrink: 0 }}>
                 {isAvailable && (
                   <div style={{
                     position: 'absolute', inset: '-10px', borderRadius: '50%',
@@ -144,9 +162,7 @@ export default function ManageAvailability() {
                   }
                 </div>
               </div>
-
-              {/* Labels */}
-              <div style={{ flex: 1, minWidth: 0 }}>
+<div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
                   <h2 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: 'white', letterSpacing: '-0.7px' }}>
                     {isAvailable ? 'Currently Available' : 'Currently Unavailable'}
@@ -168,9 +184,7 @@ export default function ManageAvailability() {
                     : 'You are hidden from requesters. Toggle on to start receiving requests.'}
                 </p>
               </div>
-
-              {/* Toggle button */}
-              <button
+<button
                 onClick={handleToggle}
                 disabled={toggling}
                 style={{
@@ -193,9 +207,7 @@ export default function ManageAvailability() {
                 }
               </button>
             </div>
-
-            {/* Progress bar */}
-            <div style={{ position: 'relative', marginTop: '30px' }}>
+<div style={{ position: 'relative', marginTop: '30px' }}>
               <div style={{ height: '4px', borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.14)', overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', width: isAvailable ? '100%' : '0%',
@@ -210,9 +222,7 @@ export default function ManageAvailability() {
             </div>
           </div>
         </div>
-
-        {/* ── OPERATING HOURS ────────────────────────────────────── */}
-        <div className="card anim-fade-up" style={{ marginBottom: '20px', animationDelay: '80ms', overflow: 'hidden' }}>
+<div className="card anim-fade-up" style={{ marginBottom: '20px', animationDelay: '80ms', overflow: 'hidden' }}>
           <div style={{ height: '3px', background: 'linear-gradient(90deg, var(--green-700), var(--green-400))' }} />
           <div className="card-body">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -246,7 +256,7 @@ export default function ManageAvailability() {
                     </div>
                   ))}
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="ma-actions">
                   <button className="btn btn-primary btn-sm" onClick={handleSaveHours} disabled={saving} style={{ gap: '6px' }}>
                     {saving ? <><span className="spinner" /> Saving…</> : <><Save size={13} /> Save Hours</>}
                   </button>
@@ -256,7 +266,7 @@ export default function ManageAvailability() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="ma-hours-grid">
                 {[
                   { label: 'Opens At',  value: profile?.operatingHours?.open  || '08:00', Icon: Sunrise },
                   { label: 'Closes At', value: profile?.operatingHours?.close || '22:00', Icon: Sunset  },
@@ -285,9 +295,7 @@ export default function ManageAvailability() {
             )}
           </div>
         </div>
-
-        {/* ── TIP ──────────────────────────────────────────────────── */}
-        <div className="anim-fade-up" style={{
+<div className="anim-fade-up" style={{
           padding: '16px 20px', background: 'var(--green-50)',
           borderRadius: 'var(--radius-md)', border: '1.5px solid var(--green-100)',
           display: 'flex', gap: '14px', alignItems: 'flex-start', animationDelay: '160ms',

@@ -1,8 +1,3 @@
-// src/utils/validators.js
-// Frontend validation helpers
-// These mirror backend validators but run client-side for instant feedback
-
-// ─── Regex Patterns ───────────────────────────────────
 const PATTERNS = {
   email:    /^\S+@\S+\.\S+$/,
   phone:    /^(\+92|0)[0-9]{10}$/,
@@ -10,8 +5,6 @@ const PATTERNS = {
   password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
   objectId: /^[a-fA-F0-9]{24}$/,
 };
-
-// ─── Field Validators ─────────────────────────────────
 export const isValidEmail = (email) =>
   typeof email === "string" && PATTERNS.email.test(email.trim());
 
@@ -32,9 +25,6 @@ export const isNonEmptyString = (val) =>
 
 export const isInRange = (val, min, max) =>
   typeof val === "number" && val >= min && val <= max;
-
-// ─── Form Validators ──────────────────────────────────
-// Returns object of field errors — empty object means valid
 
 export const validateLogin = ({ email, password }) => {
   const errors = {};
@@ -98,10 +88,6 @@ export const validateHelpRequest = ({
 
   if (description && description.trim().length > 1000)
     errors.description = "Description cannot exceed 1000 characters";
-
-  // Uses == null to catch both null and undefined.
-  // HelpRequestForm passes 0 when city is set (bypasses this check correctly).
-  // Only fires when both city and GPS are missing.
   if (longitude == null || latitude == null)
     errors.location = "Location is required";
 
@@ -163,8 +149,6 @@ export const validateRating = ({ rating, comment }) => {
 
   return errors;
 };
-
-// ─── Helpers ──────────────────────────────────────────
 export const hasErrors = (errors) =>
   Object.keys(errors).length > 0;
 

@@ -1,14 +1,3 @@
-// utils/validators.js
-
-// ─────────────────────────────────────────────────────────────────────────────
-// AidConnect — Backend Validators
-// Used as Express middleware in routes AND as standalone helper functions
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS — shared enums matching Mongoose schema definitions
-// Import these in frontend too for consistency
-// ─────────────────────────────────────────────────────────────────────────────
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 export const EMERGENCY_TYPES = [
@@ -74,10 +63,6 @@ export const PAKISTAN_CITIES = [
   "Jhang",
   "Dera Ghazi Khan",
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REGEX PATTERNS
-// ─────────────────────────────────────────────────────────────────────────────
 const PATTERNS = {
   email:    /^\S+@\S+\.\S+$/,
   phone:    /^(\+92|0)[0-9]{10}$/,       // Pakistani phone: +923001234567 or 03001234567
@@ -86,10 +71,6 @@ const PATTERNS = {
   objectId: /^[a-fA-F0-9]{24}$/,         // MongoDB ObjectId
   url:      /^https?:\/\/.+\..+/,
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CORE HELPER — builds a clean error response and stops the chain
-// ─────────────────────────────────────────────────────────────────────────────
 const validationError = (res, errors) => {
   return res.status(400).json({
     success: false,
@@ -97,10 +78,6 @@ const validationError = (res, errors) => {
     errors,
   });
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STANDALONE HELPERS — use these anywhere (not just middleware)
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const isValidEmail = (email) =>
   typeof email === "string" && PATTERNS.email.test(email.trim());
@@ -137,23 +114,13 @@ export const isNonEmptyString = (val) =>
 
 export const isInRange = (val, min, max) =>
   typeof val === "number" && val >= min && val <= max;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// sanitizeString — trim + collapse whitespace
-// ─────────────────────────────────────────────────────────────────────────────
 export const sanitizeString = (str) => {
   if (typeof str !== "string") return "";
   return str.trim().replace(/\s+/g, " ");
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateRegister — POST /api/auth/register
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateRegister = (req, res, next) => {
   const errors = [];
   const { name, email, password, role, phone, bloodGroup } = req.body;
-
-  // name
   if (!name || !isNonEmptyString(name)) {
     errors.push({ field: "name", message: "Name is required" });
   } else if (name.trim().length < 2) {
@@ -161,15 +128,11 @@ export const validateRegister = (req, res, next) => {
   } else if (name.trim().length > 50) {
     errors.push({ field: "name", message: "Name cannot exceed 50 characters" });
   }
-
-  // email
   if (!email || !isNonEmptyString(email)) {
     errors.push({ field: "email", message: "Email is required" });
   } else if (!isValidEmail(email)) {
     errors.push({ field: "email", message: "Please provide a valid email address" });
   }
-
-  // password
   if (!password) {
     errors.push({ field: "password", message: "Password is required" });
   } else if (password.length < 8) {
@@ -180,24 +143,18 @@ export const validateRegister = (req, res, next) => {
       message: "Password must contain at least one uppercase letter, one lowercase letter, and one number",
     });
   }
-
-  // role (optional — defaults to "user" in controller)
   if (role && !isValidRole(role)) {
     errors.push({
       field: "role",
       message: `Invalid role. Allowed roles: ${USER_ROLES.filter((r) => r !== "admin").join(", ")}`,
     });
   }
-
-  // phone (optional but validate format if provided)
   if (phone && !isValidPhone(phone)) {
     errors.push({
       field: "phone",
       message: "Phone must be a valid Pakistani number (e.g. 03001234567 or +923001234567)",
     });
   }
-
-  // bloodGroup (optional but validate if provided)
   if (bloodGroup && !isValidBloodGroup(bloodGroup)) {
     errors.push({
       field: "bloodGroup",
@@ -208,10 +165,6 @@ export const validateRegister = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateLogin — POST /api/auth/login
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateLogin = (req, res, next) => {
   const errors = [];
   const { email, password } = req.body;
@@ -229,10 +182,6 @@ export const validateLogin = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateUpdateProfile — PUT /api/auth/update-profile
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateUpdateProfile = (req, res, next) => {
   const errors = [];
   const { name, phone, bloodGroup, location } = req.body;
@@ -284,10 +233,6 @@ export const validateUpdateProfile = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateChangePassword — PUT /api/auth/change-password
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateChangePassword = (req, res, next) => {
   const errors = [];
   const { currentPassword, newPassword } = req.body;
@@ -321,10 +266,6 @@ export const validateChangePassword = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateVolunteerProfile — PUT /api/volunteers/profile
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateVolunteerProfile = (req, res, next) => {
   const errors = [];
   const {
@@ -416,10 +357,6 @@ export const validateVolunteerProfile = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateHelpRequest — POST /api/requests (for Haseeb's module)
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateHelpRequest = (req, res, next) => {
   const errors = [];
   const {
@@ -488,10 +425,6 @@ export const validateHelpRequest = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateRating — POST /api/volunteers/:id/rate
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateRating = (req, res, next) => {
   const errors = [];
   const { score, comment, requestId } = req.body;
@@ -520,11 +453,6 @@ export const validateRating = (req, res, next) => {
   if (errors.length > 0) return validationError(res, errors);
   next();
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validateObjectIdParam — reusable param validator
-// Usage: router.get("/:id", validateObjectIdParam("id"), handler)
-// ─────────────────────────────────────────────────────────────────────────────
 export const validateObjectIdParam = (paramName = "id") => {
   return (req, res, next) => {
     const value = req.params[paramName];
@@ -539,10 +467,6 @@ export const validateObjectIdParam = (paramName = "id") => {
     next();
   };
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// validatePagination — reusable query param validator for paginated routes
-// ─────────────────────────────────────────────────────────────────────────────
 export const validatePagination = (req, res, next) => {
   const errors = [];
   const { page, limit } = req.query;

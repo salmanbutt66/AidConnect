@@ -232,6 +232,19 @@ const STYLES = `
     background: #f0f4f1; display: flex; align-items: center;
     justify-content: center; margin-bottom: 8px;
   }
+
+  .rd-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 980px) {
+    .rd-main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 `;
 
 /* ── Status config ───────────────────────────────────────────────────────── */
@@ -576,7 +589,7 @@ export default function RequestDetail() {
         )}
 
         {/* ── Main grid ────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '22px', alignItems: 'start' }}>
+        <div className="rd-main-grid">
 
           {/* ── Left column ──────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>

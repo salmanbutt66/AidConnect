@@ -1,4 +1,3 @@
-// src/api/axiosInstance.js
 import axios from "axios";
 
 const BASE_URL = "/api";
@@ -13,8 +12,6 @@ const axiosInstance = axios.create({
     Pragma: "no-cache",
   },
 });
-
-// ─── Request Interceptor ──────────────────────────────────────────────────────
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
@@ -25,8 +22,6 @@ axiosInstance.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-// ─── Response Interceptor ─────────────────────────────────────────────────────
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -34,7 +29,7 @@ axiosInstance.interceptors.response.use(
 
     if (!error.response) {
       return Promise.reject(
-      new Error("Network error — please check your connection.")
+      new Error("Network error - please check your connection.")
     );
   }
     if (

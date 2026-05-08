@@ -1,4 +1,3 @@
-// routes/volunteer.routes.js
 import express from "express";
 import {
   getMyVolunteerProfile,
@@ -22,10 +21,6 @@ const router = express.Router();
 
 router.use(protect);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VOLUNTEER ONLY ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-
 router
   .route("/profile")
   .get(restrictTo("volunteer"), getMyVolunteerProfile)
@@ -37,16 +32,10 @@ router.get("/ratings",        restrictTo("volunteer"), getMyRatings);
 router.get("/history",        restrictTo("volunteer"), getVolunteerHistory);
 router.get("/active-request", restrictTo("volunteer"), getActiveRequest);
 
-// ─── Request Lifecycle ────────────────────────────────────────────────────────
-
 router.put("/request/:requestId/accept",      restrictTo("volunteer"), acceptRequest);
 router.put("/request/:requestId/in-progress", restrictTo("volunteer"), markInProgress);
 router.put("/request/:requestId/complete",    restrictTo("volunteer"), completeRequest);
 router.put("/request/:requestId/cancel",      restrictTo("volunteer"), cancelRequest);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN ONLY ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
 
 router.get("/available", restrictTo("admin"), getAvailableVolunteers);
 
@@ -214,15 +203,6 @@ router.put(
     }
   }
 );
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC / SHARED ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-
-// POST /api/volunteers/:id/rate — rate a volunteer after completed request
-// FIX: was querying HelpRequest by { user: req.user.id } but the field
-//      is requesterId, not user. Fixed to requesterId so the ownership
-//      check actually works.
 router.post(
   "/:id/rate",
   restrictTo("user"),
@@ -240,8 +220,6 @@ router.post(
       if (!requestId) {
         return res.status(400).json({ success: false, message: "requestId is required" });
       }
-
-      // FIX: field is requesterId not user
       const request = await HelpRequest.findOne({
         _id:         requestId,
         requesterId: req.user.id,
@@ -285,8 +263,6 @@ router.post(
     }
   }
 );
-
-// GET /api/volunteers/:id — public profile (any authenticated user)
 router.get("/:id", getVolunteerById);
 
 export default router;

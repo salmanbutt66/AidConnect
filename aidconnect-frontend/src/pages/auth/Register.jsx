@@ -1,10 +1,7 @@
-// src/pages/auth/Register.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { BLOOD_GROUPS } from '../../utils/constants.js';
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
 const IconUser = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -63,8 +60,6 @@ const Spinner = () => (
     animation:'acr-spin 0.65s linear infinite', flexShrink:0,
   }}/>
 );
-
-// ── Password Strength ─────────────────────────────────────────────────────────
 function PasswordStrength({ password }) {
   if (!password) return null;
   const c = { len: password.length >= 8, up: /[A-Z]/.test(password), lo: /[a-z]/.test(password), num: /\d/.test(password) };
@@ -108,8 +103,6 @@ function PasswordStrength({ password }) {
     </div>
   );
 }
-
-// ── Role definitions ──────────────────────────────────────────────────────────
 const ROLES = [
   {
     value: 'user', label: 'Citizen', desc: 'I need emergency help',
@@ -139,8 +132,6 @@ const ROLES = [
     ),
   },
 ];
-
-// ── Field component ───────────────────────────────────────────────────────────
 function Field({ id, name, label, type='text', placeholder, required, icon, form, errors, onChange, disabled }) {
   return (
     <div style={{ marginBottom:'16px' }}>
@@ -169,8 +160,6 @@ function Field({ id, name, label, type='text', placeholder, required, icon, form
     </div>
   );
 }
-
-// ── Step indicator for left panel ─────────────────────────────────────────────
 const Step = ({ num, text, delay }) => (
   <div style={{
     display:'flex', gap:'14px', alignItems:'flex-start', marginBottom:'18px',
@@ -330,30 +319,25 @@ export default function Register() {
     <>
       <style>{css}</style>
       <div className="acr acr-grid" style={{ minHeight:'100vh', display:'grid', gridTemplateColumns:'40% 1fr' }}>
-
-        {/* ── LEFT ─────────────────────────────────────────────────────── */}
-        <div className="acr-panel" style={{
+<div className="acr-panel" style={{
           background:'linear-gradient(155deg, #081f10 0%, #0c3820 35%, #125430 70%, #176b3c 100%)',
           display:'flex', flexDirection:'column', padding:'48px 48px',
           color:'white', position:'relative', overflow:'hidden',
         }}>
-          {/* Rings */}
-          <svg style={{ position:'absolute', right:'-90px', top:'-90px', opacity:0.06, pointerEvents:'none' }}
+<svg style={{ position:'absolute', right:'-90px', top:'-90px', opacity:0.06, pointerEvents:'none' }}
             width="520" height="520" viewBox="0 0 520 520" fill="none">
             <circle cx="360" cy="160" r="290" stroke="white" strokeWidth="1"/>
             <circle cx="360" cy="160" r="210" stroke="white" strokeWidth="1"/>
             <circle cx="360" cy="160" r="130" stroke="white" strokeWidth="0.8"/>
             <circle cx="360" cy="160" r="65"  stroke="white" strokeWidth="0.6"/>
           </svg>
-          {/* Glow */}
-          <div style={{
+<div style={{
             position:'absolute', bottom:'-100px', left:'-60px',
             width:'360px', height:'360px', borderRadius:'50%',
             background:'radial-gradient(circle, rgba(34,148,80,0.2) 0%, transparent 68%)',
             pointerEvents:'none',
           }}/>
-          {/* Diagonal lines */}
-          <svg style={{ position:'absolute', inset:0, opacity:0.03, pointerEvents:'none' }}
+<svg style={{ position:'absolute', inset:0, opacity:0.03, pointerEvents:'none' }}
             width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="rdiag" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -362,9 +346,7 @@ export default function Register() {
             </defs>
             <rect width="100%" height="100%" fill="url(#rdiag)"/>
           </svg>
-
-          {/* Logo */}
-          <div className="acr-logo" style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+<div className="acr-logo" style={{ display:'flex', alignItems:'center', gap:'12px' }}>
             <LogoMark dark />
             <div>
               <div style={{ fontSize:'19px', fontWeight:800, letterSpacing:'-0.5px', lineHeight:1.1 }}>
@@ -375,9 +357,7 @@ export default function Register() {
               </div>
             </div>
           </div>
-
-          {/* Tag + steps */}
-          <div className="acr-tag" style={{ marginTop:'auto', marginBottom:'28px' }}>
+<div className="acr-tag" style={{ marginTop:'auto', marginBottom:'28px' }}>
             <div style={{
               display:'inline-flex', alignItems:'center', gap:'7px', padding:'5px 13px',
               borderRadius:'99px', background:'rgba(125,212,154,0.13)',
@@ -404,9 +384,7 @@ export default function Register() {
             <Step num="02" text="Complete your profile with location and skills" delay={0.35} />
             <Step num="03" text="Start responding to or posting emergency requests" delay={0.45} />
           </div>
-
-          {/* Bottom badge */}
-          <div style={{
+<div style={{
             display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px',
             background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
             borderRadius:'12px',
@@ -427,11 +405,8 @@ export default function Register() {
             </div>
           </div>
         </div>
-
-        {/* ── RIGHT ────────────────────────────────────────────────────── */}
-        <div className="acr-right">
-          {/* Top accent */}
-          <div style={{
+<div className="acr-right">
+<div style={{
             position:'fixed', top:0, left:'40%', right:0, height:'3px',
             background:'linear-gradient(90deg, transparent, #1a6b3c 30%, #2aad60 60%, transparent)',
             zIndex:10,
@@ -455,9 +430,7 @@ export default function Register() {
               {apiError && (
                 <div className="acr-alert"><IconAlert /><span>{apiError}</span></div>
               )}
-
-              {/* Role selector */}
-              <div style={{ marginBottom:'22px' }}>
+<div style={{ marginBottom:'22px' }}>
                 <p style={{ fontSize:'12px', fontWeight:700, color:'#7a8470', letterSpacing:'1px', textTransform:'uppercase', marginBottom:'10px' }}>
                   I am a
                 </p>
@@ -469,8 +442,7 @@ export default function Register() {
                         className={`acr-role${active?' active':''}`}
                         onClick={() => setForm(p => ({ ...p, role: r.value }))}
                         disabled={loading}>
-                        {/* Active check */}
-                        {active && (
+{active && (
                           <div style={{
                             position:'absolute', top:'8px', right:'8px',
                             width:'18px', height:'18px', borderRadius:'50%',
@@ -494,17 +466,12 @@ export default function Register() {
               </div>
 
               <form onSubmit={handleSubmit} noValidate>
-                {/* Name + Phone */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }}>
+<div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px' }}>
                   <Field id="name" name="name" label="Full Name" placeholder="Muhammad Ali" required icon={<IconUser />} form={form} errors={errors} onChange={handleChange} disabled={loading} />
                   <Field id="phone" name="phone" label="Phone" placeholder="03001234567" icon={<IconPhone />} form={form} errors={errors} onChange={handleChange} disabled={loading} />
                 </div>
-
-                {/* Email */}
-                <Field id="reg-email" name="email" label="Email Address" type="email" placeholder="you@example.com" required icon={<IconMail />} form={form} errors={errors} onChange={handleChange} disabled={loading} />
-
-                {/* Password */}
-                <div style={{ marginBottom:'16px' }}>
+<Field id="reg-email" name="email" label="Email Address" type="email" placeholder="you@example.com" required icon={<IconMail />} form={form} errors={errors} onChange={handleChange} disabled={loading} />
+<div style={{ marginBottom:'16px' }}>
                   <label htmlFor="reg-pw" style={{ display:'block', fontSize:'13px', fontWeight:600, color:'#3d4d38', marginBottom:'7px' }}>
                     Password <span style={{ color:'#c0392b' }}>*</span>
                   </label>
@@ -523,12 +490,8 @@ export default function Register() {
                     : <PasswordStrength password={form.password} />
                   }
                 </div>
-
-                {/* Confirm */}
-                <Field id="confirmPassword" name="confirmPassword" label="Confirm Password" type="password" placeholder="Repeat password" required icon={<IconLock />} form={form} errors={errors} onChange={handleChange} disabled={loading} />
-
-                {/* Blood Group */}
-                {form.role !== 'provider' && (
+<Field id="confirmPassword" name="confirmPassword" label="Confirm Password" type="password" placeholder="Repeat password" required icon={<IconLock />} form={form} errors={errors} onChange={handleChange} disabled={loading} />
+{form.role !== 'provider' && (
                   <div style={{ marginBottom:'16px' }}>
                     <label htmlFor="bloodGroup" style={{ display:'block', fontSize:'13px', fontWeight:600, color:'#3d4d38', marginBottom:'7px' }}>
                       Blood Group <span style={{ color:'#9aaa93', fontWeight:400, fontSize:'12px' }}>(optional)</span>

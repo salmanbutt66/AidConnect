@@ -1,4 +1,3 @@
-// src/components/cards/ProviderCard.jsx
 import React from 'react';
 import {
   Phone,
@@ -17,8 +16,6 @@ import {
 } from 'lucide-react';
 import { SERVICE_TYPES } from '../../utils/constants.js';
 import { formatPhone } from '../../utils/formatters.js';
-
-// ─── Service type icon lookup ─────────────────────────────────────────────────
 function ServiceIcon({ serviceType, size = 22 }) {
   const props = { size, strokeWidth: 1.6, color: 'var(--green-700)' };
   switch (serviceType) {
@@ -38,8 +35,6 @@ function getServiceLabel(serviceType) {
     'Provider'
   );
 }
-
-// ─── Info Row — icon + text ───────────────────────────────────────────────────
 function InfoRow({ icon, text, muted = false }) {
   if (!text) return null;
   return (
@@ -61,8 +56,6 @@ function InfoRow({ icon, text, muted = false }) {
     </div>
   );
 }
-
-// ─── ProviderCard ─────────────────────────────────────────────────────────────
 export default function ProviderCard({
   provider,
   onVerify,
@@ -110,12 +103,8 @@ export default function ProviderCard({
       }}
     >
       <div className="card-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-        {/* ── Header ────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-
-          {/* Service type icon bubble */}
-          <div
+<div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+<div
             style={{
               width: '48px',
               height: '48px',
@@ -129,9 +118,7 @@ export default function ProviderCard({
           >
             <ServiceIcon serviceType={serviceType} size={22} />
           </div>
-
-          {/* Name + service type */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+<div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 fontWeight: 700,
@@ -149,9 +136,7 @@ export default function ProviderCard({
               {getServiceLabel(serviceType)}
             </div>
           </div>
-
-          {/* Status badges */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', flexShrink: 0 }}>
             <span className={`badge ${isVerified ? 'badge-green' : 'badge-orange'}`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
@@ -164,9 +149,7 @@ export default function ProviderCard({
             </span>
           </div>
         </div>
-
-        {/* ── Info rows ─────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
           {contactNumber && (
             <InfoRow icon={<Phone size={13} />} text={formatPhone(contactNumber)} />
           )}
@@ -192,9 +175,7 @@ export default function ProviderCard({
             <InfoRow icon={<CreditCard size={13} />} text={`License: ${licenseNumber}`} muted />
           )}
         </div>
-
-        {/* ── Services offered chips ────────────────────────────────────── */}
-        {servicesOffered.length > 0 && (
+{servicesOffered.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
             {servicesOffered.slice(0, 4).map((s) => (
               <span
@@ -228,9 +209,7 @@ export default function ProviderCard({
             )}
           </div>
         )}
-
-        {/* ── Admin actions ─────────────────────────────────────────────── */}
-        {isAdmin && (typeof onVerify === 'function' || typeof onSuspend === 'function') && (
+{isAdmin && (typeof onVerify === 'function' || typeof onSuspend === 'function') && (
           <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '4px' }}>
             {!isVerified && typeof onVerify === 'function' && (
               <button

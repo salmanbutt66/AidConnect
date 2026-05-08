@@ -1,4 +1,3 @@
-// src/pages/public/HowItWorks.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../../components/common/Footer.jsx';
@@ -28,7 +27,6 @@ import {
   Stethoscope,
 } from 'lucide-react';
 
-/* ── Styles ────────────────────────────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
@@ -51,7 +49,7 @@ const STYLES = `
   .hiw-fade-in  { animation: fadeIn  0.35s ease both; }
   .hiw-slide-dn { animation: slideDown 0.28s ease both; }
 
-  /* role tab buttons */
+  
   .role-tab {
     display: flex; align-items: center; gap: 8px;
     padding: 11px 22px; border-radius: 999px;
@@ -65,7 +63,7 @@ const STYLES = `
   .role-tab.active-volunteer{ background: #1a6b9a; border-color: #1a6b9a; color: white; box-shadow: 0 6px 20px rgba(26,107,154,0.30); }
   .role-tab.active-provider { background: #b45309; border-color: #b45309; color: white; box-shadow: 0 6px 20px rgba(180,83,9,0.28);  }
 
-  /* step card */
+  
   .step-card {
     background: white;
     border: 1px solid #e2e8e3;
@@ -78,7 +76,7 @@ const STYLES = `
   .step-card:hover { transform: translateX(6px); box-shadow: 0 8px 28px rgba(0,0,0,0.09); }
   .step-card-inner { display: flex; gap: 20px; align-items: flex-start; padding: 20px 22px; }
 
-  /* lifecycle stages */
+  
   .lifecycle-stage {
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     flex: 1; min-width: 80px;
@@ -91,7 +89,7 @@ const STYLES = `
   }
   .lifecycle-stage:hover { transform: translateY(-5px); box-shadow: 0 14px 36px rgba(0,0,0,0.09); }
 
-  /* faq */
+  
   .faq-item {
     background: white; border: 1px solid #e2e8e3;
     border-radius: 14px; overflow: hidden;
@@ -114,7 +112,7 @@ const STYLES = `
   }
   .faq-chevron.open { transform: rotate(180deg); color: #1a6b3c; }
 
-  /* cta */
+  
   .hiw-cta {
     background: linear-gradient(135deg, #071f12 0%, #0d3d22 60%, #1a6b3c 100%);
     padding: 80px 24px; text-align: center; color: white;
@@ -146,7 +144,7 @@ const STYLES = `
   }
   .cta-ghost-btn:hover { background: rgba(255,255,255,0.14); color: white; }
 
-  /* eyebrow */
+  
   .hiw-eyebrow {
     display: inline-block;
     font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px;
@@ -159,11 +157,10 @@ const STYLES = `
     color: #141b11; margin: 0 0 10px; letter-spacing: -0.4px;
   }
 
-  /* connector arrow */
+  
   .lifecycle-arrow { color: #c4d4c6; font-size: 18px; display: flex; align-items: center; padding-bottom: 24px; }
 `;
 
-/* ── Role step data ────────────────────────────────────────────────────── */
 const ROLE_STEPS = {
   citizen: {
     label:    'Citizen',
@@ -212,7 +209,6 @@ const ROLE_STEPS = {
   },
 };
 
-/* ── Lifecycle stages ──────────────────────────────────────────────────── */
 const LIFECYCLE = [
   { label: 'Posted',      Icon: Upload,      bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
   { label: 'Accepted',    Icon: CheckCircle2,bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
@@ -220,7 +216,6 @@ const LIFECYCLE = [
   { label: 'Completed',   Icon: PackageCheck,bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
 ];
 
-/* ── FAQ data ──────────────────────────────────────────────────────────── */
 const FAQS = [
   { q: 'Is AidConnect free to use?',               a: 'Yes — completely free for citizens, volunteers, and organizations.' },
   { q: 'How are volunteers and providers verified?',a: 'Every volunteer and provider goes through an admin review before they can respond to requests. Providers must submit a valid license number.' },
@@ -230,7 +225,6 @@ const FAQS = [
   { q: 'What if no one accepts my request?',        a: 'Your request stays visible to all nearby responders until accepted. For life-threatening emergencies always call 1122 directly.' },
 ];
 
-/* ── Nav link style ────────────────────────────────────────────────────── */
 const navLinkStyle = {
   fontSize: '13px', color: 'rgba(255,255,255,0.65)',
   textDecoration: 'none', padding: '6px 12px',
@@ -242,7 +236,7 @@ export default function HowItWorks() {
   const [openFaq,    setOpenFaq]    = useState(null);
   const observerRef = useRef(null);
 
-  /* scroll-reveal */
+  
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
       (entries) => entries.forEach(e => {
@@ -260,7 +254,7 @@ export default function HowItWorks() {
     return () => observerRef.current?.disconnect();
   }, []);
 
-  /* re-observe when role changes (new step cards mount) */
+  
   useEffect(() => {
     setTimeout(() => {
       document.querySelectorAll('.scroll-reveal').forEach(el => {
@@ -275,9 +269,7 @@ export default function HowItWorks() {
   return (
     <div className="hiw-page" style={{ background: '#f5f7f5', minHeight: '100vh' }}>
       <style>{STYLES}</style>
-
-      {/* ── Navbar ──────────────────────────────────────────────────── */}
-      <nav style={{
+<nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         background: 'rgba(7,31,18,0.97)', backdropFilter: 'blur(14px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -297,15 +289,12 @@ export default function HowItWorks() {
           <Link to="/register" className="btn btn-primary btn-sm">Get Started</Link>
         </div>
       </nav>
-
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section style={{
+<section style={{
         background: 'linear-gradient(140deg, #071f12 0%, #0d3d22 55%, #1a6b3c 100%)',
         color: 'white', padding: '148px 24px 88px', textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* decorative rings */}
-        {[500, 320].map(size => (
+{[500, 320].map(size => (
           <div key={size} style={{
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
@@ -348,12 +337,8 @@ export default function HowItWorks() {
           for each type of user — step by step.
         </p>
       </section>
-
-      {/* ── Role Tabs + Steps ────────────────────────────────────────── */}
-      <section style={{ padding: '72px 24px', maxWidth: '820px', margin: '0 auto' }}>
-
-        {/* Tab switcher */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '52px', flexWrap: 'wrap' }}>
+<section style={{ padding: '72px 24px', maxWidth: '820px', margin: '0 auto' }}>
+<div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '52px', flexWrap: 'wrap' }}>
           {Object.entries(ROLE_STEPS).map(([key, val]) => (
             <button
               key={key}
@@ -365,11 +350,8 @@ export default function HowItWorks() {
             </button>
           ))}
         </div>
-
-        {/* Steps */}
-        <div style={{ position: 'relative' }}>
-          {/* Vertical line */}
-          <div style={{
+<div style={{ position: 'relative' }}>
+<div style={{
             position: 'absolute', left: '31px', top: '44px', bottom: '44px',
             width: '2px',
             background: `linear-gradient(to bottom, ${current.accentColor}40, ${current.accentColor}10)`,
@@ -384,8 +366,7 @@ export default function HowItWorks() {
                 style={{ animationDelay: `${i * 75}ms` }}
               >
                 <div className="step-card-inner">
-                  {/* number bubble */}
-                  <div style={{
+<div style={{
                     width: '44px', height: '44px', borderRadius: '50%',
                     background: current.accentColor,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -394,9 +375,7 @@ export default function HowItWorks() {
                   }}>
                     {i + 1}
                   </div>
-
-                  {/* icon + text */}
-                  <div style={{ flex: 1 }}>
+<div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
                       <div style={{
                         width: '30px', height: '30px', borderRadius: '8px',
@@ -420,9 +399,7 @@ export default function HowItWorks() {
           </div>
         </div>
       </section>
-
-      {/* ── Request Lifecycle ────────────────────────────────────────── */}
-      <section style={{ background: 'white', padding: '80px 24px' }}>
+<section style={{ background: 'white', padding: '80px 24px' }}>
         <div style={{ maxWidth: '820px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '44px' }}>
             <div className="hiw-eyebrow">The Journey</div>
@@ -466,9 +443,7 @@ export default function HowItWorks() {
           </div>
         </div>
       </section>
-
-      {/* ── FAQ ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 24px', maxWidth: '700px', margin: '0 auto' }}>
+<section style={{ padding: '80px 24px', maxWidth: '700px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div className="hiw-eyebrow">Got Questions?</div>
           <h2 className="hiw-h2">Frequently Asked Questions</h2>
@@ -496,9 +471,7 @@ export default function HowItWorks() {
           ))}
         </div>
       </section>
-
-      {/* ── CTA ─────────────────────────────────────────────────────── */}
-      <section className="hiw-cta">
+<section className="hiw-cta">
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{
             width: '54px', height: '54px', borderRadius: '15px',

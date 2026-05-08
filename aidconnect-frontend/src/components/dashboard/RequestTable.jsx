@@ -1,4 +1,3 @@
-// src/components/dashboard/RequestTable.jsx
 import React from 'react';
 import {
   Search,
@@ -28,8 +27,6 @@ import {
   URGENCY_LEVELS,
   REQUEST_STATUSES,
 } from '../../utils/constants.js';
-
-// Maps emergency type values to a Lucide icon component
 function EmergencyIcon({ type, size = 15 }) {
   const props = { size, strokeWidth: 1.8, style: { flexShrink: 0 } };
   switch (type) {
@@ -40,8 +37,6 @@ function EmergencyIcon({ type, size = 15 }) {
     default:         return <HelpCircle  {...props} style={{ ...props.style, color: '#6b7a64' }} />;
   }
 }
-
-// ─── Filter bar ───────────────────────────────────────────────────────────────
 function FilterBar({ filters, onChange, onReset, showSearch = true }) {
   return (
     <div className="filter-bar">
@@ -59,7 +54,7 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
       )}
 
       <select
-        className="form-select"
+        className="form-select rt-select"
         style={{ width: 'auto', minWidth: '140px' }}
         value={filters.emergencyType || ''}
         onChange={(e) => onChange('emergencyType', e.target.value)}
@@ -71,7 +66,7 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
       </select>
 
       <select
-        className="form-select"
+        className="form-select rt-select"
         style={{ width: 'auto', minWidth: '130px' }}
         value={filters.urgencyLevel || ''}
         onChange={(e) => onChange('urgencyLevel', e.target.value)}
@@ -83,7 +78,7 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
       </select>
 
       <select
-        className="form-select"
+        className="form-select rt-select"
         style={{ width: 'auto', minWidth: '130px' }}
         value={filters.status || ''}
         onChange={(e) => onChange('status', e.target.value)}
@@ -106,8 +101,6 @@ function FilterBar({ filters, onChange, onReset, showSearch = true }) {
     </div>
   );
 }
-
-// ─── Pagination bar ───────────────────────────────────────────────────────────
 function PaginationBar({ pagination, onPageChange }) {
   const { page, totalPages, total, limit } = pagination;
   if (totalPages <= 1) return null;
@@ -177,8 +170,6 @@ function PaginationBar({ pagination, onPageChange }) {
     </div>
   );
 }
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState({ filtered }) {
   return (
     <div className="empty-state" style={{ padding: '48px 24px' }}>
@@ -197,8 +188,6 @@ function EmptyState({ filtered }) {
     </div>
   );
 }
-
-// ─── RequestTable ─────────────────────────────────────────────────────────────
 export default function RequestTable({
   requests      = [],
   pagination    = { page: 1, limit: 10, total: 0, totalPages: 1 },
@@ -236,8 +225,7 @@ export default function RequestTable({
 
   return (
     <div>
-      {/* ── Filters ───────────────────────────────────────────────────────── */}
-      {showFilters && onFilterChange && (
+{showFilters && onFilterChange && (
         <FilterBar
           filters={filters}
           onChange={onFilterChange}
@@ -245,9 +233,7 @@ export default function RequestTable({
           showSearch={showSearch}
         />
       )}
-
-      {/* ── Table ─────────────────────────────────────────────────────────── */}
-      <div className="table-wrap">
+<div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
@@ -279,8 +265,7 @@ export default function RequestTable({
                     style={{ cursor: onView ? 'pointer' : 'default' }}
                     onClick={onView ? () => onView(r) : undefined}
                   >
-                    {/* Description */}
-                    <td style={{ maxWidth: '220px' }}>
+                    <td className="rt-desc-cell" style={{ maxWidth: '220px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <EmergencyIcon type={r.emergencyType} />
                         <span
@@ -305,28 +290,20 @@ export default function RequestTable({
                         </span>
                       )}
                     </td>
-
-                    {/* Emergency type */}
-                    <td>
+                    <td className="rt-location-cell">
                       <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-mid)' }}>
                         {formatEmergencyType(r.emergencyType)}
                       </span>
                     </td>
-
-                    {/* Urgency */}
-                    <td><Badge urgency={r.urgencyLevel} /></td>
-
-                    {/* Status */}
-                    <td>
+<td><Badge urgency={r.urgencyLevel} /></td>
+<td>
                       <Badge
                         status={r.status}
                         dot={r.status === 'in_progress'}
                         pulse={r.status === 'in_progress'}
                       />
                     </td>
-
-                    {/* Location */}
-                    <td>
+<td>
                       <span
                         style={{
                           fontSize: '12px',
@@ -341,17 +318,13 @@ export default function RequestTable({
                         {r.address || '—'}
                       </span>
                     </td>
-
-                    {/* Posted time */}
-                    <td>
+<td>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {formatTimeAgo(r.postedAt)}
                       </span>
                     </td>
-
-                    {/* Actions */}
                     <td onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <div className="rt-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
 
                         {typeof onView === 'function' && (
                           <button
@@ -398,9 +371,7 @@ export default function RequestTable({
           </tbody>
         </table>
       </div>
-
-      {/* ── Pagination ────────────────────────────────────────────────────── */}
-      {!loading && requests.length > 0 && (
+{!loading && requests.length > 0 && (
         <PaginationBar pagination={pagination} onPageChange={onPageChange} />
       )}
     </div>

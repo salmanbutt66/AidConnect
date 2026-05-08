@@ -1,4 +1,3 @@
-// src/pages/public/Landing.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -29,7 +28,6 @@ import {
 import Footer from '../../components/common/Footer.jsx';
 import { APP_NAME, APP_TAGLINE } from '../../utils/constants.js';
 
-/* ─── Data ──────────────────────────────────────────────────────────── */
 const STATS = [
   { value: '10,000+', label: 'Lives Impacted',       icon: Heart },
   { value: '500+',    label: 'Verified Volunteers',   icon: Users },
@@ -115,7 +113,68 @@ const SERVICE_CHIPS = [
   { Icon: HelpCircle,  label: 'Other',       color: '#94a3b8' },
 ];
 
-/* ─── Scroll-reveal hook ────────────────────────────────────────────── */
+const STYLES = `
+  .lp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .lp-how-grid,
+  .lp-roles-grid,
+  .lp-trust-grid {
+    display: grid;
+    gap: 24px;
+  }
+
+  .lp-how-grid {
+    grid-template-columns: repeat(3, 1fr);
+    position: relative;
+  }
+
+  .lp-roles-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .lp-trust-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    text-align: center;
+  }
+
+  .lp-network-chips {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  @media (max-width: 1100px) {
+    .lp-stats-grid,
+    .lp-how-grid,
+    .lp-roles-grid,
+    .lp-trust-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 720px) {
+    .lp-stats-grid,
+    .lp-how-grid,
+    .lp-roles-grid,
+    .lp-trust-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .lp-how-grid::before {
+      display: none;
+    }
+
+    .lp-network-chips {
+      gap: 10px;
+    }
+  }
+`;
+
 function useReveal() {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
@@ -132,13 +191,10 @@ function useReveal() {
   return [ref, visible];
 }
 
-/* ─── Animated counter ──────────────────────────────────────────────── */
 function StatCounter({ value }) {
-  // just displays value, animation is CSS
   return <span>{value}</span>;
 }
 
-/* ─── NavLink ───────────────────────────────────────────────────────── */
 function NavLink({ to, children }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -162,7 +218,6 @@ function NavLink({ to, children }) {
   );
 }
 
-/* ─── Section wrapper with reveal ──────────────────────────────────── */
 function RevealSection({ children, style = {}, delay = 0 }) {
   const [ref, visible] = useReveal();
   return (
@@ -180,7 +235,6 @@ function RevealSection({ children, style = {}, delay = 0 }) {
   );
 }
 
-/* ─── Main Component ────────────────────────────────────────────────── */
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -193,9 +247,8 @@ export default function Landing() {
 
   return (
     <div style={{ background: 'var(--bg-page)', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
-
-      {/* ── Navbar ──────────────────────────────────────────────────── */}
-      <nav style={{
+      <style>{STYLES}</style>
+<nav style={{
         position: 'fixed',
         top: 0, left: 0, right: 0,
         zIndex: 200,
@@ -212,8 +265,7 @@ export default function Landing() {
         transition: 'background 0.3s, border-color 0.3s, box-shadow 0.3s',
         boxShadow: scrolled ? '0 4px 24px rgba(0,0,0,0.3)' : 'none',
       }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '34px', height: '34px',
             background: 'linear-gradient(135deg, var(--green-600), var(--green-400))',
@@ -227,9 +279,7 @@ export default function Landing() {
             Aid<span style={{ color: 'var(--green-400)' }}>Connect</span>
           </span>
         </div>
-
-        {/* Desktop Nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="desktop-nav">
+<div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} className="desktop-nav">
           <NavLink to="/how-it-works">How It Works</NavLink>
           <NavLink to="/about">About</NavLink>
           <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.12)', margin: '0 8px' }} />
@@ -260,9 +310,7 @@ export default function Landing() {
             Get Started <ChevronRight size={14} strokeWidth={2.5} />
           </Link>
         </div>
-
-        {/* Mobile menu toggle */}
-        <button
+<button
           onClick={() => setMobileMenuOpen(v => !v)}
           style={{
             display: 'none', background: 'transparent', border: 'none',
@@ -273,9 +321,7 @@ export default function Landing() {
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </nav>
-
-      {/* Mobile Menu Dropdown */}
-      {mobileMenuOpen && (
+{mobileMenuOpen && (
         <div style={{
           position: 'fixed', top: '64px', left: 0, right: 0,
           background: 'rgba(7,31,18,0.98)', backdropFilter: 'blur(16px)',
@@ -299,9 +345,7 @@ export default function Landing() {
           </Link>
         </div>
       )}
-
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section style={{
+<section style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -314,18 +358,14 @@ export default function Landing() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Decorative mesh orbs */}
-        <div style={{ position: 'absolute', top: '15%', left: '10%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(42,173,96,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+<div style={{ position: 'absolute', top: '15%', left: '10%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(42,173,96,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '10%', right: '8%', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(42,173,96,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        {/* Fine dot grid */}
-        <div style={{
+<div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           backgroundImage: 'radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
         }} />
-
-        {/* Live badge */}
-        <div style={{
+<div style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
           padding: '6px 16px 6px 10px',
           background: 'rgba(239,68,68,0.12)',
@@ -343,9 +383,7 @@ export default function Landing() {
           }} />
           Pakistan's Emergency Coordination Network — Live Now
         </div>
-
-        {/* H1 */}
-        <h1 style={{
+<h1 style={{
           fontSize: 'clamp(40px, 6vw, 72px)',
           fontWeight: 900,
           lineHeight: 1.08,
@@ -364,9 +402,7 @@ export default function Landing() {
             When It Matters Most
           </span>
         </h1>
-
-        {/* Sub */}
-        <p style={{
+<p style={{
           fontSize: 'clamp(15px, 2vw, 18px)',
           color: 'rgba(255,255,255,0.58)',
           maxWidth: '520px',
@@ -378,9 +414,7 @@ export default function Landing() {
           {APP_TAGLINE}. Instantly connect with verified volunteers,
           hospitals, blood banks and rescue teams across Pakistan.
         </p>
-
-        {/* CTAs */}
-        <div style={{
+<div style={{
           display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap',
           marginBottom: '64px',
           animation: 'fadeSlideUp 0.65s ease 240ms both',
@@ -414,9 +448,7 @@ export default function Landing() {
             <ArrowRight size={15} />
           </Link>
         </div>
-
-        {/* Emergency type chips */}
-        <div style={{
+<div style={{
           display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap',
           animation: 'fadeSlideUp 0.7s ease 320ms both',
         }}>
@@ -439,9 +471,7 @@ export default function Landing() {
             </div>
           ))}
         </div>
-
-        {/* Scroll indicator */}
-        <div style={{
+<div style={{
           position: 'absolute', bottom: '32px', left: '50%', transform: 'translateX(-50%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
           color: 'rgba(255,255,255,0.3)', fontSize: '11px', fontWeight: 500,
@@ -451,19 +481,13 @@ export default function Landing() {
           <div style={{ width: '1px', height: '28px', background: 'linear-gradient(to bottom, rgba(255,255,255,0.3), transparent)' }} />
         </div>
       </section>
-
-      {/* ── Stats bar ───────────────────────────────────────────────── */}
-      <section style={{
+<section style={{
         background: 'linear-gradient(90deg, var(--green-900), var(--green-800))',
         padding: '0',
         borderTop: '1px solid rgba(255,255,255,0.06)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <div style={{
-          maxWidth: '1000px', margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-        }}>
+        <div className="lp-stats-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
           {STATS.map(({ value, label, icon: Icon }, i) => (
             <div key={label} style={{
               padding: '32px 24px',
@@ -492,9 +516,7 @@ export default function Landing() {
           ))}
         </div>
       </section>
-
-      {/* ── How it works ────────────────────────────────────────────── */}
-      <section style={{ padding: '96px 24px', maxWidth: '1040px', margin: '0 auto' }}>
+<section style={{ padding: '96px 24px', maxWidth: '1040px', margin: '0 auto' }}>
         <RevealSection>
           <div style={{ textAlign: 'center', marginBottom: '56px' }}>
             <div style={{
@@ -515,9 +537,8 @@ export default function Landing() {
           </div>
         </RevealSection>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', position: 'relative' }}>
-          {/* Connector line */}
-          <div style={{
+        <div className="lp-how-grid">
+<div style={{
             position: 'absolute', top: '72px', left: 'calc(16.66% + 20px)', right: 'calc(16.66% + 20px)',
             height: '2px',
             background: 'linear-gradient(90deg, rgba(42,173,96,0.2), var(--green-400), rgba(42,173,96,0.2))',
@@ -538,8 +559,7 @@ export default function Landing() {
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(0,0,0,0.12)'; e.currentTarget.style.borderColor = 'var(--green-200)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = 'var(--stone-200)'; }}
               >
-                {/* Step badge */}
-                <div style={{
+<div style={{
                   position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)',
                   background: 'var(--green-800)', color: 'white',
                   fontSize: '11px', fontWeight: 800, letterSpacing: '1px',
@@ -570,9 +590,7 @@ export default function Landing() {
           ))}
         </div>
       </section>
-
-      {/* ── Who is it for ───────────────────────────────────────────── */}
-      <section style={{ padding: '96px 24px', background: 'white' }}>
+<section style={{ padding: '96px 24px', background: 'white' }}>
         <div style={{ maxWidth: '1040px', margin: '0 auto' }}>
           <RevealSection>
             <div style={{ textAlign: 'center', marginBottom: '56px' }}>
@@ -594,7 +612,7 @@ export default function Landing() {
             </div>
           </RevealSection>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+          <div className="lp-roles-grid">
             {ROLES.map(({ Icon, iconColor, iconBg, borderAccent, title, desc, cta, to }, i) => (
               <RevealSection key={title} delay={i * 100}>
                 <div style={{
@@ -620,8 +638,7 @@ export default function Landing() {
                     e.currentTarget.querySelector('.role-accent-line').style.width = '40px';
                   }}
                 >
-                  {/* Accent top line */}
-                  <div className="role-accent-line" style={{
+<div className="role-accent-line" style={{
                     position: 'absolute', top: 0, left: 0,
                     height: '3px', width: '40px',
                     background: borderAccent,
@@ -662,9 +679,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* ── Service network ─────────────────────────────────────────── */}
-      <section style={{ padding: '96px 24px', background: 'var(--green-50)' }}>
+<section style={{ padding: '96px 24px', background: 'var(--green-50)' }}>
         <div style={{ maxWidth: '840px', margin: '0 auto' }}>
           <RevealSection>
             <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -687,7 +702,7 @@ export default function Landing() {
           </RevealSection>
 
           <RevealSection delay={100}>
-            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <div className="lp-network-chips">
               {SERVICE_CHIPS.map(({ Icon, label, color }) => (
                 <div key={label} style={{
                   display: 'inline-flex', alignItems: 'center', gap: '10px',
@@ -729,11 +744,9 @@ export default function Landing() {
           </RevealSection>
         </div>
       </section>
-
-      {/* ── Trust strip ─────────────────────────────────────────────── */}
-      <section style={{ padding: '64px 24px', background: 'white', borderTop: '1px solid var(--stone-200)', borderBottom: '1px solid var(--stone-200)' }}>
+<section style={{ padding: '64px 24px', background: 'white', borderTop: '1px solid var(--stone-200)', borderBottom: '1px solid var(--stone-200)' }}>
         <RevealSection>
-          <div style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px', textAlign: 'center' }}>
+          <div className="lp-trust-grid" style={{ maxWidth: '800px', margin: '0 auto' }}>
             {[
               { Icon: ShieldCheck, color: 'var(--green-700)', bg: 'var(--green-100)', title: 'Verified Responders', desc: 'Every volunteer and organization is manually verified before joining the network.' },
               { Icon: Phone, color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', title: '24/7 Availability', desc: 'Our platform and partner network operates around the clock, every day of the year.' },
@@ -750,9 +763,7 @@ export default function Landing() {
           </div>
         </RevealSection>
       </section>
-
-      {/* ── Final CTA ───────────────────────────────────────────────── */}
-      <section style={{
+<section style={{
         background: 'linear-gradient(170deg, var(--green-950) 0%, var(--green-900) 100%)',
         color: 'white',
         padding: '100px 24px',
@@ -802,9 +813,7 @@ export default function Landing() {
           </div>
         </RevealSection>
       </section>
-
-      {/* ── Responsive helpers ──────────────────────────────────────── */}
-      <style>{`
+<style>{`
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-menu-btn { display: flex !important; }

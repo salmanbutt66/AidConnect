@@ -1,4 +1,3 @@
-// controllers/request.controller.js
 import HelpRequest from "../models/HelpRequest.model.js";
 import Match from "../models/Match.model.js";
 import Rating from "../models/Rating.model.js";
@@ -16,11 +15,6 @@ const getProviderCredibilityScore = (averageRating, totalRatings) => {
   if (!totalRatings) return 50;
   return Math.round(Math.max(0, Math.min(100, (averageRating / 5) * 100)));
 };
-
-// ─────────────────────────────────────────
-// CREATE REQUEST
-// POST /api/requests
-// ─────────────────────────────────────────
 export const createRequest = asyncHandler(async (req, res) => {
   const {
     emergencyType, urgencyLevel, description,
@@ -68,11 +62,6 @@ export const createRequest = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 201, "Help request posted successfully. Finding nearby responders...", request);
 });
-
-// ─────────────────────────────────────────
-// GET MY REQUESTS
-// GET /api/requests/my
-// ─────────────────────────────────────────
 export const getMyRequests = asyncHandler(async (req, res) => {
   const { status, page = 1, limit = 10 } = req.query;
 
@@ -97,11 +86,6 @@ export const getMyRequests = asyncHandler(async (req, res) => {
     pages: Math.ceil(total / Number(limit)),
   });
 });
-
-// ─────────────────────────────────────────
-// GET NEARBY REQUESTS (city-based)
-// GET /api/requests/nearby
-// ─────────────────────────────────────────
 export const getNearbyRequests = asyncHandler(async (req, res) => {
   const { emergencyType, page = 1, limit = 10 } = req.query;
 
@@ -168,11 +152,6 @@ export const getNearbyRequests = asyncHandler(async (req, res) => {
     city:  volunteerCity,
   });
 });
-
-// ─────────────────────────────────────────
-// GET REQUEST BY ID
-// GET /api/requests/:id
-// ─────────────────────────────────────────
 export const getRequestById = asyncHandler(async (req, res) => {
   const request = await HelpRequest.findById(req.params.id)
     .populate("requesterId", "name phone email")
@@ -182,11 +161,6 @@ export const getRequestById = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Request fetched successfully", request);
 });
-
-// ─────────────────────────────────────────
-// CANCEL REQUEST
-// PUT /api/requests/:id/cancel
-// ─────────────────────────────────────────
 export const cancelRequest = asyncHandler(async (req, res) => {
   const request = await HelpRequest.findById(req.params.id);
 
@@ -216,8 +190,6 @@ export const cancelRequest = asyncHandler(async (req, res) => {
   if (request.assignedType === "Provider" && request.assignedTo) {
     await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
   }
-
-  // FIX: free up the volunteer if they were assigned when user cancels
   if (request.assignedType === "Volunteer" && request.assignedTo) {
     const volunteerProfile = await Volunteer.findById(request.assignedTo);
     if (volunteerProfile) {
@@ -228,11 +200,6 @@ export const cancelRequest = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Request cancelled successfully", request);
 });
-
-// ─────────────────────────────────────────
-// ACCEPT REQUEST (volunteer via match)
-// PUT /api/requests/:id/accept
-// ─────────────────────────────────────────
 export const acceptRequest = asyncHandler(async (req, res) => {
   const { matchId } = req.body;
 
@@ -242,17 +209,6 @@ export const acceptRequest = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Request accepted successfully. Please head to the location.", match);
 });
-
-// ─────────────────────────────────────────
-// UPDATE REQUEST STATUS
-// PUT /api/requests/:id/status
-// Access: assigned volunteer or provider only
-//
-// FIX: on completion, free the volunteer profile (currentRequestId → null,
-// isAvailable → true, totalCompleted += 1) in addition to freeing the provider.
-// Previously only providers were freed here — volunteers stayed locked as
-// unavailable permanently after their first completed request via this path.
-// ─────────────────────────────────────────
 export const updateRequestStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
@@ -270,8 +226,6 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
   if (!request.assignedTo || !request.assignedType) {
     return sendError(res, 400, "No responder is assigned to this request");
   }
-
-  // ── Verify the caller is the assigned responder ──────────────────────────
   let isAssignedResponder = false;
 
   if (request.assignedType === "Volunteer" && req.user.role === "volunteer") {
@@ -289,8 +243,6 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
   if (!isAssignedResponder) {
     return sendError(res, 403, "You are not assigned to this request");
   }
-
-  // ── Validate transition ───────────────────────────────────────────────────
   const allowedNextStatuses = validTransitions[request.status] || [];
   if (!allowedNextStatuses.includes(status)) {
     return sendError(
@@ -299,8 +251,6 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
       `Allowed next status: ${allowedNextStatuses.join(", ") || "none"}`
     );
   }
-
-  // ── Apply transition ──────────────────────────────────────────────────────
   request.status = status;
 
   if (status === "completed") {
@@ -308,17 +258,9 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
     request.resolutionTime = Math.round(
       (request.completedAt - request.postedAt) / 1000 / 60
     );
-
-    // FIX: free provider BEFORE save so a save failure doesn't lock them
     if (request.assignedType === "Provider") {
       await Provider.findByIdAndUpdate(request.assignedTo, { isAvailable: true });
     }
-
-    // FIX: free volunteer — was completely missing from this path.
-    // volunteer.controller completeRequest() does this correctly but
-    // updateRequestStatus (used by providers AND as a fallback path)
-    // never freed the volunteer. Result: volunteer stays locked as
-    // unavailable with currentRequestId set forever.
     if (request.assignedType === "Volunteer") {
       const volunteerProfile = await Volunteer.findById(request.assignedTo);
       if (volunteerProfile) {
@@ -338,11 +280,6 @@ export const updateRequestStatus = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, `Request status updated to "${status}"`, request);
 });
-
-// ─────────────────────────────────────────
-// RATE REQUEST
-// POST /api/requests/:id/rate
-// ─────────────────────────────────────────
 export const rateRequest = asyncHandler(async (req, res) => {
   const { score, comment } = req.body;
 
@@ -402,8 +339,6 @@ export const rateRequest = asyncHandler(async (req, res) => {
     score,
     comment:       comment || null,
   });
-
-  // ── Update volunteer reputation ───────────────────────────────────────────
   if (recipientType === "Volunteer") {
     volunteerProfile.addRating(req.user.id, request._id, score, comment || "");
     await volunteerProfile.save();
@@ -412,8 +347,6 @@ export const rateRequest = asyncHandler(async (req, res) => {
       console.error("Score recalculation failed:", err.message)
     );
   }
-
-  // ── Update provider credibility ───────────────────────────────────────────
   if (recipientType === "Provider") {
     const stats = await Rating.getAverageScore(recipientUserId, "Provider");
     providerProfile.averageRating    = Number((stats.averageScore  || 0).toFixed(2));
@@ -427,11 +360,6 @@ export const rateRequest = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 201, "Rating submitted successfully", newRating);
 });
-
-// ─────────────────────────────────────────
-// GET ALL REQUESTS (ADMIN)
-// GET /api/requests
-// ─────────────────────────────────────────
 export const getAllRequests = asyncHandler(async (req, res) => {
   const {
     status, emergencyType,
@@ -468,11 +396,6 @@ export const getAllRequests = asyncHandler(async (req, res) => {
     pages: Math.ceil(total / Number(limit)),
   });
 });
-
-// ─────────────────────────────────────────
-// DELETE REQUEST (ADMIN)
-// DELETE /api/requests/:id
-// ─────────────────────────────────────────
 export const deleteRequest = asyncHandler(async (req, res) => {
   const request = await HelpRequest.findById(req.params.id);
 

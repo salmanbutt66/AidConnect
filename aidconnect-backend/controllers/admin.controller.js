@@ -1,4 +1,3 @@
-// controllers/admin.controller.js
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import Rating from "../models/Rating.model.js";
@@ -6,10 +5,6 @@ import Volunteer from "../models/Volunteer.model.js";
 import Provider from "../models/Provider.model.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
-// ─────────────────────────────────────────────
-// 👥 USER MANAGEMENT
-// ─────────────────────────────────────────────
 
 export const getAllUsers = asyncHandler(async (req, res) => {
   const {
@@ -101,10 +96,6 @@ export const deleteUser = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, "User deleted successfully");
 });
 
-// ─────────────────────────────────────────────
-// 📋 REQUEST MANAGEMENT
-// ─────────────────────────────────────────────
-
 export const getAllRequests = asyncHandler(async (req, res) => {
   const {
     status, emergencyType, urgencyLevel,
@@ -149,10 +140,6 @@ export const cancelRequest = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Request cancelled successfully", request);
 });
-
-// ─────────────────────────────────────────────
-// 📊 ANALYTICS
-// ─────────────────────────────────────────────
 
 export const getAnalyticsOverview = asyncHandler(async (req, res) => {
   const [responseTimeStats] = await HelpRequest.aggregate([
@@ -268,10 +255,6 @@ export const getTopProviders = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Top providers fetched", providers);
 });
-
-// FIX: use $nin to exclude null, undefined, and empty string ""
-// Previously only excluded null — empty string city values slipped through
-// and caused the aggregation to return no meaningful grouped results.
 export const getHighRiskAreas = asyncHandler(async (req, res) => {
   const areas = await HelpRequest.aggregate([
     {

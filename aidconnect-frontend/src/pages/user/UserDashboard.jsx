@@ -1,4 +1,3 @@
-// src/pages/user/UserDashboard.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -26,7 +25,6 @@ import {
 
 const REQUEST_STATUS_REFRESH_EVENT = 'aidconnect:request-status-changed';
 
-/* ── Injected styles ─────────────────────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
@@ -48,7 +46,7 @@ const STYLES = `
 
   .ud-anim { animation: ud-fade-up 0.48s cubic-bezier(.22,.68,0,1.2) both; }
 
-  /* quick action button */
+  
   .quick-action-btn {
     display: flex; align-items: center; gap: 14px;
     padding: 15px 18px; background: white;
@@ -73,7 +71,7 @@ const STYLES = `
   }
   .qa-chevron { margin-left: auto; color: #c4d4c6; transition: color 0.2s, transform 0.2s; }
 
-  /* active banner */
+  
   .active-banner {
     border-radius: 14px; padding: 16px 20px;
     display: flex; align-items: center; gap: 14px;
@@ -92,7 +90,7 @@ const STYLES = `
   .pulse-dot.amber  { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
   .pulse-dot.orange { background: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.2); }
 
-  /* emergency cta button */
+  
   .emergency-cta {
     display: inline-flex; align-items: center; gap: 9px;
     background: #dc2626; color: white;
@@ -109,14 +107,14 @@ const STYLES = `
     box-shadow: 0 8px 24px rgba(220,38,38,0.40);
   }
 
-  /* tip card */
+  
   .tip-card {
     background: linear-gradient(135deg, #0d3d22 0%, #1a6b3c 100%);
     border-radius: 16px; padding: 22px;
     border: none;
   }
 
-  /* section card */
+  
   .ud-card {
     background: white; border: 1px solid #e2e8e3;
     border-radius: 16px; overflow: hidden;
@@ -127,7 +125,7 @@ const STYLES = `
   }
   .ud-card-body { padding: 16px 22px 22px; }
 
-  /* success alert */
+  
   .ud-success-alert {
     display: flex; align-items: center; gap: 10px;
     background: #f0fdf4; border: 1px solid #bbf7d0;
@@ -137,7 +135,7 @@ const STYLES = `
     animation: ud-fade-up 0.3s ease both;
   }
 
-  /* empty state */
+  
   .ud-empty {
     display: flex; flex-direction: column; align-items: center;
     padding: 44px 16px; text-align: center; gap: 8px;
@@ -148,7 +146,7 @@ const STYLES = `
     justify-content: center; margin-bottom: 8px;
   }
 
-  /* view all link */
+  
   .view-all-btn {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 12px; font-weight: 600; color: #1a6b3c;
@@ -158,9 +156,21 @@ const STYLES = `
     text-decoration: none;
   }
   .view-all-btn:hover { background: #e0f5e9; }
+
+  .ud-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 1024px) {
+    .ud-main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 `;
 
-/* ── Quick Action ────────────────────────────────────────────────────────── */
 function QuickAction({ Icon, label, desc, onClick }) {
   return (
     <button className="quick-action-btn" onClick={onClick}>
@@ -176,7 +186,6 @@ function QuickAction({ Icon, label, desc, onClick }) {
   );
 }
 
-/* ── Active Request Banner ───────────────────────────────────────────────── */
 function ActiveRequestBanner({ request, onView, onCancel, loading }) {
   const config = {
     posted:      { cls: 'posted',      dot: 'blue',   label: 'Awaiting a responder'  },
@@ -220,7 +229,6 @@ function ActiveRequestBanner({ request, onView, onCancel, loading }) {
   );
 }
 
-/* ── UserDashboard ───────────────────────────────────────────────────────── */
 export default function UserDashboard() {
   const navigate  = useNavigate();
   const { user }  = useAuth();
@@ -264,9 +272,7 @@ export default function UserDashboard() {
     <Navbar title="Dashboard">
       <style>{STYLES}</style>
       <div className="page-wrapper ud-page">
-
-        {/* ── Welcome header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h1 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: '#141b11', margin: 0, letterSpacing: '-0.4px' }}>
@@ -285,17 +291,13 @@ export default function UserDashboard() {
             </button>
           </div>
         </div>
-
-        {/* ── Cancel success ───────────────────────────────────────────── */}
-        {cancelSuccess && (
+{cancelSuccess && (
           <div className="ud-success-alert">
             <CheckCircle2 size={16} color="#16a34a" />
             {cancelSuccess}
           </div>
         )}
-
-        {/* ── Active request banner ────────────────────────────────────── */}
-        {latestActive && (
+{latestActive && (
           <ActiveRequestBanner
             request={latestActive}
             onView={r => navigate(`/user/requests/${r._id}`)}
@@ -303,23 +305,15 @@ export default function UserDashboard() {
             loading={actionLoading}
           />
         )}
-
-        {/* ── Stats row ────────────────────────────────────────────────── */}
-        <div className="grid-4" style={{ marginBottom: '28px' }}>
+<div className="grid-4" style={{ marginBottom: '28px' }}>
           <StatsCard label="Total Requests" value={requests.length}        icon={<ClipboardList size={22} />} color="blue"   loading={loading} delay={0}   />
           <StatsCard label="Active"          value={activeRequests.length} icon={<Siren size={22} />}        color="orange" loading={loading} delay={100} />
           <StatsCard label="Completed"       value={completedCount}        icon={<CheckCircle2 size={22} />} color="green"  loading={loading} delay={200} />
           <StatsCard label="Cancelled"       value={cancelledCount}        icon={<XCircle size={22} />}      color="red"    loading={loading} delay={300} />
         </div>
-
-        {/* ── Main grid ────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '22px', alignItems: 'start' }}>
-
-          {/* Left column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-            {/* Quick actions */}
-            <div className="ud-card ud-anim" style={{ animationDelay: '100ms' }}>
+  <div className="ud-main-grid">
+<div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+<div className="ud-card ud-anim" style={{ animationDelay: '100ms' }}>
               <div className="ud-card-header">
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#141b11' }}>Quick Actions</div>
@@ -347,9 +341,7 @@ export default function UserDashboard() {
                 />
               </div>
             </div>
-
-            {/* Recent requests */}
-            <div className="ud-card ud-anim" style={{ animationDelay: '180ms' }}>
+<div className="ud-card ud-anim" style={{ animationDelay: '180ms' }}>
               <div className="ud-card-header">
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#141b11' }}>Recent Requests</div>
@@ -388,7 +380,8 @@ export default function UserDashboard() {
                         variant="user"
                         onClick={req => navigate(`/user/requests/${req._id}`)}
                         onCancel={id => setCancelTarget(id)}
-                        actionLoading={actionLoading}
+                        onRate={req => navigate(`/user/requests/${req._id}?rate=1`)}
+                        loading={actionLoading}
                       />
                     ))}
                   </div>
@@ -397,16 +390,12 @@ export default function UserDashboard() {
             </div>
 
           </div>
-
-          {/* Right column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
             <div className="ud-anim" style={{ animationDelay: '220ms' }}>
               <NotificationPanel limit={6} />
             </div>
-
-            {/* Tip card */}
-            <div className="tip-card ud-anim" style={{ animationDelay: '300ms' }}>
+<div className="tip-card ud-anim" style={{ animationDelay: '300ms' }}>
               <div style={{
                 width: '38px', height: '38px', borderRadius: '10px',
                 background: 'rgba(125,212,154,0.18)', display: 'flex',
@@ -430,9 +419,7 @@ export default function UserDashboard() {
           </div>
         </div>
       </div>
-
-      {/* ── Cancel confirmation modal ─────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={!!cancelTarget}
         onClose={() => { setCancelTarget(null); clearError(); }}
         title="Cancel Request"

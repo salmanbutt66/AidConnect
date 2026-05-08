@@ -1,8 +1,3 @@
-// utils/apiResponse.js
-// Standardized API response utility for AidConnect
-// Every controller uses these functions to send responses
-
-// SUCCESS RESPONSE
 const sendSuccess = (res, statusCode = 200, message = "Success", data = null) => {
   const response = {
     success: true,
@@ -15,16 +10,12 @@ const sendSuccess = (res, statusCode = 200, message = "Success", data = null) =>
 
   return res.status(statusCode).json(response);
 };
-
-// ERROR RESPONSE
 const sendError = (res, statusCode = 500, message = "Internal Server Error") => {
   return res.status(statusCode).json({
     success: false,
     message,
   });
 };
-
-// PAGINATED RESPONSE
 const sendPaginated = (res, message = "Success", data = [], pagination = {}) => {
   return res.status(200).json({
     success: true,
@@ -35,7 +26,6 @@ const sendPaginated = (res, message = "Success", data = [], pagination = {}) => 
       page: pagination.page || 1,
       limit: pagination.limit || 10,
       pages: pagination.pages || 1,
-      // Preserve any additional custom fields (e.g., city, filters, etc.)
       ...Object.keys(pagination)
         .filter(key => !['total', 'page', 'limit', 'pages'].includes(key))
         .reduce((acc, key) => ({ ...acc, [key]: pagination[key] }), {}),

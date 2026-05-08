@@ -1,9 +1,4 @@
-// services/notification.service.js
 import Notification from "../models/Notification.model.js";
-
-// ─────────────────────────────────────────
-// CREATE SINGLE NOTIFICATION
-// ─────────────────────────────────────────
 const createNotification = async ({
   recipientId,
   type,
@@ -27,11 +22,6 @@ const createNotification = async ({
     return null;
   }
 };
-
-// ─────────────────────────────────────────
-// CREATE BULK NOTIFICATIONS
-// Used in disaster mode
-// ─────────────────────────────────────────
 const createBulkNotifications = async ({
   recipientIds,
   type,
@@ -59,10 +49,6 @@ const createBulkNotifications = async ({
     return 0;
   }
 };
-
-// ─────────────────────────────────────────
-// GET USER NOTIFICATIONS
-// ─────────────────────────────────────────
 const getUserNotifications = async (userId, limit = 20, page = 1) => {
   try {
     const skip = (page - 1) * limit;
@@ -94,10 +80,6 @@ const getUserNotifications = async (userId, limit = 20, page = 1) => {
     throw error;
   }
 };
-
-// ─────────────────────────────────────────
-// MARK NOTIFICATION AS READ
-// ─────────────────────────────────────────
 const markAsRead = async (notificationId, userId) => {
   try {
     const notification = await Notification.findOneAndUpdate(
@@ -119,10 +101,6 @@ const markAsRead = async (notificationId, userId) => {
     throw error;
   }
 };
-
-// ─────────────────────────────────────────
-// MARK ALL AS READ
-// ─────────────────────────────────────────
 const markAllAsRead = async (userId) => {
   try {
     const result = await Notification.updateMany(
@@ -139,10 +117,6 @@ const markAllAsRead = async (userId) => {
     throw error;
   }
 };
-
-// ─────────────────────────────────────────
-// NOTIFICATION TEMPLATES
-// ─────────────────────────────────────────
 const notifyRequestAccepted = async (requesterId, request) => {
   return createNotification({
     recipientId: requesterId,

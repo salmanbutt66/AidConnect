@@ -1,4 +1,3 @@
-// services/matching.service.js
 import Match from "../models/Match.model.js";
 import Volunteer from "../models/Volunteer.model.js";
 import Provider from "../models/Provider.model.js";
@@ -6,11 +5,6 @@ import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import ScoringService from "./scoring.service.js";
 import { createNotification } from "./notification.service.js";
-
-// ─────────────────────────────────────────
-// FIND AND CREATE MATCHES
-// Entry point called after a request is created
-// ─────────────────────────────────────────
 const findAndCreateMatches = async (request) => {
   try {
     const candidates = await findCandidatesByCity(request);
@@ -33,10 +27,6 @@ const findAndCreateMatches = async (request) => {
     throw error;
   }
 };
-
-// ─────────────────────────────────────────
-// FIND CANDIDATES BY CITY
-// ─────────────────────────────────────────
 const findCandidatesByCity = async (request) => {
   const requestCity = request.city?.trim();
 
@@ -49,8 +39,6 @@ const findCandidatesByCity = async (request) => {
 
   let volunteers = [];
   let providers  = [];
-
-  // ── Volunteer candidates ──────────────────────────────────────────────────
   try {
     const volunteerQuery = {
       isAvailable:        true,
@@ -92,8 +80,6 @@ const findCandidatesByCity = async (request) => {
   } catch (error) {
     console.error("[Matching] Error finding volunteers:", error.message);
   }
-
-  // ── Provider candidates ───────────────────────────────────────────────────
   try {
     providers = await Provider.find({
       isAvailable: true,
@@ -133,10 +119,6 @@ const findCandidatesByCity = async (request) => {
 
   return [...formattedVolunteers, ...formattedProviders];
 };
-
-// ─────────────────────────────────────────
-// SCORE CANDIDATES
-// ─────────────────────────────────────────
 const scoreCandidates = (candidates) => {
   return candidates
     .map((candidate) => ({
@@ -146,10 +128,6 @@ const scoreCandidates = (candidates) => {
     }))
     .sort((a, b) => b.matchScore - a.matchScore);
 };
-
-// ─────────────────────────────────────────
-// CREATE MATCH DOCUMENTS + NOTIFY
-// ─────────────────────────────────────────
 const createMatchDocuments = async (topMatches, request) => {
   const createdMatches = [];
 
@@ -184,11 +162,6 @@ const createMatchDocuments = async (topMatches, request) => {
 
   return createdMatches;
 };
-
-// ─────────────────────────────────────────
-// HANDLE VOLUNTEER RESPONSE
-// Called when a volunteer accepts or declines via PUT /api/requests/:id/accept
-// ─────────────────────────────────────────
 const handleVolunteerResponse = async (matchId, userId, action) => {
   const match = await Match.findById(matchId);
   if (!match) throw new Error("Match not found");
@@ -225,8 +198,6 @@ const handleVolunteerResponse = async (matchId, userId, action) => {
     volunteerProfile.totalAssigned    = (volunteerProfile.totalAssigned || 0) + 1;
     volunteerProfile.totalAccepted    = (volunteerProfile.totalAccepted || 0) + 1;
     await volunteerProfile.save();
-
-    // Expire all other pending matches for this request
     await Match.updateMany(
       { requestId: match.requestId, _id: { $ne: matchId }, status: "notified" },
       { status: "expired" }
@@ -239,11 +210,6 @@ const handleVolunteerResponse = async (matchId, userId, action) => {
       message:        `Your ${request.emergencyType} request has been accepted. A responder is on their way.`,
       relatedRequest: request._id,
     });
-
-    // FIX: recalculate reputation score after accepting.
-    // volunteer.controller.acceptRequest() calls this correctly,
-    // but this path (used by Matches.jsx via request.api acceptRequest)
-    // was missing it — causing score drift for match-based accepts.
     ScoringService.recalculate(volunteerProfile._id).catch((err) =>
       console.error("[Matching] Score recalculation failed:", err.message)
     );
@@ -251,10 +217,6 @@ const handleVolunteerResponse = async (matchId, userId, action) => {
 
   return match;
 };
-
-// ─────────────────────────────────────────
-// BLOOD GROUP COMPATIBILITY MATRIX
-// ─────────────────────────────────────────
 const getCompatibleBloodGroups = (neededGroup) => {
   const compatibility = {
     "A+":  ["A+", "A-", "O+", "O-"],
@@ -268,10 +230,6 @@ const getCompatibleBloodGroups = (neededGroup) => {
   };
   return compatibility[neededGroup] || [neededGroup];
 };
-
-// ─────────────────────────────────────────
-// PROVIDER TYPE → EMERGENCY TYPE MAPPING
-// ─────────────────────────────────────────
 const getRelevantProviderTypes = (emergencyType) => {
   const mapping = {
     medical:  ["hospital", "ambulance", "ngo"],

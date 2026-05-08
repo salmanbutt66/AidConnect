@@ -1,4 +1,3 @@
-// src/pages/user/CreateRequest.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -23,7 +22,6 @@ import {
   Bell,
 } from 'lucide-react';
 
-/* ── Styles ──────────────────────────────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
@@ -47,7 +45,7 @@ const STYLES = `
   .cr-scale-in  { animation: cr-scale-in 0.42s cubic-bezier(.22,.68,0,1.2) both; }
   .cr-check-pop { animation: cr-check-pop 0.45s cubic-bezier(.22,.68,0,1.2) both; }
 
-  /* step connector */
+  
   .step-connector {
     flex: 1; height: 2px; margin: 0 6px;
     margin-bottom: 22px;
@@ -55,7 +53,7 @@ const STYLES = `
     transition: background 0.4s ease;
   }
 
-  /* step bubble */
+  
   .step-bubble {
     width: 36px; height: 36px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -63,7 +61,7 @@ const STYLES = `
     transition: all 0.3s ease;
   }
 
-  /* tip item */
+  
   .tip-item {
     display: flex; gap: 10px; align-items: flex-start;
     font-size: 13px; color: #3a4a35; line-height: 1.55;
@@ -79,7 +77,7 @@ const STYLES = `
     flex-shrink: 0; margin-top: 1px;
   }
 
-  /* contact row */
+  
   .contact-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 9px 0; border-bottom: 1px solid rgba(220,38,38,0.08);
@@ -88,7 +86,7 @@ const STYLES = `
   .contact-row:last-child { border-bottom: none; }
   .contact-row:hover { opacity: 0.72; }
 
-  /* sidebar card */
+  
   .cr-sidebar-card {
     background: white; border: 1px solid #e2e8e3;
     border-radius: 16px; overflow: hidden;
@@ -99,7 +97,7 @@ const STYLES = `
     display: flex; align-items: center; gap: 8px;
   }
 
-  /* warning banner */
+  
   .cr-warning-banner {
     display: flex; align-items: flex-start; gap: 12px;
     background: #fffbeb; border: 1.5px solid #fde68a;
@@ -108,7 +106,20 @@ const STYLES = `
     animation: cr-fade-up 0.38s ease both;
   }
 
-  /* success screen */
+  .cr-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 980px) {
+    .cr-main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  
   .cr-success-icon {
     width: 84px; height: 84px; border-radius: 50%;
     background: #f0fdf4; border: 3px solid #bbf7d0;
@@ -128,7 +139,6 @@ const STYLES = `
   }
 `;
 
-/* ── Step Indicator ──────────────────────────────────────────────────────── */
 const STEPS = [
   { Icon: AlertTriangle, label: 'Emergency Type' },
   { Icon: FileText,      label: 'Details'        },
@@ -181,7 +191,6 @@ function StepIndicator({ current, submitted }) {
   );
 }
 
-/* ── Success Screen ──────────────────────────────────────────────────────── */
 function SuccessScreen({ onViewRequests, onNewRequest }) {
   const nextSteps = [
     { Icon: Search,    text: 'Matching you with nearby verified volunteers'  },
@@ -201,9 +210,7 @@ function SuccessScreen({ onViewRequests, onNewRequest }) {
         Your emergency request has been posted. Nearby volunteers and
         responders are being notified right now.
       </p>
-
-      {/* What happens next */}
-      <div style={{
+<div style={{
         background: '#f0faf4', border: '1px solid #c6e8d1',
         borderRadius: '16px', padding: '20px 24px',
         marginBottom: '32px', maxWidth: '420px', width: '100%', textAlign: 'left',
@@ -239,7 +246,6 @@ function SuccessScreen({ onViewRequests, onNewRequest }) {
   );
 }
 
-/* ── CreateRequest ───────────────────────────────────────────────────────── */
 const TIPS = [
   'Be specific about your location — include landmarks',
   'Describe the number of people affected',
@@ -270,16 +276,14 @@ export default function CreateRequest() {
       const request = await submitRequest(payload);
       setCreatedRequest(request);
       setSubmitted(true);
-    } catch { /* error set in useRequests */ }
+    } catch {  }
   };
 
   return (
     <Navbar title="Post Emergency Request">
       <style>{STYLES}</style>
       <div className="page-wrapper cr-page">
-
-        {/* ── Page header ──────────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '10px',
@@ -295,9 +299,7 @@ export default function CreateRequest() {
             Describe your situation and we'll match you with the nearest available help.
           </p>
         </div>
-
-        {/* ── Warning banner ───────────────────────────────────────────── */}
-        <div className="cr-warning-banner">
+<div className="cr-warning-banner">
           <div style={{
             width: '34px', height: '34px', borderRadius: '9px',
             background: '#fef3c7', display: 'flex', alignItems: 'center',
@@ -311,15 +313,9 @@ export default function CreateRequest() {
             Use this platform for coordination, not as a replacement for emergency services.
           </div>
         </div>
-
-        {/* ── Step indicator ───────────────────────────────────────────── */}
-        <StepIndicator current={1} submitted={submitted} />
-
-        {/* ── Main grid ────────────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '22px', alignItems: 'start' }}>
-
-          {/* Form / Success */}
-          <div style={{ background: 'white', border: '1px solid #e2e8e3', borderRadius: '16px', overflow: 'hidden', animationDelay: '100ms' }} className="cr-anim">
+<StepIndicator current={1} submitted={submitted} />
+  <div className="cr-main-grid">
+<div style={{ background: 'white', border: '1px solid #e2e8e3', borderRadius: '16px', overflow: 'hidden', animationDelay: '100ms' }} className="cr-anim">
             <div style={{ padding: '24px' }}>
               {submitted ? (
                 <SuccessScreen
@@ -350,12 +346,8 @@ export default function CreateRequest() {
               )}
             </div>
           </div>
-
-          {/* Sidebar */}
-          <div className="cr-anim" style={{ display: 'flex', flexDirection: 'column', gap: '14px', animationDelay: '180ms' }}>
-
-            {/* Tips */}
-            <div className="cr-sidebar-card">
+<div className="cr-anim" style={{ display: 'flex', flexDirection: 'column', gap: '14px', animationDelay: '180ms' }}>
+<div className="cr-sidebar-card">
               <div className="cr-sidebar-card-header">
                 <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fefce8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Lightbulb size={14} color="#ca8a04" />
@@ -371,9 +363,7 @@ export default function CreateRequest() {
                 ))}
               </div>
             </div>
-
-            {/* Safety */}
-            <div style={{
+<div style={{
               background: '#f0faf4', border: '1px solid #c6e8d1',
               borderRadius: '14px', padding: '16px 18px',
               display: 'flex', gap: '12px', alignItems: 'flex-start',
@@ -389,9 +379,7 @@ export default function CreateRequest() {
                 </p>
               </div>
             </div>
-
-            {/* Emergency contacts */}
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '14px', overflow: 'hidden' }}>
+<div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '14px', overflow: 'hidden' }}>
               <div style={{ padding: '13px 18px 10px', borderBottom: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Phone size={13} color="#dc2626" />

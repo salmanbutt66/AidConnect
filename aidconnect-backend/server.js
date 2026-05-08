@@ -1,4 +1,3 @@
-// server.js
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -17,8 +16,6 @@ import {
   notFound,
   setupProcessHandlers,
 } from "./middleware/error.middleware.js";
-
-// ─── Routes ───────────────────────────────────────────────────────────────────
 import requestRoutes      from "./routes/request.routes.js";
 import matchRoutes        from "./routes/match.routes.js";
 import authRoutes         from "./routes/auth.routes.js";
@@ -27,12 +24,8 @@ import providerRoutes     from "./routes/provider.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import adminRoutes        from "./routes/admin.routes.js";
 import userRoutes         from "./routes/user.routes.js";
-
-// ─── App Setup ────────────────────────────────────────────────────────────────
 const app = express();
 app.set("etag", false); // Avoid 304 responses for API JSON payloads
-
-// ─── CORS ─────────────────────────────────────────────────────────────────────
 const getAllowedOrigins = () => {
   if (env.NODE_ENV !== "production") {
     return ["http://localhost:5173", "http://localhost:3000"];
@@ -48,8 +41,6 @@ const getAllowedOrigins = () => {
     );
     return "*";
   }
-
-  // Remove trailing slash if present to ensure exact match with origin header
   return [frontendUrl.replace(/\/$/, "")];
 };
 
@@ -68,26 +59,18 @@ const corsOptions = {
   methods:        ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
-
-// ← THIS LINE FIXES PREFLIGHT REQUESTS
 app.use(cors(corsOptions));
-
-// ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Ensure frontend always receives fresh API payloads.
 app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.set("Pragma", "no-cache");
   res.set("Expires", "0");
   next();
 });
-
-// ─── Root & Health Check ──────────────────────────────────────────────────────
 app.get("/", (req, res) => {
   res.status(200).send("AidConnect API is running. Please use /api for endpoints.");
 });
@@ -100,8 +83,6 @@ app.get("/api/health", (req, res) => {
     timestamp:   new Date().toISOString(),
   });
 });
-
-// ─── Routes ───────────────────────────────────────────────────────────────────
 app.use("/api/auth",          authRoutes);
 app.use("/api/users",         userRoutes);
 app.use("/api/requests",      requestRoutes);
@@ -110,17 +91,11 @@ app.use("/api/providers",     providerRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/matches",       matchRoutes);
 app.use("/api/admin",         adminRoutes);
-
-// ─── 404 + Global Error ───────────────────────────────────────────────────────
 app.use(notFound);
 app.use(globalErrorHandler);
-
-// ─── Start Server ─────────────────────────────────────────────────────────────
 const startServer = async () => {
   try {
     await connectDB();
-
-    // ── Migration 1: backfill new rating/availability fields ────────────────
     const migration1Result = await Provider.updateMany(
       { availabilityInitialized: { $ne: true } },
       {
@@ -137,8 +112,6 @@ const startServer = async () => {
     if (migration1Result.modifiedCount > 0) {
       console.log(`[Migration 1] Backfilled ${migration1Result.modifiedCount} provider(s) with rating fields`);
     }
-
-    // ── Migration 2: backfill city field from address ────────────────────────
     const needsCityBackfill = await Provider.find({
       city:    { $in: [null, ""] },
       address: { $nin: [null, ""] },

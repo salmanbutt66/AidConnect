@@ -1,4 +1,3 @@
-// controllers/volunteer.controller.js
 import Volunteer from "../models/Volunteer.model.js";
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
@@ -9,11 +8,6 @@ import {
   notifyRequestAccepted,
   notifyRequestCompleted,
 } from "../services/notification.service.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/profile
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const getMyVolunteerProfile = async (req, res, next) => {
   try {
     const profile = await Volunteer.findOne({ user: req.user.id })
@@ -29,11 +23,6 @@ export const getMyVolunteerProfile = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/volunteers/profile
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const updateVolunteerProfile = async (req, res, next) => {
   try {
     const {
@@ -81,11 +70,6 @@ export const updateVolunteerProfile = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/volunteers/availability
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const toggleAvailability = async (req, res, next) => {
   try {
     const profile = await Volunteer.findOne({ user: req.user.id });
@@ -127,11 +111,6 @@ export const toggleAvailability = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/stats
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const getVolunteerStats = async (req, res, next) => {
   try {
     const profile = await Volunteer.findOne({ user: req.user.id });
@@ -162,11 +141,6 @@ export const getVolunteerStats = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/ratings
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const getMyRatings = async (req, res, next) => {
   try {
     const page  = parseInt(req.query.page)  || 1;
@@ -197,11 +171,6 @@ export const getMyRatings = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/history
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const getVolunteerHistory = async (req, res, next) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -237,11 +206,6 @@ export const getVolunteerHistory = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/active-request
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const getActiveRequest = async (req, res, next) => {
   try {
     const profile = await Volunteer.findOne({ user: req.user.id })
@@ -265,10 +229,6 @@ export const getActiveRequest = async (req, res, next) => {
         message:       "No active request at the moment",
       });
     }
-
-    // FIX: if the stored request is completed or cancelled, clear the stale
-    // currentRequestId so the volunteer isn't permanently stuck. This covers
-    // edge cases where freeUp() wasn't called (e.g. admin force-cancel).
     const req_ = profile.currentRequestId;
     if (req_ && ["completed", "cancelled"].includes(req_.status)) {
       await Volunteer.findOneAndUpdate(
@@ -287,21 +247,6 @@ export const getActiveRequest = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/volunteers/request/:requestId/accept
-// @access  Private (volunteer only)
-//
-// FIX: Changed the availability guard from `!profile.isAvailable` to
-// `profile.currentRequestId`. The isAvailable toggle is a preference flag
-// for the matching engine — it tells the system who to notify about new
-// requests. It must NOT block a volunteer from manually accepting a request
-// they can see in their dashboard.
-//
-// The real "are you busy?" check is currentRequestId. A volunteer who just
-// got approved has isAvailable:false by default and would hit a 400 on every
-// accept attempt under the old logic, with no obvious reason why.
-// ─────────────────────────────────────────────────────────────────────────────
 export const acceptRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -318,16 +263,12 @@ export const acceptRequest = async (req, res, next) => {
     if (!request) {
       return res.status(404).json({ success: false, message: "Request not found" });
     }
-
-    // Must be approved and not suspended
     if (!profile.isApproved || profile.isSuspended) {
       return res.status(403).json({
         success: false,
         message: "Your volunteer account is not eligible to accept requests",
       });
     }
-
-    // FIX: check for an existing active assignment, not the availability toggle
     if (profile.currentRequestId) {
       return res.status(400).json({
         success: false,
@@ -341,23 +282,17 @@ export const acceptRequest = async (req, res, next) => {
         message: `This request is already ${request.status}`,
       });
     }
-
-    // ── Update the request ────────────────────────────────────────────────
     request.assignedTo   = profile._id;
     request.assignedType = "Volunteer";
     request.status       = "accepted";
     request.acceptedAt   = new Date();
     request.responseTime = Math.round((request.acceptedAt - request.postedAt) / 1000 / 60);
     await request.save();
-
-    // ── Update volunteer profile ──────────────────────────────────────────
     profile.currentRequestId = request._id;
     profile.isAvailable      = false;
     profile.totalAssigned   += 1;
     profile.totalAccepted   += 1;
     await profile.save();
-
-    // ── Update Match documents ────────────────────────────────────────────
     await Match.findOneAndUpdate(
       { requestId: request._id, matchedTo: profile._id, status: "notified" },
       { status: "accepted", respondedAt: new Date() }
@@ -379,11 +314,6 @@ export const acceptRequest = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/volunteers/request/:requestId/complete
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const completeRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -432,11 +362,6 @@ export const completeRequest = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/volunteers/request/:requestId/cancel
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const cancelRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -463,15 +388,11 @@ export const cancelRequest = async (req, res, next) => {
         message: "Cannot cancel a request in its current status",
       });
     }
-
-    // Reset request back to posted so other volunteers can pick it up
     request.status       = "posted";
     request.assignedTo   = null;
     request.assignedType = null;
     request.acceptedAt   = null;
     await request.save();
-
-    // Re-open any expired matches so other volunteers can still respond
     await Match.updateMany(
       { requestId: request._id, status: "expired" },
       { status: "notified" }
@@ -492,11 +413,6 @@ export const cancelRequest = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/volunteers/request/:requestId/in-progress
-// @access  Private (volunteer only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const markInProgress = async (req, res, next) => {
   try {
     const { requestId } = req.params;
@@ -539,11 +455,6 @@ export const markInProgress = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/available
-// @access  Private (admin only)
-// ─────────────────────────────────────────────────────────────────────────────
 export const getAvailableVolunteers = async (req, res, next) => {
   try {
     const { city, emergencyType, bloodGroup, minScore = 0 } = req.query;
@@ -575,11 +486,6 @@ export const getAvailableVolunteers = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/volunteers/:id
-// @access  Private
-// ─────────────────────────────────────────────────────────────────────────────
 export const getVolunteerById = async (req, res, next) => {
   try {
     const profile = await Volunteer.findById(req.params.id)

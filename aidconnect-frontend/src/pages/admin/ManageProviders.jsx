@@ -1,4 +1,3 @@
-// src/pages/admin/ManageProviders.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Search, Building2, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -91,9 +90,7 @@ export default function ManageProviders() {
   return (
     <Navbar title="Manage Providers">
       <div className="page-wrapper">
-
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1>Manage Organizations</h1>
@@ -113,9 +110,7 @@ export default function ManageProviders() {
             </button>
           </div>
         </div>
-
-        {/* ── Alerts ────────────────────────────────────────────────── */}
-        {error && (
+{error && (
           <div
             className="alert alert-error anim-fade-up"
             style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -139,9 +134,7 @@ export default function ManageProviders() {
             {successMsg}
           </div>
         )}
-
-        {/* ── Filter bar ────────────────────────────────────────────── */}
-        <div className="filter-bar">
+<div className="filter-bar">
           <div className="search-input-wrap">
             <Search size={14} className="search-icon" style={{ color: 'var(--text-muted)' }} />
             <input
@@ -166,9 +159,7 @@ export default function ManageProviders() {
             {filteredProviders.length} result{filteredProviders.length !== 1 ? 's' : ''}
           </span>
         </div>
-
-        {/* ── Content ───────────────────────────────────────────────── */}
-        {loading ? (
+{loading ? (
           <Loader variant="skeleton" count={4} />
         ) : filteredProviders.length === 0 ? (
           <div className="card">
@@ -208,9 +199,7 @@ export default function ManageProviders() {
         )}
 
       </div>
-
-      {/* ── Suspend modal ─────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={suspendModal.isOpen}
         onClose={() => setSuspendModal({ isOpen: false, providerId: null })}
         title="Suspend Organization"

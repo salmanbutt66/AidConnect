@@ -1,4 +1,3 @@
-// src/pages/admin/ManageRequests.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   ClipboardList,
@@ -90,15 +89,11 @@ export default function ManageRequests() {
   return (
     <Navbar title="Manage Requests">
       <div className="page-wrapper">
-
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <h1>Manage Requests</h1>
           <p>Monitor, moderate, and manage all emergency requests on the platform.</p>
         </div>
-
-        {/* ── Alerts ────────────────────────────────────────────────── */}
-        {error && (
+{error && (
           <div
             className="alert alert-error anim-fade-up"
             style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -122,16 +117,12 @@ export default function ManageRequests() {
             {successMsg}
           </div>
         )}
-
-        {/* ── Stats row ─────────────────────────────────────────────── */}
-        <div className="grid-3" style={{ marginBottom: '28px' }}>
+<div className="grid-3" style={{ marginBottom: '28px' }}>
           <StatsCard label="Total Requests"    value={totalCount}   icon={<ClipboardList size={20} />} color="blue"  loading={loading} delay={0} />
           <StatsCard label="Active Emergencies" value={activeCount} icon={<Siren size={20} />}         color="red"   loading={loading} delay={100} />
           <StatsCard label="Success Rate"       value={successRate} icon={<CheckCircle2 size={20} />}  color="green" format="percent" loading={loading} delay={200} />
         </div>
-
-        {/* ── Moderation table ──────────────────────────────────────── */}
-        <div className="card anim-fade-up delay-200">
+<div className="card anim-fade-up delay-200">
           <div className="card-header">
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>
@@ -159,9 +150,7 @@ export default function ManageRequests() {
         </div>
 
       </div>
-
-      {/* ── Modals ────────────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         title="Cancel Request"

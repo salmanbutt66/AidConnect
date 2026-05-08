@@ -1,15 +1,8 @@
-// controllers/user.controller.js
 import User from "../models/User.model.js";
 import HelpRequest from "../models/HelpRequest.model.js";
 import Rating from "../models/Rating.model.js";
 import { sendSuccess, sendError, sendPaginated } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
-// ─────────────────────────────────────────────
-// 👤 PROFILE MANAGEMENT
-// ─────────────────────────────────────────────
-
-// GET /api/users/profile
 export const getMyProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select(
     "-password -refreshToken"
@@ -19,8 +12,6 @@ export const getMyProfile = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Profile fetched successfully", user);
 });
-
-// PATCH /api/users/profile
 export const updateMyProfile = asyncHandler(async (req, res) => {
   const { name, phone, bloodGroup, city, area, longitude, latitude, notificationPreferences } = req.body;
 
@@ -32,8 +23,6 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
   if (notificationPreferences) updates.notificationPreferences = notificationPreferences;
   if (city) updates["location.city"] = city;
   if (area) updates["location.area"] = area;
-
-  // GeoJSON coordinates update
   if (longitude !== undefined && latitude !== undefined) {
     updates["location.coordinates"] = [longitude, latitude];
   }
@@ -46,8 +35,6 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Profile updated successfully", updatedUser);
 });
-
-// PATCH /api/users/profile/picture
 export const updateProfilePicture = asyncHandler(async (req, res) => {
   const { profilePicture } = req.body;
 
@@ -61,8 +48,6 @@ export const updateProfilePicture = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Profile picture updated successfully", updatedUser);
 });
-
-// PATCH /api/users/change-password
 export const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
@@ -84,12 +69,6 @@ export const changePassword = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Password changed successfully");
 });
-
-// ─────────────────────────────────────────────
-// 📋 USER'S REQUEST HISTORY
-// ─────────────────────────────────────────────
-
-// GET /api/users/my-requests
 export const getMyRequests = asyncHandler(async (req, res) => {
   const { status, page = 1, limit = 10 } = req.query;
 
@@ -113,8 +92,6 @@ export const getMyRequests = asyncHandler(async (req, res) => {
     pages: Math.ceil(total / parseInt(limit)),
   });
 });
-
-// GET /api/users/my-requests/:id
 export const getMyRequestById = asyncHandler(async (req, res) => {
   const request = await HelpRequest.findOne({
     _id: req.params.id,
@@ -125,12 +102,6 @@ export const getMyRequestById = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 200, "Request fetched successfully", request);
 });
-
-// ─────────────────────────────────────────────
-// ⭐ RATINGS
-// ─────────────────────────────────────────────
-
-// POST /api/users/rate
 export const rateVolunteer = asyncHandler(async (req, res) => {
   const { volunteerId, helpRequestId, score, comment } = req.body;
 
@@ -169,8 +140,6 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, 201, "Rating submitted successfully", rating);
 });
-
-// GET /api/users/volunteer/:id/ratings
 export const getVolunteerRatings = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -194,12 +163,6 @@ export const getVolunteerRatings = asyncHandler(async (req, res) => {
     totalRatings: avgData.totalRatings,
   });
 });
-
-// ─────────────────────────────────────────────
-// 🔔 NOTIFICATION PREFERENCES
-// ─────────────────────────────────────────────
-
-// PATCH /api/users/notification-preferences
 export const updateNotificationPreferences = asyncHandler(async (req, res) => {
   const { email, inApp } = req.body;
 

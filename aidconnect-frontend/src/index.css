@@ -1,14 +1,9 @@
-/* ═══════════════════════════════════════════════════════
-   AidConnect Design System — index.css
-   Theme: Humanitarian Green / Pakistan-inspired
-   ═══════════════════════════════════════════════════════ */
 
-/* ─── Google Fonts ──────────────────────────────────── */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ─── CSS Variables ─────────────────────────────────── */
 :root {
-  /* Green palette */
+  
   --green-950: #071f12;
   --green-900: #0d3d22;
   --green-800: #1a6b3c;
@@ -21,7 +16,7 @@
   --green-100: #e0f5e9;
   --green-50:  #f2fbf6;
 
-  /* Neutral / warm */
+  
   --cream:      #faf8f4;
   --stone-100:  #f5f2ee;
   --stone-200:  #ede9e3;
@@ -29,13 +24,13 @@
   --stone-400:  #b8b3ab;
   --bg-page:    #f5f7f5;
 
-  /* Text */
+  
   --text-dark:  #141b11;
   --text-mid:   #3a4a35;
   --text-muted: #6b7a64;
   --text-light: #9aaa93;
 
-  /* Semantic */
+  
   --danger:     #c0392b;
   --danger-bg:  #fdecea;
   --warning:    #d68910;
@@ -45,17 +40,17 @@
   --success:    var(--green-700);
   --success-bg: var(--green-100);
 
-  /* Shadows */
+  
   --shadow-xs:  0 1px 2px rgba(0,0,0,0.06);
   --shadow-sm:  0 2px 8px rgba(0,0,0,0.07);
   --shadow-md:  0 4px 16px rgba(0,0,0,0.09);
   --shadow-lg:  0 8px 32px rgba(0,0,0,0.11);
   --shadow-xl:  0 20px 60px rgba(0,0,0,0.14);
 
-  /* Green glow */
+  
   --glow-green: 0 0 24px rgba(26,107,60,0.18);
 
-  /* Borders */
+  
   --radius-xs:   4px;
   --radius-sm:   8px;
   --radius-md:   12px;
@@ -63,11 +58,11 @@
   --radius-xl:   24px;
   --radius-full: 9999px;
 
-  /* Sidebar */
+  
   --sidebar-w:         240px;
   --sidebar-collapsed: 64px;
 
-  /* Timing */
+  
   --t-fast: 150ms;
   --t-base: 250ms;
   --t-slow: 400ms;
@@ -75,7 +70,6 @@
   --ease:   cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Reset & Base ──────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -108,14 +102,12 @@ button { cursor: pointer; font-family: inherit; }
 input, textarea, select { font-family: inherit; }
 img { max-width: 100%; display: block; }
 
-/* Focus ring — accessible, on-brand */
 :focus-visible {
   outline: 2px solid var(--green-500);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
 
-/* ─── Keyframes ─────────────────────────────────────── */
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -151,7 +143,6 @@ img { max-width: 100%; display: block; }
   100% { background-position:  400px 0; }
 }
 
-/* Pulse: used for live status dots — scale only, no opacity flicker */
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(42,173,96,0.55); }
   60%       { box-shadow: 0 0 0 6px rgba(42,173,96,0); }
@@ -187,7 +178,6 @@ img { max-width: 100%; display: block; }
   50%       { border-color: var(--green-500); }
 }
 
-/* ─── Animation Utilities ───────────────────────────── */
 .anim-fade-up    { animation: fadeSlideUp  var(--t-page) var(--ease) both; }
 .anim-fade-in    { animation: fadeIn       var(--t-slow) var(--ease) both; }
 .anim-scale-in   { animation: scaleIn      var(--t-base) var(--ease) both; }
@@ -203,7 +193,6 @@ img { max-width: 100%; display: block; }
 .delay-700 { animation-delay: 700ms; }
 .delay-800 { animation-delay: 800ms; }
 
-/* ─── Skeleton Loader ───────────────────────────────── */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -216,7 +205,6 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-sm);
 }
 
-/* ─── Spinner ───────────────────────────────────────── */
 .spinner {
   width: 20px;
   height: 20px;
@@ -237,12 +225,10 @@ img { max-width: 100%; display: block; }
   border-width: 3px;
 }
 
-/* ─── Page Wrapper ──────────────────────────────────── */
 .page-wrapper {
   animation: fadeSlideUp var(--t-page) var(--ease);
 }
 
-/* ─── Layout: Sidebar + Content ────────────────────── */
 .app-layout {
   display: flex;
   min-height: 100vh;
@@ -259,7 +245,6 @@ img { max-width: 100%; display: block; }
   margin-left: 0;
 }
 
-/* ─── Main Inner ────────────────────────────────────── */
 .main-inner {
   flex: 1;
   padding: 32px 36px;
@@ -267,7 +252,6 @@ img { max-width: 100%; display: block; }
   width: 100%;
 }
 
-/* ─── Topbar ─────────────────────────────────────────── */
 .topbar {
   height: 64px;
   background: white;
@@ -288,7 +272,6 @@ img { max-width: 100%; display: block; }
   letter-spacing: -0.3px;
 }
 
-/* ─── Sidebar ───────────────────────────────────────── */
 .sidebar {
   position: fixed;
   top: 0;
@@ -314,7 +297,6 @@ img { max-width: 100%; display: block; }
   flex-shrink: 0;
 }
 
-/* Icon slot — sized for a Lucide icon (18–20px), not an emoji */
 .sidebar-logo-icon {
   width: 36px;
   height: 36px;
@@ -408,7 +390,6 @@ img { max-width: 100%; display: block; }
   border-radius: 0 2px 2px 0;
 }
 
-/* Nav icon: sized for Lucide (16px), centered, no font-size needed */
 .nav-icon {
   width: 20px;
   height: 20px;
@@ -473,7 +454,6 @@ img { max-width: 100%; display: block; }
   text-transform: capitalize;
 }
 
-/* ─── Cards ─────────────────────────────────────────── */
 .card {
   background: white;
   border-radius: var(--radius-lg);
@@ -499,7 +479,6 @@ img { max-width: 100%; display: block; }
   border-top: 1px solid var(--stone-200);
 }
 
-/* ─── Stat Cards ─────────────────────────────────────── */
 .stat-card {
   background: white;
   border-radius: var(--radius-lg);
@@ -517,7 +496,6 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow-lg);
 }
 
-/* Icon container — holds a Lucide icon, not an emoji */
 .stat-icon {
   width: 48px;
   height: 48px;
@@ -554,7 +532,6 @@ img { max-width: 100%; display: block; }
   margin-top: 4px;
 }
 
-/* ─── Buttons ───────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -573,7 +550,6 @@ img { max-width: 100%; display: block; }
   text-decoration: none;
 }
 
-/* Ripple overlay on interaction */
 .btn::after {
   content: '';
   position: absolute;
@@ -635,7 +611,6 @@ img { max-width: 100%; display: block; }
 .btn-full { width: 100%; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-/* ─── Forms ─────────────────────────────────────────── */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -695,7 +670,6 @@ img { max-width: 100%; display: block; }
 .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
 .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
 
-/* Input with leading icon */
 .input-icon-wrap {
   position: relative;
 }
@@ -713,7 +687,6 @@ img { max-width: 100%; display: block; }
   padding-left: 38px;
 }
 
-/* ─── Badges / Chips ────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -732,7 +705,6 @@ img { max-width: 100%; display: block; }
 .badge-blue   { background: var(--info-bg);    color: var(--info); }
 .badge-stone  { background: var(--stone-200);  color: var(--text-mid); }
 
-/* Status dot — sized for visual dot, not emoji */
 .status-dot {
   width: 7px;
   height: 7px;
@@ -747,7 +719,6 @@ img { max-width: 100%; display: block; }
 .dot-stone  { background: var(--stone-400); }
 .dot-blue   { background: var(--info); }
 
-/* ─── Request Cards ─────────────────────────────────── */
 .request-card {
   background: white;
   border-radius: var(--radius-lg);
@@ -759,7 +730,6 @@ img { max-width: 100%; display: block; }
   animation: fadeSlideUp var(--t-page) var(--ease) both;
 }
 
-/* Left color stripe per emergency type */
 .request-card::before {
   content: '';
   position: absolute;
@@ -825,7 +795,6 @@ img { max-width: 100%; display: block; }
   gap: 6px;
 }
 
-/* ─── Page Headers ──────────────────────────────────── */
 .page-header {
   margin-bottom: 28px;
   animation: fadeSlideUp var(--t-page) var(--ease) both;
@@ -843,7 +812,6 @@ img { max-width: 100%; display: block; }
   margin-top: 5px;
 }
 
-/* ─── Section Headers ───────────────────────────────── */
 .section-header {
   display: flex;
   align-items: center;
@@ -862,7 +830,6 @@ img { max-width: 100%; display: block; }
   margin-top: 2px;
 }
 
-/* Landing section text helpers */
 .section-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -889,13 +856,11 @@ img { max-width: 100%; display: block; }
   line-height: 1.7;
 }
 
-/* ─── Grid Layouts ──────────────────────────────────── */
 .grid-2    { display: grid; grid-template-columns: 1fr 1fr;          gap: 20px; }
 .grid-3    { display: grid; grid-template-columns: repeat(3, 1fr);   gap: 20px; }
 .grid-4    { display: grid; grid-template-columns: repeat(4, 1fr);   gap: 16px; }
 .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 
-/* ─── Tables ─────────────────────────────────────────── */
 .table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-md);
@@ -930,7 +895,6 @@ img { max-width: 100%; display: block; }
 }
 .table tbody td:first-child { color: var(--text-dark); font-weight: 500; }
 
-/* ─── Search + Filter bar ───────────────────────────── */
 .filter-bar {
   display: flex;
   gap: 12px;
@@ -944,7 +908,7 @@ img { max-width: 100%; display: block; }
   flex: 1;
   min-width: 220px;
 }
-/* Icon placeholder — use .input-icon-wrap + Lucide Search instead */
+
 .search-input-wrap .search-icon {
   position: absolute;
   left: 12px;
@@ -957,7 +921,6 @@ img { max-width: 100%; display: block; }
 }
 .search-input { padding-left: 38px !important; }
 
-/* ─── Dividers ───────────────────────────────────────── */
 .divider {
   height: 1px;
   background: var(--stone-200);
@@ -978,7 +941,6 @@ img { max-width: 100%; display: block; }
   background: var(--stone-200);
 }
 
-/* ─── Alert / Notice ────────────────────────────────── */
 .alert {
   padding: 14px 16px;
   border-radius: var(--radius-md);
@@ -990,7 +952,7 @@ img { max-width: 100%; display: block; }
   animation: fadeSlideDown var(--t-base) var(--ease);
   line-height: 1.5;
 }
-/* .alert-icon: container for a Lucide icon (16px), not an emoji char */
+
 .alert-icon {
   width: 18px;
   height: 18px;
@@ -1005,7 +967,6 @@ img { max-width: 100%; display: block; }
 .alert-warning { background: var(--warning-bg); color: var(--warning);   border: 1px solid #fce4b3; }
 .alert-info    { background: var(--info-bg);    color: var(--info);      border: 1px solid #b8d9f0; }
 
-/* ─── Empty State ───────────────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -1014,7 +975,7 @@ img { max-width: 100%; display: block; }
   text-align: center;
   animation: fadeIn var(--t-slow) var(--ease);
 }
-/* Icon container — holds a large Lucide icon, not an emoji */
+
 .empty-state-icon {
   width: 72px;
   height: 72px;
@@ -1042,7 +1003,6 @@ img { max-width: 100%; display: block; }
   margin-bottom: 24px;
 }
 
-/* ─── Notification Bell ─────────────────────────────── */
 .notif-btn {
   position: relative;
   width: 40px;
@@ -1140,7 +1100,6 @@ img { max-width: 100%; display: block; }
   margin-top: 3px;
 }
 
-/* ─── Avatar ─────────────────────────────────────────── */
 .avatar {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--green-700), var(--green-600));
@@ -1157,7 +1116,6 @@ img { max-width: 100%; display: block; }
 .avatar-lg { width: 64px; height: 64px; font-size: 22px; }
 .avatar-xl { width: 88px; height: 88px; font-size: 30px; }
 
-/* ─── Toggle / Switch ───────────────────────────────── */
 .toggle-switch {
   position: relative;
   width: 44px;
@@ -1192,7 +1150,6 @@ img { max-width: 100%; display: block; }
   transform: translateX(20px);
 }
 
-/* ─── Profile Hero ──────────────────────────────────── */
 .profile-hero {
   background: linear-gradient(135deg, var(--green-900) 0%, var(--green-700) 100%);
   border-radius: var(--radius-xl);
@@ -1208,7 +1165,6 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow-lg);
 }
 
-/* Decorative geometric shapes instead of emoji */
 .profile-hero::before {
   content: '';
   position: absolute;
@@ -1249,7 +1205,6 @@ img { max-width: 100%; display: block; }
   margin-top: 1px;
 }
 
-/* ─── Dashboard Activity Feed ───────────────────────── */
 .feed-item {
   display: flex;
   gap: 12px;
@@ -1293,7 +1248,6 @@ img { max-width: 100%; display: block; }
   margin-top: 2px;
 }
 
-/* ─── Landing Page ──────────────────────────────────── */
 .landing-nav {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -1329,7 +1283,6 @@ img { max-width: 100%; display: block; }
   text-align: center;
 }
 
-/* Dot grid texture */
 .landing-hero::before {
   content: '';
   position: absolute;
@@ -1338,8 +1291,6 @@ img { max-width: 100%; display: block; }
   background-size: 32px 32px;
   pointer-events: none;
 }
-
-/* Removed .hero-crescent (was emoji-based) */
 
 .hero-content {
   max-width: 720px;
@@ -1403,7 +1354,6 @@ img { max-width: 100%; display: block; }
   animation: fadeSlideUp var(--t-page) var(--ease) 300ms both;
 }
 
-/* Kept for backward compat but unused in new Landing */
 .hero-stats {
   position: absolute;
   right: 48px; top: 50%;
@@ -1454,7 +1404,7 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow-md);
   transform: translateY(-4px);
 }
-/* Feature icon: container for Lucide icon */
+
 .feature-icon {
   width: 48px; height: 48px;
   border-radius: var(--radius-md);
@@ -1499,7 +1449,7 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow-xl);
   border-color: var(--green-300);
 }
-/* Role icon: container for Lucide icon, not emoji */
+
 .role-card-icon {
   width: 60px; height: 60px;
   border-radius: var(--radius-lg);
@@ -1539,7 +1489,6 @@ img { max-width: 100%; display: block; }
   letter-spacing: -0.4px;
 }
 
-/* ─── Auth Pages ─────────────────────────────────────── */
 .auth-layout {
   min-height: 100vh;
   display: grid;
@@ -1554,7 +1503,7 @@ img { max-width: 100%; display: block; }
   position: relative;
   overflow: hidden;
 }
-/* Decorative circles instead of crescent emoji */
+
 .auth-left::before {
   content: '';
   position: absolute;
@@ -1575,7 +1524,6 @@ img { max-width: 100%; display: block; }
   background: rgba(255,255,255,0.03);
   pointer-events: none;
 }
-/* .auth-left-crescent removed — was emoji character */
 
 .auth-left-logo {
   display: flex;
@@ -1609,7 +1557,6 @@ img { max-width: 100%; display: block; }
   z-index: 1;
 }
 
-/* Trust badges on auth left panel */
 .auth-left-badges {
   display: flex;
   flex-direction: column;
@@ -1661,7 +1608,6 @@ img { max-width: 100%; display: block; }
   margin-bottom: 28px;
 }
 
-/* ─── Tabs ───────────────────────────────────────────── */
 .tabs {
   display: flex;
   gap: 0;
@@ -1686,7 +1632,6 @@ img { max-width: 100%; display: block; }
   border-bottom-color: var(--green-700);
 }
 
-/* ─── Pagination ─────────────────────────────────────── */
 .pagination {
   display: flex;
   gap: 6px;
@@ -1717,7 +1662,6 @@ img { max-width: 100%; display: block; }
 }
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ─── Modal ──────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1777,7 +1721,6 @@ img { max-width: 100%; display: block; }
 }
 .modal-close:hover { background: var(--stone-300); color: var(--text-dark); transform: scale(1.08); }
 
-/* ─── Loading Screen ────────────────────────────────── */
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -1823,7 +1766,6 @@ img { max-width: 100%; display: block; }
   animation: loadBar 1.2s ease-in-out infinite;
 }
 
-/* ─── Urgency Chips ─────────────────────────────────── */
 .urgency-critical {
   background: rgba(74,15,15,0.9);
   color: #ff6b6b;
@@ -1845,12 +1787,10 @@ img { max-width: 100%; display: block; }
   border: 1px solid var(--green-200);
 }
 
-/* ─── Rating Stars ──────────────────────────────────── */
 .stars { display: flex; gap: 2px; }
 .star       { font-size: 14px; color: var(--stone-300); }
 .star.filled { color: #f39c12; }
 
-/* ─── Tooltip ────────────────────────────────────────── */
 .tooltip-wrap { position: relative; display: inline-flex; }
 .tooltip {
   position: absolute;
@@ -1877,7 +1817,6 @@ img { max-width: 100%; display: block; }
   transform: translateX(-50%) translateY(0);
 }
 
-/* ─── Misc Utilities ────────────────────────────────── */
 .flex         { display: flex; }
 .flex-center  { display: flex; align-items: center; justify-content: center; }
 .flex-between { display: flex; align-items: center; justify-content: space-between; }
@@ -1909,16 +1848,13 @@ img { max-width: 100%; display: block; }
 .overflow-hidden { overflow: hidden; }
 .truncate    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ─── Scrollbar ─────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--stone-300); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--stone-400); }
 
-/* ─── Selection ─────────────────────────────────────── */
 ::selection { background: var(--green-200); color: var(--green-900); }
 
-/* ─── Responsive ─────────────────────────────────────── */
 @media (max-width: 1024px) {
   .grid-3, .features-grid, .role-cards-grid { grid-template-columns: 1fr 1fr; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
@@ -1946,12 +1882,28 @@ img { max-width: 100%; display: block; }
   .main-inner { padding: 20px 16px; }
   .mobile-menu-btn { display: flex !important; }
   .desktop-nav { display: none !important; }
+
+  .filter-bar { gap: 10px; }
+  .filter-bar .search-input-wrap,
+  .filter-bar .rt-select,
+  .filter-bar .btn {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .table { min-width: 760px; }
+  .rt-desc-cell,
+  .rt-location-cell { max-width: 180px !important; }
+  .rt-actions { flex-wrap: nowrap; }
 }
 
 @media (max-width: 480px) {
   .hero-ctas { flex-direction: column; align-items: stretch; }
   .hero-ctas .btn, .hero-ctas a { width: 100%; justify-content: center; }
-  .notif-dropdown { width: 300px; right: -60px; }
+  .notif-dropdown {
+    width: min(92vw, 320px);
+    right: 0;
+  }
   .card-body, .stat-card { padding: 16px; }
   .card-header { padding: 16px 16px 0; }
   .card-footer { padding: 16px; }

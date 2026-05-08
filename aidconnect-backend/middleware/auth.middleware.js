@@ -1,43 +1,28 @@
-// middleware/auth.middleware.js
 
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// protect — verifies JWT and attaches user to req.user
-// Used on every private route
-// ─────────────────────────────────────────────────────────────────────────────
 export const protect = async (req, res, next) => {
   try {
     let token = null;
-
-    // 1. Try Authorization header first (Bearer token)
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer ")
     ) {
       token = req.headers.authorization.split(" ")[1];
     }
-
-    // 2. Fall back to cookie
     if (!token && req.cookies?.accessToken) {
       token = req.cookies.accessToken;
     }
-
-    // 3. No token found
     if (!token) {
       return res.status(401).json({
         success: false,
         message: "Access denied. Please log in to continue.",
       });
     }
-
-    // 4. Verify token
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      // Distinguish between expired and invalid
       if (err.name === "TokenExpiredError") {
         return res.status(401).json({
           success: false,
@@ -51,8 +36,6 @@ export const protect = async (req, res, next) => {
         code: "TOKEN_INVALID",
       });
     }
-
-    // 5. Find user from decoded token
     const user = await User.findById(decoded.id).select(
       "-password -refreshToken"
     );
@@ -63,8 +46,6 @@ export const protect = async (req, res, next) => {
         message: "User belonging to this token no longer exists.",
       });
     }
-
-    // 6. Check if account is banned
     if (user.isBanned) {
       return res.status(403).json({
         success: false,
@@ -74,8 +55,6 @@ export const protect = async (req, res, next) => {
         code: "ACCOUNT_BANNED",
       });
     }
-
-    // 7. Check if account is still active
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -83,8 +62,6 @@ export const protect = async (req, res, next) => {
         code: "ACCOUNT_INACTIVE",
       });
     }
-
-    // 8. Attach user + decoded role to request object
     req.user = {
       id:    user._id.toString(),
       role:  decoded.role,
@@ -97,12 +74,6 @@ export const protect = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// optionalAuth — attaches user if token present but doesn't block if missing
-// Used on public routes that behave differently for logged-in users
-// e.g. Landing page showing personalized content if logged in
-// ─────────────────────────────────────────────────────────────────────────────
 export const optionalAuth = async (req, res, next) => {
   try {
     let token = null;
@@ -148,12 +119,6 @@ export const optionalAuth = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// verifyOwnership — checks that the requesting user owns the resource
-// Usage: router.put("/:id", protect, verifyOwnership(Model), handler)
-// The model must have a `user` field referencing User._id
-// ─────────────────────────────────────────────────────────────────────────────
 export const verifyOwnership = (Model) => async (req, res, next) => {
   try {
     const resource = await Model.findById(req.params.id);
@@ -178,19 +143,12 @@ export const verifyOwnership = (Model) => async (req, res, next) => {
         message: "You do not have permission to perform this action",
       });
     }
-
-    // Attach the resource to req so the next handler doesn't refetch
     req.resource = resource;
     next();
   } catch (error) {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// checkVolunteerApproval — blocks unapproved/suspended volunteers from acting
-// Use on volunteer action routes (accept, complete, etc.)
-// ─────────────────────────────────────────────────────────────────────────────
 export const checkVolunteerApproval = async (req, res, next) => {
   try {
     if (req.user.role !== "volunteer") return next();
@@ -230,12 +188,6 @@ export const checkVolunteerApproval = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// rateLimiter — simple in-memory rate limiter per IP
-// Prevents brute force on login/register without needing extra packages
-// For production use express-rate-limit instead
-// ─────────────────────────────────────────────────────────────────────────────
 const requestCounts = new Map();
 
 export const rateLimiter = (maxRequests = 10, windowMs = 60 * 1000) => {
@@ -249,8 +201,6 @@ export const rateLimiter = (maxRequests = 10, windowMs = 60 * 1000) => {
     }
 
     const record = requestCounts.get(ip);
-
-    // Reset window if expired
     if (now - record.startTime > windowMs) {
       requestCounts.set(ip, { count: 1, startTime: now });
       return next();

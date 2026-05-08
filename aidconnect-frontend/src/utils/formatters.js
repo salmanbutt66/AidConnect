@@ -1,6 +1,3 @@
-// src/utils/formatters.js
-
-// ─── Date Formatters ──────────────────────────────────
 
 export const formatDate = (date) => {
   if (!date) return "—";
@@ -44,8 +41,6 @@ export const formatDuration = (minutes) => {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 };
 
-// ─── Name Formatters ──────────────────────────────────
-
 export const getInitials = (name) => {
   if (!name) return "?";
   return name
@@ -72,8 +67,6 @@ export const formatRole = (role) => {
   return roles[role] || capitalize(role);
 };
 
-// ─── Emergency Formatters ─────────────────────────────
-
 export const formatEmergencyType = (type) => {
   const types = {
     medical:  "Medical",
@@ -84,9 +77,6 @@ export const formatEmergencyType = (type) => {
   };
   return types[type] || capitalize(type);
 };
-
-// Kept for backward compatibility — returns empty string so nothing renders
-// Icons are now handled by Lucide components in each card/table
 export const getEmergencyEmoji = (_type) => "";
 
 export const formatUrgency = (level) => {
@@ -131,8 +121,6 @@ export const getStatusClass = (status) => {
   return classes[status] || "badge-stone";
 };
 
-// ─── Number Formatters ────────────────────────────────
-
 export const formatNumber = (num) => {
   if (!num && num !== 0) return "0";
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -160,8 +148,6 @@ export const formatScore = (score) => {
   return               { label: "At Risk",     color: "red"    };
 };
 
-// ─── Phone Formatter ──────────────────────────────────
-
 export const formatPhone = (phone) => {
   if (!phone) return "—";
   const cleaned = phone.replace(/\D/g, "");
@@ -170,8 +156,6 @@ export const formatPhone = (phone) => {
   }
   return phone;
 };
-
-// ─── Rating Formatter ─────────────────────────────────
 
 export const formatStars = (rating, max = 5) => {
   const filled = Math.floor((rating || 0) + 0.5);

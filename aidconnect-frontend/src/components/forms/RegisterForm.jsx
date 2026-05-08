@@ -1,19 +1,14 @@
-// src/components/forms/RegisterForm.jsx
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { BLOOD_GROUPS } from '../../utils/constants.js';
 import { validateRegister, hasErrors } from '../../utils/validators.js';
 import { User, HeartHandshake, Building2, AlertTriangle, CheckCircle, Circle, Mail, Lock, Phone, Droplet } from 'lucide-react';
-
-// ─── Role selector cards (same as Register.jsx) ───────────────────────────────
 const ROLES = [
   { value: 'user',      icon: <User size={24} />, label: 'Citizen',      desc: 'I need emergency help'   },
   { value: 'volunteer', icon: <HeartHandshake size={24} />, label: 'Volunteer',    desc: 'I respond to crises'      },
   { value: 'provider',  icon: <Building2 size={24} />, label: 'Organization', desc: 'We provide aid services'  },
 ];
-
-// ─── Password strength indicator (lifted from Register.jsx) ───────────────────
 function PasswordStrength({ password }) {
   if (!password) return null;
 
@@ -60,8 +55,6 @@ function PasswordStrength({ password }) {
     </div>
   );
 }
-
-// ─── Reusable field (same as Register.jsx) ────────────────────────────────────
 function Field({
   id, name, label, type = 'text', placeholder,
   required, form, errors, onChange, disabled, icon,
@@ -91,34 +84,6 @@ function Field({
   );
 }
 
-// ─── RegisterForm ─────────────────────────────────────────────────────────────
-/**
- * RegisterForm — controlled registration form extracted from Register.jsx.
- *
- * Register.jsx remains the page (handles layout, auth context, navigation).
- * This component owns only the form UI and validation.
- *
- * Props:
- *   onSubmit   {fn}      — async (payload) => void   required
- *                          payload shape:
- *                          { name, email, password, role,
- *                            phone?, bloodGroup? }
- *   loading    {boolean} — disables form during submission
- *   apiError   {string}  — top-level error from parent
- *
- * Backend error handling:
- *   If onSubmit throws and err.response.data.errors is an array,
- *   RegisterForm maps field errors automatically.
- *   Otherwise the raw message is shown in the top-level alert.
- *
- * Usage in Register.jsx:
- *   const handleSubmit = async (payload) => {
- *     const user = await register(payload);
- *     navigate(getDashboardPath(user.role), { replace: true });
- *   };
- *
- *   <RegisterForm onSubmit={handleSubmit} loading={loading} apiError={error} />
- */
 export default function RegisterForm({ onSubmit, loading = false, apiError = '' }) {
   const [params] = useSearchParams();
 
@@ -134,15 +99,11 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
 
   const [errors,        setErrors]        = useState({});
   const [inlineApiError, setInlineApiError] = useState('');
-
-  // ── Field change — clears field error on edit ──────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   }, [errors]);
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setInlineApiError('');
@@ -159,8 +120,6 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
       setErrors(clientErrors);
       return;
     }
-
-    // Build clean payload
     const payload = {
       name:     form.name.trim(),
       email:    form.email.trim().toLowerCase(),
@@ -173,7 +132,6 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
     try {
       await onSubmit(payload);
     } catch (err) {
-      // Map backend field errors if returned as array
       const backendErrors = err.response?.data?.errors;
       if (backendErrors && Array.isArray(backendErrors)) {
         const mapped = {};
@@ -189,23 +147,17 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
       }
     }
   };
-
-  // Use parent apiError if no inline error is set
   const displayError = inlineApiError || apiError;
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-
-      {/* API / backend error */}
-      {displayError && (
+{displayError && (
         <div className="alert alert-error" style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertTriangle size={18} color="var(--danger)" />
           <span>{displayError}</span>
         </div>
       )}
-
-      {/* ── Role selector ───────────────────────────────────────────────── */}
-      <div
+<div
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
@@ -257,9 +209,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
           </button>
         ))}
       </div>
-
-      {/* ── Name + Phone ────────────────────────────────────────────────── */}
-      <div className="form-row cols-2">
+<div className="form-row cols-2">
         <Field
           id="rf-name" name="name" label="Full Name"
           placeholder="Muhammad Ali" required
@@ -275,18 +225,14 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
           icon={<Phone size={18} />}
         />
       </div>
-
-      {/* ── Email ───────────────────────────────────────────────────────── */}
-      <Field
+<Field
         id="rf-email" name="email" label="Email Address"
         type="email" placeholder="you@example.com" required
         form={form} errors={errors}
         onChange={handleChange} disabled={loading}
         icon={<Mail size={18} />}
       />
-
-      {/* ── Password with strength indicator ────────────────────────────── */}
-      <div className="form-group">
+<div className="form-group">
         <label className="form-label" htmlFor="rf-password">
           Password <span style={{ color: 'var(--danger)' }}>*</span>
         </label>
@@ -310,9 +256,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
           : <PasswordStrength password={form.password} />
         }
       </div>
-
-      {/* ── Confirm password ────────────────────────────────────────────── */}
-      <Field
+<Field
         id="rf-confirmPassword" name="confirmPassword"
         label="Confirm Password" type="password"
         placeholder="Repeat password" required
@@ -320,9 +264,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
         onChange={handleChange} disabled={loading}
         icon={<Lock size={18} />}
       />
-
-      {/* ── Blood group (hidden for providers) ──────────────────────────── */}
-      {form.role !== 'provider' && (
+{form.role !== 'provider' && (
         <div className="form-group">
           <label className="form-label" htmlFor="rf-bloodGroup">
             Blood Group
@@ -349,9 +291,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
           </div>
         </div>
       )}
-
-      {/* ── Submit ──────────────────────────────────────────────────────── */}
-      <button
+<button
         type="submit"
         className="btn btn-primary btn-full btn-lg"
         style={{ marginTop: '10px' }}
@@ -363,9 +303,7 @@ export default function RegisterForm({ onSubmit, loading = false, apiError = '' 
           'Create Account →'
         )}
       </button>
-
-      {/* ── Sign in link ─────────────────────────────────────────────────── */}
-      <p
+<p
         style={{
           textAlign: 'center',
           fontSize: '14px',

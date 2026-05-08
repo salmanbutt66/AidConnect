@@ -1,4 +1,3 @@
-// src/pages/volunteer/Matches.jsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -10,7 +9,6 @@ import { acceptRequest as acceptVolunteerRequest } from '../../api/volunteer.api
 import { declineMatch, getMyMatches } from '../../api/match.api.js';
 import { formatTimeAgo, formatEmergencyType } from '../../utils/formatters.js';
 
-/* ─── Inline styles + keyframes injected once ──────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
@@ -260,7 +258,6 @@ const STYLES = `
   }
 `;
 
-/* ─── Emergency type icons (SVG-based, no emojis) ──────────────────────────── */
 const EmergencyIcon = ({ type, size = 22 }) => {
   const icons = {
     medical: (
@@ -303,7 +300,6 @@ const urgencyConfig = {
   low:      { color: '#229450', bg: '#f0fdf5', label: 'Low'      },
 };
 
-/* ─── SVG icon helpers ─────────────────────────────────────────────────────── */
 const Icon = {
   Check: ({ size = 16, color = 'currentColor' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -375,7 +371,6 @@ const Icon = {
   ),
 };
 
-/* ─── Match Card ────────────────────────────────────────────────────────────── */
 function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index }) {
   const request   = match.requestId || {};
   const requester = request.requesterId || {};
@@ -395,17 +390,12 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
       className="match-card"
       style={{ animationDelay: `${index * 0.07}s` }}
     >
-      {/* Urgency indicator bar */}
-      <div className="urgency-bar" style={{ background: urgency.color }} />
+<div className="urgency-bar" style={{ background: urgency.color }} />
 
       <div style={{ padding: '20px 22px 20px 26px' }}>
-
-        {/* ── Top row ── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', minWidth: 0 }}>
-
-            {/* Emergency type icon */}
-            <div
+<div
               className="icon-box"
               style={{ background: iconBg.bg, color: iconBg.color }}
             >
@@ -422,11 +412,8 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
               }}>
                 {request.description || 'Help request'}
               </div>
-
-              {/* Tag row */}
-              <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {/* Urgency pill */}
-                <span style={{
+<div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap', alignItems: 'center' }}>
+<span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '5px',
                   background: urgency.bg, color: urgency.color,
                   border: `1px solid ${urgency.color}33`,
@@ -436,9 +423,7 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: urgency.color, display: 'inline-block' }} />
                   {urgency.label}
                 </span>
-
-                {/* Emergency type */}
-                <span style={{
+<span style={{
                   display: 'inline-flex', alignItems: 'center',
                   background: '#eef6fb', color: '#1a6b9a',
                   border: '1px solid #b8d9ee',
@@ -447,17 +432,13 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
                 }}>
                   {formatEmergencyType(request.emergencyType)}
                 </span>
-
-                {/* Match score */}
-                {match.matchScore > 0 && (
+{match.matchScore > 0 && (
                   <span className="score-badge">
                     <Icon.Star size={11} />
                     {Math.round(match.matchScore)}
                   </span>
                 )}
-
-                {/* Blood group */}
-                {request.bloodGroupNeeded && (
+{request.bloodGroupNeeded && (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     background: '#fff0ef', color: '#c0392b',
@@ -472,18 +453,14 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
               </div>
             </div>
           </div>
-
-          {/* Distance badge */}
-          {match.distanceKm > 0 && (
+{match.distanceKm > 0 && (
             <div className="distance-badge">
               <Icon.Navigation size={13} />
               {Number(match.distanceKm).toFixed(1)} km
             </div>
           )}
         </div>
-
-        {/* ── Detail chips ── */}
-        <div style={{
+<div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: '14px', padding: '16px 18px',
@@ -516,9 +493,7 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
             )}
           </div>
         </div>
-
-        {/* ── Action buttons ── */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             className="btn-accept"
             disabled={isBusy}
@@ -547,7 +522,6 @@ function MatchCard({ match, onAccept, onDecline, acceptingId, decliningId, index
   );
 }
 
-/* ─── Nearby request row ────────────────────────────────────────────────────── */
 function NearbyRow({ req, onAccept, acceptingId, index }) {
   const isAccepting = acceptingId === req._id;
   const iconStyle = {
@@ -616,7 +590,6 @@ function NearbyRow({ req, onAccept, acceptingId, index }) {
   );
 }
 
-/* ─── Matches page ──────────────────────────────────────────────────────────── */
 export default function Matches() {
   const navigate = useNavigate();
 
@@ -750,15 +723,12 @@ console.log("Full Match Value:", matchRes.value);
 
   return (
     <>
-      {/* Inject scoped styles once */}
-      <style>{STYLES}</style>
+<style>{STYLES}</style>
 
       <Navbar title="Incoming Matches">
         <div className="matches-root">
           <div className="page-wrapper-inner">
-
-            {/* ── Page Header ── */}
-            <div style={{
+<div style={{
               display: 'flex', alignItems: 'center',
               justifyContent: 'space-between', flexWrap: 'wrap',
               gap: '14px', marginBottom: '28px',
@@ -785,9 +755,7 @@ console.log("Full Match Value:", matchRes.value);
                 Refresh
               </button>
             </div>
-
-            {/* ── Alerts ── */}
-            {error && (
+{error && (
               <div className="alert-banner alert-error">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -810,12 +778,10 @@ console.log("Full Match Value:", matchRes.value);
                 <span style={{ flex: 1 }}>{successMsg}</span>
               </div>
             )}
-
-            {/* ── Content ── */}
-            {loading ? (
+{loading ? (
               <Loader variant="card" message="Loading matches…" />
             ) : matches.length === 0 ? (
-              /* Empty state */
+              
               <div style={{
                 background: '#fff', borderRadius: 14,
                 border: '1.5px solid #e8ede9',
@@ -874,8 +840,7 @@ console.log("Full Match Value:", matchRes.value);
               </div>
             ) : (
               <>
-                {/* ── Match cards ── */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {matches.map((match, i) => (
                     <MatchCard
                       key={match._id}
@@ -888,9 +853,7 @@ console.log("Full Match Value:", matchRes.value);
                     />
                   ))}
                 </div>
-
-                {/* ── Nearby open requests ── */}
-                {nearbyRequests.length > 0 && (
+{nearbyRequests.length > 0 && (
                   <>
                     <div className="section-divider">
                       <div className="section-divider-line" />

@@ -1,9 +1,4 @@
-// src/api/admin.api.js
 import axiosInstance from "./axiosInstance.js";
-
-// ─────────────────────────────────────────
-// USER MANAGEMENT
-// ─────────────────────────────────────────
 export const getAllUsers = async (params = {}) => {
   const response = await axiosInstance.get("/admin/users", { params });
   return response.data;
@@ -33,10 +28,6 @@ export const deleteUser = async (userId) => {
   const response = await axiosInstance.delete(`/admin/users/${userId}`);
   return response.data;
 };
-
-// ─────────────────────────────────────────
-// REQUEST MANAGEMENT
-// ─────────────────────────────────────────
 export const getAllRequests = async (params = {}) => {
   const response = await axiosInstance.get("/admin/requests", { params });
   return response.data;
@@ -46,10 +37,6 @@ export const cancelRequest = async (requestId) => {
   const response = await axiosInstance.patch(`/admin/requests/${requestId}/cancel`);
   return response.data;
 };
-
-// ─────────────────────────────────────────
-// ANALYTICS
-// ─────────────────────────────────────────
 export const getAnalyticsOverview = async () => {
   const response = await axiosInstance.get("/admin/analytics/overview");
   return response.data;
@@ -69,8 +56,6 @@ export const getTopVolunteers = async () => {
   const response = await axiosInstance.get("/admin/analytics/top-volunteers");
   return response.data;
 };
-
-// FIX: was missing — Analytics.jsx imports this
 export const getTopProviders = async () => {
   const response = await axiosInstance.get("/admin/analytics/top-providers");
   return response.data;

@@ -1,4 +1,3 @@
-// src/pages/provider/ProviderProfile.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Building2, Building, Wrench, FileText, Phone, MapPin,
@@ -22,6 +21,37 @@ const EMPTY_FORM = {
   servicesOffered:  '',
   operatingHours: { open: '08:00', close: '22:00' },
 };
+
+const STYLES = `
+  .pp-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .pp-details-grid,
+  .pp-cred-grid {
+    display: grid;
+    gap: 20px;
+  }
+
+  .pp-details-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .pp-cred-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  @media (max-width: 720px) {
+    .pp-form-grid,
+    .pp-details-grid,
+    .pp-cred-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
 
 export default function ProviderProfile() {
   const [profile,     setProfile]     = useState(null);
@@ -134,10 +164,10 @@ export default function ProviderProfile() {
     );
   }
 
-  /* ── Shared form fields ───────────────────────────────────────────── */
+  
   const renderFormFields = (showServiceType = false) => (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+      <div className="pp-form-grid">
 
         <div className="form-group">
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -258,10 +288,9 @@ export default function ProviderProfile() {
 
   return (
     <Navbar title="My Profile">
+      <style>{STYLES}</style>
       <div className="page-wrapper">
-
-        {/* ── Page Header ────────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{
               width: '36px', height: '36px', borderRadius: 'var(--radius-sm)',
@@ -278,9 +307,7 @@ export default function ProviderProfile() {
               : "Manage your organization's information and service details."}
           </p>
         </div>
-
-        {/* ── Alerts ─────────────────────────────────────────────────── */}
-        {error && (
+{error && (
           <div className="alert alert-error anim-fade-up" style={{ marginBottom: '20px' }}>
             <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
             <span style={{ flex: 1 }}>{error}</span>
@@ -295,9 +322,7 @@ export default function ProviderProfile() {
             {successMsg}
           </div>
         )}
-
-        {/* ── Registration (no profile yet) ──────────────────────────── */}
-        {registering ? (
+{registering ? (
           <div className="card anim-fade-up">
             <div className="card-body">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -319,8 +344,7 @@ export default function ProviderProfile() {
 
         ) : (
           <>
-            {/* ── Profile header card ────────────────────────────────── */}
-            <div className="card anim-fade-up" style={{ marginBottom: '20px' }}>
+<div className="card anim-fade-up" style={{ marginBottom: '20px' }}>
               <div className="card-body">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
@@ -369,19 +393,15 @@ export default function ProviderProfile() {
                 </div>
               </div>
             </div>
-
-            {/* ── View mode ──────────────────────────────────────────── */}
-            {!editing ? (
+{!editing ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-                {/* Organization Details */}
-                <div className="card anim-fade-up" style={{ animationDelay: '60ms' }}>
+<div className="card anim-fade-up" style={{ animationDelay: '60ms' }}>
                   <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                       <Building size={15} color="var(--green-700)" />
                       <span className="section-title">Organization Details</span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                    <div className="pp-details-grid">
                       {[
                         { label: 'Organization Name', value: profile?.organizationName,                   Icon: Building    },
                         { label: 'Service Type',       value: serviceTypeLabel?.label,                    Icon: Wrench      },
@@ -407,9 +427,7 @@ export default function ProviderProfile() {
                     </div>
                   </div>
                 </div>
-
-                {/* Operating Hours */}
-                <div className="card anim-fade-up" style={{ animationDelay: '120ms' }}>
+<div className="card anim-fade-up" style={{ animationDelay: '120ms' }}>
                   <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                       <Clock size={15} color="var(--green-700)" />
@@ -439,15 +457,13 @@ export default function ProviderProfile() {
                     </div>
                   </div>
                 </div>
-
-                {/* Credibility */}
-                <div className="card anim-fade-up" style={{ animationDelay: '180ms' }}>
+<div className="card anim-fade-up" style={{ animationDelay: '180ms' }}>
                   <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                       <ShieldCheck size={15} color="var(--green-700)" />
                       <span className="section-title">Credibility</span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                    <div className="pp-cred-grid">
                       {[
                         { label: 'Average Rating',   value: profile?.averageRating ? Number(profile.averageRating).toFixed(1) : '—', Icon: Star      },
                         { label: 'Total Ratings',    value: profile?.totalRatings ?? 0,                                               Icon: BarChart2 },
@@ -467,9 +483,7 @@ export default function ProviderProfile() {
                         </div>
                       ))}
                     </div>
-
-                    {/* Credibility progress bar */}
-                    <div style={{ marginTop: '20px' }}>
+<div style={{ marginTop: '20px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                         <span>Score</span>
                         <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{credibilityScore}/100</span>
@@ -486,9 +500,7 @@ export default function ProviderProfile() {
                     </div>
                   </div>
                 </div>
-
-                {/* Services Offered */}
-                {profile?.servicesOffered?.length > 0 && (
+{profile?.servicesOffered?.length > 0 && (
                   <div className="card anim-fade-up" style={{ animationDelay: '240ms' }}>
                     <div className="card-body">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -508,7 +520,7 @@ export default function ProviderProfile() {
               </div>
 
             ) : (
-              /* ── Edit mode ────────────────────────────────────────── */
+              
               <div className="card anim-fade-up">
                 <div className="card-body">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>

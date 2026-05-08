@@ -1,4 +1,3 @@
-// src/pages/user/UserProfile.jsx
 import React, { useState, useCallback } from 'react';
 import Navbar from '../../components/common/Navbar.jsx';
 import ProfileForm from '../../components/forms/ProfileForm.jsx';
@@ -7,8 +6,6 @@ import useAuth from '../../hooks/useAuth.js';
 import { updateProfile, changePassword, deleteAccount } from '../../api/auth.api.js';
 import { validateChangePassword, hasErrors } from '../../utils/validators.js';
 import { getInitials, formatRole, formatDate } from '../../utils/formatters.js';
-
-// ─── Inline styles & keyframes injected once ──────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -34,7 +31,7 @@ const STYLES = `
     100% { background-position:  400px 0; }
   }
 
-  /* Hero */
+  
   .up-hero {
     position: relative;
     overflow: hidden;
@@ -67,7 +64,7 @@ const STYLES = `
     pointer-events: none;
   }
 
-  /* Avatar */
+  
   .up-avatar {
     width: 80px; height: 80px;
     border-radius: 50%;
@@ -87,12 +84,12 @@ const STYLES = `
     object-fit: cover;
   }
 
-  /* Hero text */
+  
   .up-hero-name  { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; line-height: 1.2; }
   .up-hero-role  { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; }
   .up-hero-email { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 4px; }
 
-  /* Hero badge */
+  
   .up-hero-badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 10px;
@@ -105,7 +102,7 @@ const STYLES = `
   .up-hero-badge.red   { background: rgba(192,57,43,0.35); color: #fca5a5; }
   .up-hero-badge.stone { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
 
-  /* Hero stat */
+  
   .up-hero-stat {
     flex-shrink: 0;
     text-align: center;
@@ -118,7 +115,7 @@ const STYLES = `
   .up-hero-stat-num  { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -2px; line-height: 1; }
   .up-hero-stat-lbl  { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
 
-  /* Alert */
+  
   .up-alert {
     display: flex; align-items: flex-start; gap: 12px;
     padding: 14px 18px;
@@ -135,7 +132,7 @@ const STYLES = `
     width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;
   }
 
-  /* Tabs */
+  
   .up-tabs {
     display: flex; gap: 4px;
     background: var(--green-50, #f2fbf6);
@@ -163,7 +160,7 @@ const STYLES = `
   }
   .up-tab-icon { width: 16px; height: 16px; }
 
-  /* Card */
+  
   .up-card {
     background: #fff;
     border-radius: 18px;
@@ -174,7 +171,7 @@ const STYLES = `
   }
   .up-card-body { padding: 28px; }
 
-  /* Section title */
+  
   .up-section-title {
     font-size: 13px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 1px;
@@ -187,7 +184,7 @@ const STYLES = `
     background: linear-gradient(to right, #e0f5e9, transparent);
   }
 
-  /* Info row */
+  
   .up-info-row {
     display: flex; align-items: center; gap: 12px;
     padding: 11px 0;
@@ -208,7 +205,7 @@ const STYLES = `
   .up-info-val { font-size: 13px; color: var(--text-dark, #141b11); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .up-info-val.muted { color: var(--text-muted, #6b7a64); font-style: italic; }
 
-  /* Tips card */
+  
   .up-tips {
     padding: 20px;
     background: linear-gradient(135deg, var(--green-50,#f2fbf6), #fff);
@@ -236,7 +233,7 @@ const STYLES = `
     margin-top: 1px;
   }
 
-  /* Password form */
+  
   .up-pw-field { position: relative; }
   .up-pw-toggle {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
@@ -248,7 +245,7 @@ const STYLES = `
   .up-pw-toggle:hover { color: var(--green-700,#1e7d46); }
   .up-pw-toggle svg { width: 16px; height: 16px; }
 
-  /* Spinner */
+  
   .up-spinner {
     display: inline-block; width: 15px; height: 15px;
     border: 2px solid rgba(255,255,255,0.35);
@@ -258,7 +255,7 @@ const STYLES = `
     vertical-align: middle; margin-right: 7px;
   }
 
-  /* Danger zone */
+  
   .up-danger-box {
     padding: 20px;
     border: 1.5px solid #fca5a5;
@@ -271,7 +268,7 @@ const STYLES = `
   .up-danger-title { font-weight: 700; font-size: 15px; color: #7f1d1d; margin-bottom: 4px; }
   .up-danger-desc  { font-size: 13px; color: #991b1b; max-width: 380px; line-height: 1.6; }
 
-  /* Main grid */
+  
   .up-grid {
     display: grid;
     grid-template-columns: 1fr 300px;
@@ -285,7 +282,7 @@ const STYLES = `
     .up-hero-stat { width: 100%; }
   }
 
-  /* Submit btn hover */
+  
   .up-btn-submit {
     width: 100%;
     padding: 13px;
@@ -321,13 +318,11 @@ const STYLES = `
   }
   .up-btn-danger svg { width: 14px; height: 14px; }
 
-  /* Delay helpers */
+  
   .up-d1 { animation-delay: 0.08s; }
   .up-d2 { animation-delay: 0.16s; }
   .up-d3 { animation-delay: 0.24s; }
 `;
-
-// ─── SVG icons ────────────────────────────────────────────────────────────────
 const Icon = {
   User: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -414,8 +409,6 @@ const Icon = {
     </svg>
   ),
 };
-
-// ─── Section tab bar ──────────────────────────────────────────────────────────
 function SectionTabs({ active, onChange }) {
   const tabs = [
     { value: 'profile',  Icon: Icon.User,   label: 'Profile'  },
@@ -437,8 +430,6 @@ function SectionTabs({ active, onChange }) {
     </div>
   );
 }
-
-// ─── Alert ────────────────────────────────────────────────────────────────────
 function UPAlert({ type = 'error', children }) {
   const IconComp = type === 'success' ? Icon.CheckCircle : Icon.AlertCircle;
   return (
@@ -448,8 +439,6 @@ function UPAlert({ type = 'error', children }) {
     </div>
   );
 }
-
-// ─── Change password form ─────────────────────────────────────────────────────
 function ChangePasswordForm({ onSuccess }) {
   const [form,     setForm]     = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [errors,   setErrors]   = useState({});
@@ -522,8 +511,6 @@ function ChangePasswordForm({ onSuccess }) {
     </form>
   );
 }
-
-// ─── Danger zone ──────────────────────────────────────────────────────────────
 function DangerZone({ onDeleteAccount }) {
   return (
     <div>
@@ -548,8 +535,6 @@ function DangerZone({ onDeleteAccount }) {
     </div>
   );
 }
-
-// ─── Info row ─────────────────────────────────────────────────────────────────
 function InfoRow({ IconComp, label, value }) {
   const isEmpty = !value || value === 'Not set';
   return (
@@ -562,8 +547,6 @@ function InfoRow({ IconComp, label, value }) {
     </div>
   );
 }
-
-// ─── UserProfile ──────────────────────────────────────────────────────────────
 export default function UserProfile() {
   const { user, updateUser, logout } = useAuth();
 
@@ -607,25 +590,18 @@ export default function UserProfile() {
 
   return (
     <Navbar title="My Profile">
-      {/* Inject styles */}
-      <style>{STYLES}</style>
+<style>{STYLES}</style>
 
       <div className="page-wrapper up-root">
-
-        {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <div className="up-hero">
+<div className="up-hero">
           <div className="up-hero-grid" />
-
-          {/* Avatar */}
-          <div className="up-avatar">
+<div className="up-avatar">
             {user?.profilePicture
               ? <img src={user.profilePicture} alt={user.name} />
               : getInitials(user?.name)
             }
           </div>
-
-          {/* Info */}
-          <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
+<div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
             <div className="up-hero-name">{user?.name}</div>
             <div className="up-hero-role">{formatRole(user?.role)}</div>
             <div className="up-hero-email">{user?.email}</div>
@@ -654,23 +630,15 @@ export default function UserProfile() {
               </span>
             </div>
           </div>
-
-          {/* Stat */}
-          <div className="up-hero-stat" style={{ position: 'relative', zIndex: 1 }}>
+<div className="up-hero-stat" style={{ position: 'relative', zIndex: 1 }}>
             <div className="up-hero-stat-num">{user?.totalRequestsMade || 0}</div>
             <div className="up-hero-stat-lbl">Requests</div>
           </div>
         </div>
-
-        {/* ── Alerts ───────────────────────────────────────────────────── */}
-        {successMsg && <UPAlert type="success">{successMsg}</UPAlert>}
+{successMsg && <UPAlert type="success">{successMsg}</UPAlert>}
         {apiError && activeTab === 'profile' && <UPAlert type="error">{apiError}</UPAlert>}
-
-        {/* ── Main grid ─────────────────────────────────────────────────── */}
-        <div className="up-grid">
-
-          {/* Form card */}
-          <div className="up-card up-d1">
+<div className="up-grid">
+<div className="up-card up-d1">
             <div className="up-card-body">
               <SectionTabs active={activeTab} onChange={setActiveTab} />
 
@@ -691,12 +659,8 @@ export default function UserProfile() {
               )}
             </div>
           </div>
-
-          {/* Right sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-            {/* Account info */}
-            <div className="up-card up-d2">
+<div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+<div className="up-card up-d2">
               <div className="up-card-body">
                 <div className="up-section-title">Account Info</div>
                 <InfoRow IconComp={Icon.Mail}     label="Email"        value={user?.email} />
@@ -706,9 +670,7 @@ export default function UserProfile() {
                 <InfoRow IconComp={Icon.Calendar} label="Member Since" value={formatDate(user?.createdAt)} />
               </div>
             </div>
-
-            {/* Tips */}
-            <div className="up-tips up-d3" style={{ animation: 'upFadeSlide 0.45s ease both', animationDelay: '0.24s' }}>
+<div className="up-tips up-d3" style={{ animation: 'upFadeSlide 0.45s ease both', animationDelay: '0.24s' }}>
               <div className="up-tips-title">
                 <Icon.Lightbulb /> Profile Tips
               </div>
@@ -727,9 +689,7 @@ export default function UserProfile() {
           </div>
         </div>
       </div>
-
-      {/* ── Delete modal ──────────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={showDelete}
         onClose={() => setShowDelete(false)}
         title="Delete Account"

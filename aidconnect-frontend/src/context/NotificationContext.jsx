@@ -1,4 +1,3 @@
-// src/context/NotificationContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   getMyNotifications,
@@ -17,8 +16,6 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount]     = useState(0);
   const [loading, setLoading]             = useState(false);
-
-  // ─── Fetch unread count only (lightweight, used for polling) ───────────────
   const fetchCount = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
@@ -26,8 +23,6 @@ export const NotificationProvider = ({ children }) => {
       setUnreadCount(data.unreadCount || 0);
     } catch {}
   }, [isAuthenticated]);
-
-  // ─── Fetch full notifications list ─────────────────────────────────────────
   const fetchNotifications = useCallback(async (params = {}) => {
     if (!isAuthenticated) return;
     setLoading(true);
@@ -36,26 +31,20 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(data.data || []);
       setUnreadCount(data.unreadCount || 0);
     } catch {
-      // fail silently
     } finally {
       setLoading(false);
     }
   }, [isAuthenticated]);
-
-  // ─── Poll every 30 seconds for new notifications ───────────────────────────
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
       const interval = setInterval(fetchCount, 30000);
       return () => clearInterval(interval);
     } else {
-      // Clear state on logout
       setNotifications([]);
       setUnreadCount(0);
     }
   }, [isAuthenticated, fetchNotifications, fetchCount]);
-
-  // ─── Mark single notification as read ──────────────────────────────────────
   const markRead = useCallback(async (notificationId) => {
     try {
       await markAsRead(notificationId);
@@ -67,8 +56,6 @@ export const NotificationProvider = ({ children }) => {
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch {}
   }, []);
-
-  // ─── Mark all notifications as read ────────────────────────────────────────
   const markAllRead = useCallback(async () => {
     try {
       await markAllAsRead();
@@ -76,11 +63,6 @@ export const NotificationProvider = ({ children }) => {
       setUnreadCount(0);
     } catch {}
   }, []);
-
-  // ─── Delete single notification ────────────────────────────────────────────
-  // FIX: previously called setNotifications twice — second call referenced
-  // stale prev (already filtered), so wasUnread check never found the item.
-  // Now we check isRead BEFORE filtering, then do both updates atomically.
   const removeNotification = useCallback(async (notificationId) => {
     try {
       await deleteNotification(notificationId);
@@ -93,8 +75,6 @@ export const NotificationProvider = ({ children }) => {
       });
     } catch {}
   }, []);
-
-  // ─── Clear all notifications ───────────────────────────────────────────────
   const clearAll = useCallback(async () => {
     try {
       await clearAllNotifications();

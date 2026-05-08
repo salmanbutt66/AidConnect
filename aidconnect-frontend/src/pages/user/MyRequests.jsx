@@ -1,4 +1,3 @@
-// src/pages/user/MyRequests.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar.jsx';
@@ -25,7 +24,6 @@ import {
 
 const REQUEST_STATUS_REFRESH_EVENT = 'aidconnect:request-status-changed';
 
-/* ── Styles ──────────────────────────────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
@@ -38,7 +36,7 @@ const STYLES = `
 
   .mr-anim { animation: mr-fade-up 0.46s cubic-bezier(.22,.68,0,1.2) both; }
 
-  /* view toggle */
+  
   .view-toggle {
     display: flex; background: #f0f4f1;
     border-radius: 10px; padding: 3px; gap: 2px;
@@ -58,7 +56,7 @@ const STYLES = `
   }
   .view-toggle-btn:not(.active):hover { color: #141b11; }
 
-  /* status tabs */
+  
   .status-tab-bar {
     display: flex; gap: 4px; flex-wrap: wrap;
     margin-bottom: 20px;
@@ -80,7 +78,7 @@ const STYLES = `
   }
   .status-tab:not(.active) .tab-count { background: #e2e8e3; color: #6b7a64; }
 
-  /* search bar */
+  
   .mr-search-wrap {
     position: relative; flex: 1; max-width: 320px;
   }
@@ -102,7 +100,7 @@ const STYLES = `
   }
   .mr-search-input::placeholder { color: #9aab94; }
 
-  /* success alert */
+  
   .mr-success {
     display: flex; align-items: center; gap: 10px;
     background: #f0fdf4; border: 1px solid #bbf7d0;
@@ -120,7 +118,7 @@ const STYLES = `
     animation: mr-fade-up 0.3s ease both;
   }
 
-  /* main card */
+  
   .mr-card {
     background: white; border: 1px solid #e2e8e3;
     border-radius: 16px; overflow: hidden;
@@ -131,7 +129,7 @@ const STYLES = `
   }
   .mr-card-body { padding: 20px 22px; }
 
-  /* empty state */
+  
   .mr-empty {
     display: flex; flex-direction: column; align-items: center;
     padding: 52px 20px; text-align: center; gap: 8px;
@@ -142,7 +140,7 @@ const STYLES = `
     justify-content: center; margin-bottom: 8px;
   }
 
-  /* pagination */
+  
   .mr-pagination {
     display: flex; align-items: center; justify-content: center;
     gap: 4px; margin-top: 24px; flex-wrap: wrap;
@@ -157,7 +155,7 @@ const STYLES = `
   .mr-page-btn.active { background: #0d3d22; border-color: #0d3d22; color: white; }
   .mr-page-btn:disabled { opacity: 0.38; cursor: not-allowed; }
 
-  /* new request btn */
+  
   .new-req-btn {
     display: inline-flex; align-items: center; gap: 7px;
     background: #dc2626; color: white;
@@ -172,9 +170,39 @@ const STYLES = `
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(220,38,38,0.36);
   }
+
+  .mr-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  @media (max-width: 720px) {
+    .mr-cards-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .view-toggle,
+    .status-tab-bar {
+      width: 100%;
+    }
+
+    .view-toggle-btn,
+    .status-tab {
+      flex: 1;
+      justify-content: center;
+    }
+
+    .mr-card-header {
+      padding: 16px;
+    }
+
+    .mr-card-body {
+      padding: 16px;
+    }
+  }
 `;
 
-/* ── View Toggle ─────────────────────────────────────────────────────────── */
 function ViewToggle({ view, onChange }) {
   return (
     <div className="view-toggle">
@@ -195,7 +223,6 @@ function ViewToggle({ view, onChange }) {
   );
 }
 
-/* ── Status Tabs ─────────────────────────────────────────────────────────── */
 const STATUS_TABS = [
   { value: '',            label: 'All'         },
   { value: 'posted',      label: 'Posted'      },
@@ -224,7 +251,6 @@ function StatusTabs({ active, onChange, counts }) {
   );
 }
 
-/* ── MyRequests ──────────────────────────────────────────────────────────── */
 export default function MyRequests() {
   const navigate = useNavigate();
 
@@ -295,9 +321,7 @@ export default function MyRequests() {
     <Navbar title="My Requests">
       <style>{STYLES}</style>
       <div className="page-wrapper mr-page">
-
-        {/* ── Page header ──────────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
             <div>
               <h1 style={{ fontSize: 'clamp(18px, 3vw, 24px)', fontWeight: 800, color: '#141b11', margin: 0, letterSpacing: '-0.4px' }}>
@@ -312,17 +336,13 @@ export default function MyRequests() {
             </button>
           </div>
         </div>
-
-        {/* ── Stats ────────────────────────────────────────────────────── */}
-        <div className="grid-4" style={{ marginBottom: '24px' }}>
+<div className="grid-4" style={{ marginBottom: '24px' }}>
           <StatsCard label="Total Requests" value={pagination.total || requests.length} icon={<ClipboardList size={22} />} color="blue"   loading={loading} delay={0}   />
           <StatsCard label="Active Now"      value={activeCount}                         icon={<Siren size={22} />}        color="orange" loading={loading} delay={100} />
           <StatsCard label="Completed"       value={completedCount}                      icon={<CheckCircle2 size={22} />} color="green"  loading={loading} delay={200} />
           <StatsCard label="Cancelled"       value={cancelledCount}                      icon={<XCircle size={22} />}      color="red"    loading={loading} delay={300} />
         </div>
-
-        {/* ── Alerts ───────────────────────────────────────────────────── */}
-        {successMsg && (
+{successMsg && (
           <div className="mr-success">
             <CheckCircle2 size={15} color="#16a34a" />
             {successMsg}
@@ -340,9 +360,7 @@ export default function MyRequests() {
             </button>
           </div>
         )}
-
-        {/* ── Main card ────────────────────────────────────────────────── */}
-        <div className="mr-card mr-anim" style={{ animationDelay: '80ms' }}>
+<div className="mr-card mr-anim" style={{ animationDelay: '80ms' }}>
           <div className="mr-card-header">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <StatusTabs
@@ -355,9 +373,7 @@ export default function MyRequests() {
           </div>
 
           <div className="mr-card-body">
-
-            {/* Cards view */}
-            {view === 'cards' && (
+{view === 'cards' && (
               <>
                 <div style={{ marginBottom: '18px' }}>
                   <div className="mr-search-wrap">
@@ -397,7 +413,7 @@ export default function MyRequests() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+                    <div className="mr-cards-grid">
                       {requests.map(r => (
                         <RequestCard
                           key={r._id}
@@ -442,9 +458,7 @@ export default function MyRequests() {
                 )}
               </>
             )}
-
-            {/* Table view */}
-            {view === 'table' && (
+{view === 'table' && (
               <RequestTable
                 requests={requests}
                 pagination={pagination}
@@ -463,9 +477,7 @@ export default function MyRequests() {
         </div>
 
       </div>
-
-      {/* ── Cancel modal ─────────────────────────────────────────────────── */}
-      <Modal
+<Modal
         isOpen={!!cancelTarget}
         onClose={() => { setCancelTarget(null); clearError(); }}
         title="Cancel Request"

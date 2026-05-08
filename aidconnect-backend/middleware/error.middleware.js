@@ -1,9 +1,3 @@
-// middleware/error.middleware.js
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Custom Error Class — throw this anywhere in controllers
-// Usage: throw new AppError("Not found", 404)
-// ─────────────────────────────────────────────────────────────────────────────
 export class AppError extends Error {
   constructor(message, statusCode, code = null) {
     super(message);
@@ -13,10 +7,6 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Handler: Mongoose CastError (invalid ObjectId)
-// ─────────────────────────────────────────────────────────────────────────────
 const handleCastError = (err) => {
   return new AppError(
     `Invalid ${err.path}: "${err.value}" is not a valid ID`,
@@ -24,10 +14,6 @@ const handleCastError = (err) => {
     "INVALID_ID"
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Handler: Mongoose Duplicate Key
-// ─────────────────────────────────────────────────────────────────────────────
 const handleDuplicateKeyError = (err) => {
   const field = Object.keys(err.keyValue)[0];
   const value = err.keyValue[field];
@@ -37,10 +23,6 @@ const handleDuplicateKeyError = (err) => {
     "DUPLICATE_KEY"
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Handler: Mongoose Validation Error
-// ─────────────────────────────────────────────────────────────────────────────
 const handleValidationError = (err) => {
   const errors = Object.values(err.errors).map((e) => ({
     field: e.path,
@@ -52,19 +34,11 @@ const handleValidationError = (err) => {
     "VALIDATION_ERROR"
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Handler: JWT Errors
-// ─────────────────────────────────────────────────────────────────────────────
 const handleJWTError = () =>
   new AppError("Invalid token. Please log in again.", 401, "TOKEN_INVALID");
 
 const handleJWTExpiredError = () =>
   new AppError("Session expired. Please log in again.", 401, "TOKEN_EXPIRED");
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Dev Error Response — full stack trace
-// ─────────────────────────────────────────────────────────────────────────────
 const sendDevError = (err, res) => {
   res.status(err.statusCode || 500).json({
     success: false,
@@ -75,10 +49,6 @@ const sendDevError = (err, res) => {
     error: err,
   });
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Prod Error Response — only operational errors shown to client
-// ─────────────────────────────────────────────────────────────────────────────
 const sendProdError = (err, res) => {
   if (err.isOperational) {
     return res.status(err.statusCode).json({
@@ -94,11 +64,6 @@ const sendProdError = (err, res) => {
     message: "Something went wrong. Please try again later.",
   });
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 404 Handler
-// Mount BEFORE globalErrorHandler in server.js
-// ─────────────────────────────────────────────────────────────────────────────
 export const notFound = (req, res, next) => {
   next(
     new AppError(
@@ -108,10 +73,6 @@ export const notFound = (req, res, next) => {
     )
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Global Error Handler — mount LAST in server.js
-// ─────────────────────────────────────────────────────────────────────────────
 export const globalErrorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
@@ -140,10 +101,6 @@ export const globalErrorHandler = (err, req, res, next) => {
     sendProdError(error, res);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Process Handlers — call setupProcessHandlers(server) in server.js
-// ─────────────────────────────────────────────────────────────────────────────
 export const setupProcessHandlers = (server) => {
   process.on("unhandledRejection", (reason, promise) => {
     console.error("💥 UNHANDLED REJECTION:", reason);

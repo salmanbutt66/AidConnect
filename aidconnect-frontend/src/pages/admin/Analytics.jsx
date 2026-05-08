@@ -1,4 +1,3 @@
-// src/pages/admin/Analytics.jsx
 import React, { useEffect, useState } from 'react';
 import {
   RefreshCw,
@@ -26,8 +25,6 @@ import {
 import { formatNumber } from '../../utils/formatters.js';
 
 const ADMIN_STATS_REFRESH_EVENT = 'aidconnect:admin-stats-refresh';
-
-// Maps emergency type keys to a colour token
 const EMERGENCY_COLORS = {
   medical:  'var(--danger)',
   blood:    'var(--green-600)',
@@ -114,9 +111,7 @@ export default function Analytics() {
   return (
     <Navbar title="Analytics">
       <div className="page-wrapper">
-
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <div className="page-header">
+<div className="page-header">
           <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1>Platform Analytics</h1>
@@ -139,9 +134,7 @@ export default function Analytics() {
             </button>
           </div>
         </div>
-
-        {/* ── Error alert ───────────────────────────────────────────── */}
-        {error && (
+{error && (
           <div
             className="alert alert-error anim-fade-up"
             style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -156,21 +149,15 @@ export default function Analytics() {
             </button>
           </div>
         )}
-
-        {/* ── Overview stats ────────────────────────────────────────── */}
-        <div className="grid-4" style={{ marginBottom: '28px' }}>
+<div className="grid-4" style={{ marginBottom: '28px' }}>
           <StatsCard label="Total Requests"        value={totalRequests}                               icon={<HelpCircle size={20} />}   color="blue"   delay={0} />
           <StatsCard label="Avg. Response Time"    value={data.overview?.avgResponseTime ?? 0}        icon={<Zap size={20} />}          color="green"  format="raw" sub="minutes" delay={100} />
           <StatsCard label="Completion Rate"       value={data.overview?.completionRate ?? 0}         icon={<CheckCircle2 size={20} />} color="green"  format="percent" delay={200} />
           <StatsCard label="Active Volunteers"     value={data.overview?.activeVolunteers ?? 0}       icon={<UserCheck size={20} />}    color="orange" delay={300} />
           <StatsCard label="Provider Credibility"  value={data.overview?.averageProviderCredibility ?? 0} icon={<Building2 size={20} />}    color="blue"   delay={400} />
         </div>
-
-        {/* ── Two-column: distribution + high risk ──────────────────── */}
-        <div className="grid-2" style={{ marginBottom: '24px' }}>
-
-          {/* Emergency type distribution */}
-          <div className="card anim-fade-up delay-200">
+<div className="grid-2" style={{ marginBottom: '24px' }}>
+<div className="card anim-fade-up delay-200">
             <div className="card-header">
               <div className="section-header" style={{ marginBottom: 0 }}>
                 <div>
@@ -219,9 +206,7 @@ export default function Analytics() {
               )}
             </div>
           </div>
-
-          {/* High risk areas */}
-          <div className="card anim-fade-up delay-300">
+<div className="card anim-fade-up delay-300">
             <div className="card-header">
               <div className="section-header" style={{ marginBottom: 0 }}>
                 <div>
@@ -276,9 +261,7 @@ export default function Analytics() {
             </div>
           </div>
         </div>
-
-        {/* ── Top Providers ─────────────────────────────────────────── */}
-        <div className="card anim-fade-up delay-300" style={{ marginBottom: '24px' }}>
+<div className="card anim-fade-up delay-300" style={{ marginBottom: '24px' }}>
           <div className="card-header">
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>
@@ -332,9 +315,7 @@ export default function Analytics() {
             )}
           </div>
         </div>
-
-        {/* ── Monthly trends bar chart ───────────────────────────────── */}
-        <div className="card anim-fade-up delay-400">
+<div className="card anim-fade-up delay-400">
           <div className="card-header">
             <div className="section-header" style={{ marginBottom: 0 }}>
               <div>
@@ -380,8 +361,7 @@ export default function Analytics() {
                         position: 'relative',
                       }}
                     >
-                      {/* Count label */}
-                      <span
+<span
                         style={{
                           fontSize: '10px',
                           fontWeight: 700,
@@ -392,9 +372,7 @@ export default function Analytics() {
                       >
                         {monthRequests}
                       </span>
-
-                      {/* Bar — completed portion stacked on top */}
-                      <div
+<div
                         style={{
                           width: '100%',
                           height: `${heightPct}px`,
@@ -407,8 +385,7 @@ export default function Analytics() {
                           opacity: isActive ? 1 : 0.3,
                         }}
                       >
-                        {/* Completed sub-bar */}
-                        {isActive && (
+{isActive && (
                           <div
                             style={{
                               position: 'absolute',
@@ -422,9 +399,7 @@ export default function Analytics() {
                           />
                         )}
                       </div>
-
-                      {/* Month label */}
-                      <span
+<span
                         style={{
                           fontSize: '10px',
                           color: 'var(--text-muted)',
@@ -435,9 +410,7 @@ export default function Analytics() {
                       >
                         {formatMonthLabel(month.month, month.year)}
                       </span>
-
-                      {/* Completion rate */}
-                      <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+<span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
                         {completionRate}%
                       </span>
                     </div>
@@ -445,9 +418,7 @@ export default function Analytics() {
                 })}
               </div>
             )}
-
-            {/* Legend */}
-            {data.trends.length > 0 && (
+{data.trends.length > 0 && (
               <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'var(--green-600)', display: 'inline-block' }} />

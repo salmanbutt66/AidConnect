@@ -1,4 +1,3 @@
-// src/components/cards/RequestCard.jsx
 import React from 'react';
 import {
   formatTimeAgo,
@@ -22,8 +21,6 @@ const getEmergencyIcon = (type) => {
     default: return <Users {...props} color="var(--text-light)" />;
   }
 };
-
-// ─── Emergency type → request-card stripe class (defined in index.css) ────────
 function getCardTypeClass(emergencyType) {
   const map = {
     medical:  'medical',
@@ -34,8 +31,6 @@ function getCardTypeClass(emergencyType) {
   };
   return map[emergencyType] || 'other';
 }
-
-// ─── Single action button — stops propagation so card onClick doesn't fire ────
 function ActionBtn({ label, icon, onClick, variant = 'primary', loading = false }) {
   const cls = {
     primary:   'btn btn-primary btn-sm',
@@ -61,37 +56,6 @@ function ActionBtn({ label, icon, onClick, variant = 'primary', loading = false 
   );
 }
 
-// ─── RequestCard ──────────────────────────────────────────────────────────────
-/**
- * RequestCard — displays a single help request across all role views.
- *
- * Props:
- *   request    {object}   — HelpRequest document from API
- *   onClick    {fn}       — (request) => void   makes card clickable [optional]
- *   loading    {boolean}  — disables action buttons during API calls
- *   variant    'user' | 'volunteer' | 'admin'
- *
- * variant='user'
- *   onCancel   {fn}  — (requestId) => void   shown when status === 'posted'
- *   onRate     {fn}  — (request)   => void   shown when status === 'completed'
- *
- * variant='volunteer'
- *   onAccept   {fn}  — (requestId) => void   shown when status === 'posted'
- *
- * variant='admin'
- *   onCancel   {fn}  — (requestId) => void   shown for active requests
- *   onDelete   {fn}  — (requestId) => void   always shown
- *
- * Usage:
- *   // User — My Requests list
- *   <RequestCard request={r} variant="user" onCancel={cancelMyRequest} onRate={openRating} />
- *
- *   // Volunteer — Nearby Requests feed
- *   <RequestCard request={r} variant="volunteer" onAccept={acceptNearbyRequest} />
- *
- *   // Admin — Manage Requests table alternative
- *   <RequestCard request={r} variant="admin" onCancel={handleCancel} onDelete={removeRequest} />
- */
 export default function RequestCard({
   request,
   onClick,
@@ -128,8 +92,7 @@ export default function RequestCard({
       onClick={isClickable ? () => onClick(request) : undefined}
       style={{ cursor: isClickable ? 'pointer' : 'default' }}
     >
-      {/* ── Header: type label + badges ─────────────────────────────────── */}
-      <div className="request-card-header">
+<div className="request-card-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ display: 'flex', alignItems: 'center' }}>{getEmergencyIcon(emergencyType)}</span>
           <span className="request-card-type">
@@ -141,9 +104,7 @@ export default function RequestCard({
             </span>
           )}
         </div>
-
-        {/* Urgency + Status badges */}
-        <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+<div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
           <span className={`badge ${getUrgencyClass(urgencyLevel)}`}>
             {formatUrgency(urgencyLevel)}
           </span>
@@ -155,12 +116,8 @@ export default function RequestCard({
           </span>
         </div>
       </div>
-
-      {/* ── Description ─────────────────────────────────────────────────── */}
-      <p className="request-card-desc">{description}</p>
-
-      {/* ── Blood group needed (blood requests only) ─────────────────────── */}
-      {emergencyType === 'blood' && bloodGroupNeeded && (
+<p className="request-card-desc">{description}</p>
+{emergencyType === 'blood' && bloodGroupNeeded && (
         <div
           style={{
             display: 'inline-flex',
@@ -179,12 +136,8 @@ export default function RequestCard({
           <Droplet size={14} /> Blood needed: {bloodGroupNeeded}
         </div>
       )}
-
-      {/* ── Footer: meta + actions ───────────────────────────────────────── */}
-      <div className="request-card-footer">
-
-        {/* Meta: location + time */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+<div className="request-card-footer">
+<div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {address && (
             <div className="request-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <MapPin size={14} color="var(--text-light)" />
@@ -205,12 +158,8 @@ export default function RequestCard({
             <span>{formatTimeAgo(postedAt)}</span>
           </div>
         </div>
-
-        {/* Role-specific action buttons */}
-        <div style={{ display: 'flex', gap: '7px', flexShrink: 0 }}>
-
-          {/* USER: cancel posted request */}
-          {variant === 'user' && status === 'posted' && typeof onCancel === 'function' && (
+<div style={{ display: 'flex', gap: '7px', flexShrink: 0 }}>
+{variant === 'user' && status === 'posted' && typeof onCancel === 'function' && (
             <ActionBtn
               label="Cancel"
               icon={<X size={14} />}
@@ -219,9 +168,7 @@ export default function RequestCard({
               onClick={() => onCancel(_id)}
             />
           )}
-
-          {/* USER: rate completed request */}
-          {variant === 'user' && status === 'completed' && typeof onRate === 'function' && (
+{variant === 'user' && status === 'completed' && typeof onRate === 'function' && (
             <ActionBtn
               label={request.assignedType === 'Provider' ? 'Rate Service' : 'Rate'}
               icon={<Star size={14} />}
@@ -230,9 +177,7 @@ export default function RequestCard({
               onClick={() => onRate(request)}
             />
           )}
-
-          {/* VOLUNTEER: accept posted request */}
-          {variant === 'volunteer' && status === 'posted' && typeof onAccept === 'function' && (
+{variant === 'volunteer' && status === 'posted' && typeof onAccept === 'function' && (
             <ActionBtn
               label="Accept"
               icon={<Check size={14} />}
@@ -241,9 +186,7 @@ export default function RequestCard({
               onClick={() => onAccept(_id)}
             />
           )}
-
-          {/* ADMIN: cancel active request */}
-          {variant === 'admin' && isActive && typeof onCancel === 'function' && (
+{variant === 'admin' && isActive && typeof onCancel === 'function' && (
             <ActionBtn
               label="Cancel"
               icon={<X size={14} />}
@@ -252,9 +195,7 @@ export default function RequestCard({
               onClick={() => onCancel(_id)}
             />
           )}
-
-          {/* ADMIN: delete request */}
-          {variant === 'admin' && typeof onDelete === 'function' && (
+{variant === 'admin' && typeof onDelete === 'function' && (
             <ActionBtn
               label="Delete"
               icon={<Trash2 size={14} />}

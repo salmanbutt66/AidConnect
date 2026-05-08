@@ -1,48 +1,17 @@
-// src/components/forms/LoginForm.jsx
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { validateLogin, hasErrors } from '../../utils/validators.js';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
-// ─── LoginForm ────────────────────────────────────────────────────────────────
-/**
- * LoginForm — controlled login form extracted from Login.jsx.
- *
- * Login.jsx remains the page (handles layout, auth context, navigation).
- * This component owns only the form UI and validation.
- *
- * Props:
- *   onSubmit   {fn}      — async ({ email, password }) => void   required
- *   loading    {boolean} — disables form during submission
- *   apiError   {string}  — error string from the parent page (auth failure etc.)
- *
- * Usage in Login.jsx:
- *   const [apiError, setApiError] = useState('');
- *
- *   const handleSubmit = async (credentials) => {
- *     try {
- *       const user = await login(credentials);
- *       navigate(getDashboardPath(user.role), { replace: true });
- *     } catch (err) {
- *       setApiError(err.response?.data?.message || 'Login failed.');
- *     }
- *   };
- *
- *   <LoginForm onSubmit={handleSubmit} loading={loading} apiError={apiError} />
- */
 export default function LoginForm({ onSubmit, loading = false, apiError = '' }) {
   const [form, setForm]         = useState({ email: '', password: '' });
   const [errors, setErrors]     = useState({});
   const [showPass, setShowPass] = useState(false);
-
-  // ── Field change — clears field error on edit ──────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   }, [errors]);
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -58,23 +27,18 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
         password: form.password,
       });
     } catch {
-      // apiError is managed by the parent — nothing to do here
     }
   };
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-
-      {/* API / auth error */}
-      {apiError && (
+{apiError && (
         <div className="alert alert-error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertTriangle size={18} color="var(--danger)" />
           <span>{apiError}</span>
         </div>
       )}
-
-      {/* ── Email ───────────────────────────────────────────────────────── */}
-      <div className="form-group">
+<div className="form-group">
         <label className="form-label" htmlFor="login-email">
           Email address
         </label>
@@ -97,9 +61,7 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
           <div className="form-error">{errors.email}</div>
         )}
       </div>
-
-      {/* ── Password ────────────────────────────────────────────────────── */}
-      <div className="form-group">
+<div className="form-group">
         <label className="form-label" htmlFor="login-password">
           Password
         </label>
@@ -148,9 +110,7 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
           <div className="form-error">{errors.password}</div>
         )}
       </div>
-
-      {/* ── Submit ──────────────────────────────────────────────────────── */}
-      <button
+<button
         type="submit"
         className="btn btn-primary btn-full btn-lg"
         disabled={loading}
@@ -161,9 +121,7 @@ export default function LoginForm({ onSubmit, loading = false, apiError = '' }) 
           'Sign In →'
         )}
       </button>
-
-      {/* ── Divider + register link ──────────────────────────────────────── */}
-      <div className="divider-text" style={{ margin: '24px 0' }}>or</div>
+<div className="divider-text" style={{ margin: '24px 0' }}>or</div>
 
       <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
         Don't have an account?{' '}

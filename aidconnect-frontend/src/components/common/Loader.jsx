@@ -1,39 +1,5 @@
-// src/components/common/Loader.jsx
 import React from 'react';
 
-// ─── Loader ───────────────────────────────────────────────────────────────────
-/**
- * Loader — versatile loading indicator for all loading states in the app.
- *
- * FOUR variants:
- *
- * 1. 'spinner'  — small inline spinner, used inside buttons or inline states
- *    <Loader />
- *    <Loader size="lg" />
- *
- * 2. 'overlay'  — full-page branded loading screen (same as PageLoader in
- *                 AppRoutes). Used when an entire page is loading.
- *    <Loader variant="overlay" />
- *    <Loader variant="overlay" message="Fetching requests…" />
- *
- * 3. 'card'     — centered spinner inside a white card container.
- *                 Drop inside any card/section that is loading.
- *    <Loader variant="card" />
- *    <Loader variant="card" message="Loading volunteers…" />
- *
- * 4. 'skeleton' — shimmer placeholder rows. Pass count for number of rows.
- *    <Loader variant="skeleton" />
- *    <Loader variant="skeleton" count={5} />
- *
- * Props:
- *   variant   'spinner' | 'overlay' | 'card' | 'skeleton'   default: 'spinner'
- *   size      'sm' | 'md' | 'lg'                            default: 'md'
- *             (only applies to spinner variant)
- *   message   {string}   optional text shown below spinner
- *   count     {number}   number of skeleton rows             default: 3
- *   color     'white' | 'green'                             default: 'white'
- *             'white' for dark backgrounds, 'green' for light backgrounds
- */
 export default function Loader({
   variant = 'spinner',
   size    = 'md',
@@ -41,8 +7,6 @@ export default function Loader({
   count   = 3,
   color   = 'white',
 }) {
-
-  // ── Spinner ────────────────────────────────────────────────────────────────
   if (variant === 'spinner') {
     const spinnerClass = [
       'spinner',
@@ -74,8 +38,6 @@ export default function Loader({
       </div>
     );
   }
-
-  // ── Full-page overlay (mirrors PageLoader in AppRoutes.jsx) ────────────────
   if (variant === 'overlay') {
     return (
       <div className="loading-screen">
@@ -102,8 +64,6 @@ export default function Loader({
       </div>
     );
   }
-
-  // ── Card — centered spinner inside a white container ──────────────────────
   if (variant === 'card') {
     return (
       <div
@@ -134,8 +94,6 @@ export default function Loader({
       </div>
     );
   }
-
-  // ── Skeleton — shimmer placeholder rows ───────────────────────────────────
   if (variant === 'skeleton') {
     return (
       <div
@@ -160,8 +118,7 @@ export default function Loader({
               border: '1px solid var(--stone-200)',
             }}
           >
-            {/* Title row */}
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+<div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div
                 className="skeleton"
                 style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', flexShrink: 0 }}
@@ -170,17 +127,14 @@ export default function Loader({
                 <div className="skeleton" style={{ height: '14px', width: '45%' }} />
                 <div className="skeleton" style={{ height: '11px', width: '28%' }} />
               </div>
-              {/* Badge placeholder */}
-              <div
+<div
                 className="skeleton"
                 style={{ width: '64px', height: '20px', borderRadius: 'var(--radius-full)' }}
               />
             </div>
-            {/* Description row */}
-            <div className="skeleton" style={{ height: '12px', width: '90%' }} />
+<div className="skeleton" style={{ height: '12px', width: '90%' }} />
             <div className="skeleton" style={{ height: '12px', width: '70%' }} />
-            {/* Footer row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
               <div className="skeleton" style={{ height: '11px', width: '30%' }} />
               <div className="skeleton" style={{ height: '28px', width: '72px', borderRadius: 'var(--radius-sm)' }} />
             </div>

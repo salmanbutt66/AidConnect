@@ -1,12 +1,7 @@
-// src/components/forms/ProfileForm.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { BLOOD_GROUPS, PAKISTAN_CITIES } from '../../utils/constants.js';
 import { validateProfile, hasErrors } from '../../utils/validators.js';
 import { AlertTriangle, CheckCircle, User, Phone, Droplet, MapPin, Navigation } from 'lucide-react';
-
-// ─── Build form state from user object ───────────────────────────────────────
-// Extracted so both useEffect and the Discard button use the same mapping.
-// If fields are added later, update only this function.
 function buildFormFromUser(user) {
   return {
     name:       user?.name       || '',
@@ -21,59 +16,21 @@ function buildFormFromUser(user) {
   };
 }
 
-// ─── ProfileForm ──────────────────────────────────────────────────────────────
-/**
- * ProfileForm — reusable profile editing form for all roles.
- *
- * Props:
- *   user           {object}  — current user object from AuthContext
- *   onSubmit       {fn}      — async (payload) => void
- *   loading        {boolean} — disables form during submission
- *   apiError       {string}  — error message from parent
- *   successMessage {string}  — success message from parent
- *
- * Usage:
- *   const { user, updateUser } = useAuth();
- *   const [apiError, setApiError] = useState('');
- *   const [successMessage, setSuccessMessage] = useState('');
- *
- *   const handleSubmit = async (payload) => {
- *     try {
- *       const data = await updateMyProfile(payload);
- *       updateUser(data.user);
- *       setSuccessMessage('Profile updated successfully.');
- *     } catch (err) {
- *       setApiError(err.response?.data?.message || 'Update failed.');
- *     }
- *   };
- *
- *   <ProfileForm
- *     user={user} onSubmit={handleSubmit} loading={loading}
- *     apiError={apiError} successMessage={successMessage}
- *   />
- */
 export default function ProfileForm({
   user,
   onSubmit,
   loading        = false,
   apiError       = '',
-  // FIX: renamed from onSuccess (misleading — sounds like a callback)
-  // to successMessage to match apiError naming convention
   successMessage = '',
 }) {
   const [form,    setForm]    = useState(() => buildFormFromUser(user));
   const [errors,  setErrors]  = useState({});
   const [changed, setChanged] = useState(false);
-
-  // ── Sync form when user object updates (e.g. after save) ──────────────────
   useEffect(() => {
     if (!user) return;
-    // FIX: uses shared buildFormFromUser — no duplication with Discard button
     setForm(buildFormFromUser(user));
     setChanged(false);
   }, [user]);
-
-  // ── Field change ──────────────────────────────────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
 
@@ -93,16 +50,11 @@ export default function ProfileForm({
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
     setChanged(true);
   }, [errors]);
-
-  // ── Discard — resets to last saved user state ─────────────────────────────
   const handleDiscard = useCallback(() => {
-    // FIX: uses shared buildFormFromUser — single source of truth
     setForm(buildFormFromUser(user));
     setErrors({});
     setChanged(false);
   }, [user]);
-
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -115,15 +67,10 @@ export default function ProfileForm({
       setErrors(clientErrors);
       return;
     }
-
-    // Build payload — only include non-empty values
     const payload = {};
     if (form.name.trim())  payload.name  = form.name.trim();
     if (form.phone.trim()) payload.phone = form.phone.trim();
     if (form.bloodGroup)   payload.bloodGroup = form.bloodGroup;
-
-    // FIX: only send location fields that are actually filled
-    // Previous version sent empty strings if only one field was filled
     if (form.city.trim()) payload.city = form.city.trim();
     if (form.area.trim()) payload.area = form.area.trim();
 
@@ -133,31 +80,24 @@ export default function ProfileForm({
       await onSubmit(payload);
       setChanged(false);
     } catch {
-      // apiError handled by parent
     }
   };
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-
-      {/* API error */}
-      {apiError && (
+{apiError && (
         <div className="alert alert-error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertTriangle size={18} color="var(--danger)" />
           <span>{apiError}</span>
         </div>
       )}
-
-      {/* Success message */}
-      {successMessage && (
+{successMessage && (
         <div className="alert alert-success" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <CheckCircle size={18} color="var(--green-700)" />
           <span>{successMessage}</span>
         </div>
       )}
-
-      {/* ── Name + Phone ─────────────────────────────────────────────────── */}
-      <div className="form-row cols-2">
+<div className="form-row cols-2">
         <div className="form-group">
           <label className="form-label" htmlFor="pf-name">
             Full Name <span style={{ color: 'var(--danger)' }}>*</span>
@@ -203,9 +143,7 @@ export default function ProfileForm({
           {errors.phone && <div className="form-error">{errors.phone}</div>}
         </div>
       </div>
-
-      {/* ── Blood Group ──────────────────────────────────────────────────── */}
-      <div className="form-group">
+<div className="form-group">
         <label className="form-label" htmlFor="pf-bloodGroup">
           Blood Group
           <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
@@ -233,9 +171,7 @@ export default function ProfileForm({
           Helps us match you with blood donation requests
         </div>
       </div>
-
-      {/* ── Location ─────────────────────────────────────────────────────── */}
-      <div className="form-row cols-2">
+<div className="form-row cols-2">
         <div className="form-group">
           <label className="form-label" htmlFor="pf-city">City</label>
           <div className="input-icon-wrap">
@@ -274,9 +210,7 @@ export default function ProfileForm({
           </div>
         </div>
       </div>
-
-      {/* ── Notification Preferences ─────────────────────────────────────── */}
-      <div className="form-group">
+<div className="form-group">
         <label className="form-label">Notification Preferences</label>
         <div
           style={{
@@ -289,10 +223,7 @@ export default function ProfileForm({
             border: '1px solid var(--green-100)',
           }}
         >
-          {/* Email notifications */}
-          {/* FIX: outer <label> replaced with <div> — nesting <label> inside
-              <label> is invalid HTML and causes double-fire on checkbox click.
-              The toggle-switch <label> already handles the click target. */}
+{}
           <div
             style={{
               display: 'flex',
@@ -322,9 +253,7 @@ export default function ProfileForm({
           </div>
 
           <div style={{ height: '1px', background: 'var(--green-100)' }} />
-
-          {/* In-app notifications */}
-          <div
+<div
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -353,9 +282,7 @@ export default function ProfileForm({
           </div>
         </div>
       </div>
-
-      {/* ── Submit + Discard ─────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+<div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
         <button
           type="submit"
           className="btn btn-primary btn-lg"
@@ -368,9 +295,7 @@ export default function ProfileForm({
             'Save Changes'
           )}
         </button>
-
-        {/* Discard — only shown when there are unsaved changes */}
-        {changed && !loading && (
+{changed && !loading && (
           <button
             type="button"
             className="btn btn-ghost"

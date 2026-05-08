@@ -1,4 +1,3 @@
-// src/pages/public/AboutUs.jsx
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../../components/common/Footer.jsx';
@@ -22,7 +21,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-/* ── Team members ──────────────────────────────────────────────────────── */
 const TEAM = [
   {
     name:    'Haseeb',
@@ -62,7 +60,6 @@ const TEAM = [
   },
 ];
 
-/* ── Core values ───────────────────────────────────────────────────────── */
 const VALUES = [
   { Icon: Zap,         title: 'Speed',     desc: 'Every second matters in an emergency. Our system is built for instant response.',          color: '#f59e0b', bg: '#fffbeb' },
   { Icon: ShieldCheck, title: 'Trust',     desc: 'All volunteers and providers are verified before they can respond to requests.',            color: '#10b981', bg: '#ecfdf5' },
@@ -70,7 +67,6 @@ const VALUES = [
   { Icon: Heart,       title: 'Community', desc: 'Powered by ordinary citizens who care about their neighbors.',                             color: '#ef4444', bg: '#fef2f2' },
 ];
 
-/* ── Problems ──────────────────────────────────────────────────────────── */
 const PROBLEMS = [
   { Icon: Droplets,   text: 'Blood urgently needed but no structured search system' },
   { Icon: Ambulance,  text: 'Ambulances not easily reachable during crises'         },
@@ -78,10 +74,8 @@ const PROBLEMS = [
   { Icon: HelpCircle, text: "People don't know what help is available nearby"       },
 ];
 
-/* ── Tech stack ────────────────────────────────────────────────────────── */
 const TECH = ['React 18', 'Node.js', 'Express.js', 'MongoDB Atlas', 'Mongoose', 'JWT Auth', 'Vite', 'Bootstrap 5'];
 
-/* ── Nav link style ────────────────────────────────────────────────────── */
 const navLinkStyle = {
   fontSize: '13px',
   color: 'rgba(255,255,255,0.65)',
@@ -91,7 +85,6 @@ const navLinkStyle = {
   transition: 'color 0.2s',
 };
 
-/* ── Inline styles injected once ───────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
@@ -113,7 +106,31 @@ const STYLES = `
   .about-fade-up   { animation: fadeUp  0.55s cubic-bezier(.22,.68,0,1.2) both; }
   .about-scale-in  { animation: scaleIn 0.5s  cubic-bezier(.22,.68,0,1.2) both; }
 
-  /* value cards */
+  .about-problem-grid,
+  .about-values-grid,
+  .about-team-grid {
+    display: grid;
+    gap: 18px;
+  }
+
+  .about-problem-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .about-values-grid,
+  .about-team-grid {
+    grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  }
+
+  @media (max-width: 720px) {
+    .about-problem-grid,
+    .about-values-grid,
+    .about-team-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  
   .value-card {
     background: white;
     border: 1px solid #e8ede9;
@@ -129,7 +146,7 @@ const STYLES = `
     border-color: transparent;
   }
 
-  /* problem cards */
+  
   .problem-card {
     background: white;
     border: 1px solid #e8ede9;
@@ -145,7 +162,7 @@ const STYLES = `
     box-shadow: 0 12px 32px rgba(0,0,0,0.09);
   }
 
-  /* team cards */
+  
   .team-card {
     background: white;
     border: 1px solid #e8ede9;
@@ -168,7 +185,7 @@ const STYLES = `
   .team-card:hover { transform: translateY(-7px); box-shadow: 0 22px 52px rgba(0,0,0,0.11); }
   .team-card:hover::before { opacity: 1; }
 
-  /* tech pills */
+  
   .tech-pill {
     padding: 8px 18px;
     background: #f0faf4;
@@ -187,7 +204,7 @@ const STYLES = `
     box-shadow: 0 6px 16px rgba(26,107,60,0.28);
   }
 
-  /* mission card */
+  
   .mission-card {
     background: linear-gradient(135deg, #0d3d22 0%, #1a6b3c 100%);
     border-radius: 20px;
@@ -207,7 +224,7 @@ const STYLES = `
     pointer-events: none;
   }
 
-  /* stats strip */
+  
   .stat-strip {
     display: flex;
     justify-content: center;
@@ -228,7 +245,7 @@ const STYLES = `
   .stat-strip-item:last-child { border-right: none; }
   .stat-strip-item:hover { background: #f0faf4; }
 
-  /* cta section */
+  
   .cta-section {
     background: linear-gradient(135deg, #071f12 0%, #0d3d22 60%, #1a6b3c 100%);
     color: white;
@@ -264,7 +281,7 @@ const STYLES = `
     color: #0d3d22;
   }
 
-  /* hero badge */
+  
   .hero-badge {
     display: inline-flex;
     align-items: center;
@@ -281,7 +298,7 @@ const STYLES = `
     margin-bottom: 20px;
   }
 
-  /* section eyebrow override */
+  
   .about-eyebrow {
     display: inline-block;
     font-size: 11px;
@@ -304,7 +321,7 @@ const STYLES = `
 `;
 
 export default function AboutUs() {
-  /* ── Intersection Observer for scroll-triggered reveals ── */
+  
   const observerRef = useRef(null);
 
   useEffect(() => {
@@ -330,12 +347,8 @@ export default function AboutUs() {
 
   return (
     <div className="about-page" style={{ background: '#f5f7f5', minHeight: '100vh' }}>
-
-      {/* ── Injected styles ──────────────────────────────────────────── */}
-      <style>{STYLES}</style>
-
-      {/* ── Navbar ──────────────────────────────────────────────────── */}
-      <nav style={{
+<style>{STYLES}</style>
+<nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         background: 'rgba(7,31,18,0.97)', backdropFilter: 'blur(14px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -355,15 +368,12 @@ export default function AboutUs() {
           <Link to="/register" className="btn btn-primary btn-sm">Get Started</Link>
         </div>
       </nav>
-
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section style={{
+<section style={{
         background: 'linear-gradient(140deg, #071f12 0%, #0d3d22 55%, #1a6b3c 100%)',
         color: 'white', padding: '148px 24px 88px', textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* decorative rings */}
-        <div style={{
+<div style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '600px', height: '600px',
@@ -405,9 +415,7 @@ export default function AboutUs() {
           real-time emergency coordination platform — because no one should face a
           crisis alone.
         </p>
-
-        {/* quick stat strip */}
-        <div className="about-fade-up" style={{
+<div className="about-fade-up" style={{
           display: 'flex', justifyContent: 'center', gap: '40px',
           marginTop: '52px', animationDelay: '240ms',
         }}>
@@ -424,9 +432,7 @@ export default function AboutUs() {
           ))}
         </div>
       </section>
-
-      {/* ── Mission ─────────────────────────────────────────────────── */}
-      <section style={{ padding: '88px 24px 0', maxWidth: '860px', margin: '0 auto' }}>
+<section style={{ padding: '88px 24px 0', maxWidth: '860px', margin: '0 auto' }}>
         <div className="mission-card scroll-reveal about-fade-up">
           <div style={{
             width: '52px', height: '52px', borderRadius: '14px',
@@ -456,9 +462,7 @@ export default function AboutUs() {
           </div>
         </div>
       </section>
-
-      {/* ── Problems ────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 24px', maxWidth: '860px', margin: '0 auto' }}>
+<section style={{ padding: '80px 24px', maxWidth: '860px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <div className="about-eyebrow">Why We Built This</div>
           <h2 className="about-h2">The Problem We Solve</h2>
@@ -466,7 +470,7 @@ export default function AboutUs() {
             Pakistan's emergency response gap is real — these are the gaps we're closing.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+        <div className="about-problem-grid" style={{ gap: '14px' }}>
           {PROBLEMS.map(({ Icon, text }, i) => (
             <div key={text} className="problem-card scroll-reveal about-fade-up" style={{ animationDelay: `${i * 80}ms` }}>
               <div style={{
@@ -483,15 +487,13 @@ export default function AboutUs() {
           ))}
         </div>
       </section>
-
-      {/* ── Values ──────────────────────────────────────────────────── */}
-      <section style={{ background: 'white', padding: '80px 24px' }}>
+<section style={{ background: 'white', padding: '80px 24px' }}>
         <div style={{ maxWidth: '860px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <div className="about-eyebrow">Our Principles</div>
             <h2 className="about-h2">What We Stand For</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: '18px' }}>
+          <div className="about-values-grid">
             {VALUES.map(({ Icon, title, desc, color, bg }, i) => (
               <div key={title} className="value-card scroll-reveal about-fade-up" style={{ animationDelay: `${i * 90}ms` }}>
                 <div style={{
@@ -509,9 +511,7 @@ export default function AboutUs() {
           </div>
         </div>
       </section>
-
-      {/* ── Team ────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 24px', maxWidth: '860px', margin: '0 auto' }}>
+<section style={{ padding: '80px 24px', maxWidth: '860px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div className="about-eyebrow">The People</div>
           <h2 className="about-h2">Meet the Team</h2>
@@ -519,11 +519,10 @@ export default function AboutUs() {
             CS 343 Web Technologies — NUST SEECS, Spring 2026
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: '18px' }}>
+        <div className="about-team-grid">
           {TEAM.map(({ name, role, Icon, iconBg, iconColor, desc, initial }, i) => (
             <div key={name} className="team-card scroll-reveal about-fade-up" style={{ animationDelay: `${i * 90}ms` }}>
-              {/* avatar with initials */}
-              <div style={{
+<div style={{
                 width: '68px', height: '68px', borderRadius: '50%',
                 background: 'linear-gradient(135deg, #0d3d22, #1a6b3c)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -534,8 +533,7 @@ export default function AboutUs() {
               }}>
                 {initial}
               </div>
-              {/* role icon badge */}
-              <div style={{
+<div style={{
                 width: '32px', height: '32px', borderRadius: '8px',
                 background: iconBg, display: 'flex', alignItems: 'center',
                 justifyContent: 'center', margin: '0 auto 12px',
@@ -554,9 +552,7 @@ export default function AboutUs() {
           ))}
         </div>
       </section>
-
-      {/* ── Tech Stack ──────────────────────────────────────────────── */}
-      <section style={{ background: 'white', padding: '64px 24px' }}>
+<section style={{ background: 'white', padding: '64px 24px' }}>
         <div style={{ maxWidth: '760px', margin: '0 auto', textAlign: 'center' }}>
           <div className="about-eyebrow">The Stack</div>
           <h2 className="about-h2" style={{ marginBottom: '32px' }}>Built With</h2>
@@ -567,9 +563,7 @@ export default function AboutUs() {
           </div>
         </div>
       </section>
-
-      {/* ── CTA ─────────────────────────────────────────────────────── */}
-      <section className="cta-section">
+<section className="cta-section">
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '16px',

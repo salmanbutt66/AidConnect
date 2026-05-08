@@ -1,4 +1,3 @@
-// controllers/auth.controller.js
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 import Volunteer from "../models/Volunteer.model.js";
@@ -39,21 +38,6 @@ const sendTokenResponse = (user, statusCode, res, message = "Success", refreshTo
       user: user.toPublicJSON(),
     });
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   POST /api/auth/register
-// @access  Public
-//
-// FIX SUMMARY:
-// 1. `city` is read as a flat top-level field (what Register.jsx sends).
-// 2. It is stored in user.location.city so /api/auth/me returns it and
-//    HelpRequestForm can pre-fill the city dropdown.
-// 3. When role === "volunteer", a Volunteer profile is created immediately
-//    with serviceArea.city set to the resolved city. Without this, new
-//    volunteers had serviceArea.city = null and were never matched.
-// 4. Provider registration does NOT create a Volunteer profile — providers
-//    register their org separately via POST /api/providers/register.
-// ─────────────────────────────────────────────────────────────────────────────
 export const register = async (req, res, next) => {
   try {
     const {
@@ -62,8 +46,6 @@ export const register = async (req, res, next) => {
       city,     // flat field sent by Register.jsx
       location, // nested object (future-proofing / API consumers)
     } = req.body;
-
-    // ── Duplicate check ────────────────────────────────────────────────────
     const existingUser = await User.findOne({ email: email?.toLowerCase().trim() });
     if (existingUser) {
       return res.status(409).json({
@@ -71,22 +53,13 @@ export const register = async (req, res, next) => {
         message: "An account with this email already exists",
       });
     }
-
-    // ── Block admin self-registration ──────────────────────────────────────
     if (role === "admin") {
       return res.status(403).json({
         success: false,
         message: "Admin accounts cannot be created via registration",
       });
     }
-
-    // ── Resolve city ───────────────────────────────────────────────────────
-    // Flat `city` from Register.jsx takes precedence over nested location.city.
     const resolvedCity = city?.trim() || location?.city?.trim() || null;
-
-    // ── Create user ────────────────────────────────────────────────────────
-    // Store city in user.location.city so the auth/me response includes it.
-    // HelpRequestForm reads this to pre-fill the city dropdown for users.
     const user = await User.create({
       name:       name?.trim(),
       email:      email?.toLowerCase().trim(),
@@ -98,15 +71,6 @@ export const register = async (req, res, next) => {
         ? { city: resolvedCity, area: location?.area || null }
         : (location || undefined),
     });
-
-    // ── Seed Volunteer profile ─────────────────────────────────────────────
-    // FIX: create the Volunteer profile at registration time with serviceArea.city
-    // pre-populated. Without this, getNearbyRequests returns nothing because it
-    // filters on volunteer.serviceArea.city which would otherwise be null.
-    //
-    // isApproved stays false (default) — admin must approve before the volunteer
-    // can toggle availability. isAvailable also stays false (default) so the
-    // volunteer won't be matched until they manually go available after approval.
     if (user.role === "volunteer") {
       const existing = await Volunteer.findOne({ user: user._id });
       if (!existing) {
@@ -117,13 +81,9 @@ export const register = async (req, res, next) => {
             area:     location?.area || null,
             radiusKm: 10,
           },
-          // isAvailable: false  ← Mongoose default, no need to set explicitly
-          // isApproved:  false  ← Mongoose default
         });
       }
     }
-
-    // ── Issue tokens ───────────────────────────────────────────────────────
     const refreshToken = generateRefreshToken(user._id);
     user.refreshToken  = refreshToken;
     user.lastLogin     = new Date();
@@ -134,11 +94,6 @@ export const register = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   POST /api/auth/login
-// @access  Public
-// ─────────────────────────────────────────────────────────────────────────────
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -186,11 +141,6 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   POST /api/auth/logout
-// @access  Private
-// ─────────────────────────────────────────────────────────────────────────────
 export const logout = async (req, res, next) => {
   try {
     await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
@@ -203,11 +153,6 @@ export const logout = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   POST /api/auth/refresh-token
-// @access  Public
-// ─────────────────────────────────────────────────────────────────────────────
 export const refreshToken = async (req, res, next) => {
   try {
     const token = req.cookies?.refreshToken || req.body?.refreshToken;
@@ -254,11 +199,6 @@ export const refreshToken = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   GET /api/auth/me
-// @access  Private
-// ─────────────────────────────────────────────────────────────────────────────
 export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -281,11 +221,6 @@ export const getMe = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/auth/update-profile
-// @access  Private
-// ─────────────────────────────────────────────────────────────────────────────
 export const updateProfile = async (req, res, next) => {
   try {
     const { name, phone, bloodGroup, location, notificationPreferences } = req.body;
@@ -312,11 +247,6 @@ export const updateProfile = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   PUT /api/auth/change-password
-// @access  Private
-// ─────────────────────────────────────────────────────────────────────────────
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -350,11 +280,6 @@ export const changePassword = async (req, res, next) => {
     next(error);
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// @route   DELETE /api/auth/delete-account
-// @access  Private
-// ─────────────────────────────────────────────────────────────────────────────
 export const deleteAccount = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);

@@ -1,9 +1,6 @@
-// src/components/common/Footer.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { APP_NAME, APP_TAGLINE } from '../../utils/constants.js';
-
-// ─── Footer link columns ──────────────────────────────────────────────────────
 const LINKS = {
   Platform: [
     { label: 'Home',         to: '/' },
@@ -22,8 +19,6 @@ const LINKS = {
     { label: 'Ambulance',       href: 'tel:1122' },
   ],
 };
-
-// ─── Shared link style ────────────────────────────────────────────────────────
 const linkStyle = {
   fontSize: '13px',
   color: 'rgba(255,255,255,0.55)',
@@ -32,16 +27,12 @@ const linkStyle = {
 };
 const onHoverIn  = (e) => (e.currentTarget.style.color = 'white');
 const onHoverOut = (e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)');
-
-// ─── Footer ───────────────────────────────────────────────────────────────────
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="landing-footer" style={{ flexDirection: 'column', gap: '40px' }}>
-
-      {/* ── Top row: brand + link columns ───────────────────────────────── */}
-      <div
+<div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -50,9 +41,7 @@ export default function Footer() {
           width: '100%',
         }}
       >
-
-        {/* Brand + tagline + emergency pill */}
-        <div style={{ maxWidth: '260px' }}>
+<div style={{ maxWidth: '260px' }}>
           <div className="footer-brand">
             Aid<span style={{ color: 'var(--green-300)' }}>Connect</span>
           </div>
@@ -67,9 +56,7 @@ export default function Footer() {
           >
             {APP_TAGLINE}. Built for Pakistan, powered by community.
           </p>
-
-          {/* Emergency hotline pill */}
-          <a
+<a
             href="tel:1122"
             style={{
               display: 'inline-flex',
@@ -91,9 +78,7 @@ export default function Footer() {
             🚨 Emergency: 1122
           </a>
         </div>
-
-        {/* Link columns */}
-        <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+<div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
           {Object.entries(LINKS).map(([section, items]) => (
             <div key={section}>
               <div
@@ -137,9 +122,7 @@ export default function Footer() {
           ))}
         </div>
       </div>
-
-      {/* ── Bottom bar: copyright + legal ───────────────────────────────── */}
-      <div
+<div
         style={{
           width: '100%',
           borderTop: '1px solid rgba(255,255,255,0.07)',

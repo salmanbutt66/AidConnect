@@ -1,4 +1,3 @@
-// models/Provider.model.js
 import mongoose from "mongoose";
 
 const providerSchema = new mongoose.Schema(
@@ -42,8 +41,6 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-
-    // ── RATINGS & CREDIBILITY ──────────────────────────────────────────────
     averageRating: {
       type: Number,
       default: 0,
@@ -55,17 +52,12 @@ const providerSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
-    // 0-100 score derived from averageRating. Used in admin analytics.
-    // Formula: round((averageRating / 5) * 100), clamped 0-100.
     credibilityScore: {
       type: Number,
       default: 50,
       min: 0,
       max: 100,
     },
-
-    // ── OPERATING HOURS ────────────────────────────────────────────────────
     operatingHours: {
       open:  { type: String, default: "00:00" },
       close: { type: String, default: "23:59" },
@@ -87,26 +79,12 @@ const providerSchema = new mongoose.Schema(
       trim: true,
       default: null,           // FIX: was "" — empty string is truthy-falsy ambiguous
     },
-
-    // ── CITY (PRIMARY MATCHING FIELD) ──────────────────────────────────────
-    // This is the flat field used by getRelevantRequests to city-filter
-    // incoming HelpRequests. It mirrors the same flat `city` field on
-    // HelpRequest so the query is a direct string comparison.
-    //
-    // Previously city was nested inside location.city but the GeoJSON
-    // sub-schema only had `type` and `coordinates` — location.city was
-    // never stored and always read back as undefined, causing every
-    // provider to fall through to a nationwide (no city filter) query.
     city: {
       type: String,
       trim: true,
       default: null,
       index: true,
     },
-
-    // ── LOCATION (GPS — optional, for future map features) ─────────────────
-    // Stored only when the provider supplies valid coordinates.
-    // NOT used for request matching — city field above handles that.
     location: {
       type: {
         type: String,
@@ -119,8 +97,6 @@ const providerSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// ── Indexes ───────────────────────────────────────────────────────────────────
 providerSchema.index({ serviceType: 1 });
 providerSchema.index({ isVerified: 1 });
 providerSchema.index({ isAvailable: 1 });

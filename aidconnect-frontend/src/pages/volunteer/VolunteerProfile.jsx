@@ -1,4 +1,3 @@
-// src/pages/volunteer/VolunteerProfile.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../../components/common/Navbar.jsx';
 import Badge from '../../components/common/Badge.jsx';
@@ -21,7 +20,6 @@ import {
   getInitials,
 } from '../../utils/formatters.js';
 
-/* ─── Scoped styles ─────────────────────────────────────────────────────────── */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
@@ -32,10 +30,10 @@ const STYLES = `
   @keyframes vp-bar  { from { width:0; } }
   @keyframes spin    { to { transform:rotate(360deg); } }
 
-  /* ── Page wrapper ── */
+  
   .vp-root .vp-page { max-width:860px; margin:0 auto; padding:28px 20px 56px; }
 
-  /* ── Hero card ── */
+  
   .vp-root .hero-card {
     background: linear-gradient(135deg, #0d3d22 0%, #1a6b3c 60%, #229450 100%);
     border-radius: 16px;
@@ -76,7 +74,7 @@ const STYLES = `
   .vp-root .hero-stat-val { font-size:26px; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1; font-family:'DM Mono',monospace; }
   .vp-root .hero-stat-lbl { font-size:10px; color:rgba(255,255,255,0.55); margin-top:3px; text-transform:uppercase; letter-spacing:0.6px; }
 
-  /* ── Section cards ── */
+  
   .vp-root .section-card {
     background: #fff; border-radius: 13px;
     border: 1.5px solid #e8ede9;
@@ -108,7 +106,7 @@ const STYLES = `
   }
   .vp-root .section-body { padding: 18px 20px; }
 
-  /* ── Tabs ── */
+  
   .vp-root .tab-bar {
     display: flex; gap: 6px; margin-bottom: 22px;
     border-bottom: 2px solid #e8ede9; padding-bottom: 0;
@@ -130,7 +128,7 @@ const STYLES = `
     background: #f2fbf6;
   }
 
-  /* ── Toggle chips ── */
+  
   .vp-root .chip-grid { display:flex; gap:8px; flex-wrap:wrap; }
   .vp-root .toggle-chip {
     padding: 6px 14px; border-radius: 20px;
@@ -153,7 +151,7 @@ const STYLES = `
   .vp-root .toggle-chip.selected:hover { transform: translateY(-1px); }
   .vp-root .toggle-chip:disabled { opacity:0.5; cursor:not-allowed; }
 
-  /* ── Day buttons ── */
+  
   .vp-root .day-btn {
     padding: 8px 14px; border-radius: 8px;
     font-size: 12px; font-weight: 800; letter-spacing: 0.6px;
@@ -174,7 +172,7 @@ const STYLES = `
   .vp-root .day-btn.active:hover:not(:disabled) { background: #1e7d46; border-color: #1e7d46; }
   .vp-root .day-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
-  /* ── Form inputs ── */
+  
   .vp-root .vp-input, .vp-root .vp-select, .vp-root .vp-textarea {
     width: 100%; padding: 10px 13px;
     border: 1.5px solid #d4dbd5; border-radius: 9px;
@@ -206,13 +204,13 @@ const STYLES = `
   .vp-root .form-group { margin-bottom: 16px; }
   .vp-root .form-group:last-child { margin-bottom: 0; }
 
-  /* ── Slider ── */
+  
   .vp-root input[type=range] {
     width: 100%; accent-color: #1a6b3c;
     height: 4px; cursor: pointer;
   }
 
-  /* ── Toggle switch ── */
+  
   .vp-root .vp-toggle { position:relative; display:inline-block; width:42px; height:24px; }
   .vp-root .vp-toggle input { opacity:0; width:0; height:0; }
   .vp-root .vp-toggle-track {
@@ -230,7 +228,7 @@ const STYLES = `
   .vp-root .vp-toggle input:checked + .vp-toggle-track { background:#1a6b3c; }
   .vp-root .vp-toggle input:checked + .vp-toggle-track::after { transform:translateX(18px); }
 
-  /* ── Alert banners ── */
+  
   .vp-root .alert-banner {
     display:flex; align-items:center; gap:12px;
     padding:13px 16px; border-radius:10px;
@@ -241,7 +239,7 @@ const STYLES = `
   .vp-root .alert-success { background:#f0fdf5; border:1.5px solid #a7e3be; color:#1a6b3c; }
   .vp-root .alert-warning { background:#fffbec; border:1.5px solid #f0d080; color:#8a5c00; }
 
-  /* ── Buttons ── */
+  
   .vp-root .btn-primary-vp {
     display:inline-flex; align-items:center; gap:8px;
     padding:11px 26px; border-radius:9px;
@@ -277,7 +275,7 @@ const STYLES = `
     display:inline-block;
   }
 
-  /* ── Ratings ── */
+  
   .vp-root .rating-card {
     background:#fff; border-radius:12px;
     border:1.5px solid #e8ede9;
@@ -307,7 +305,7 @@ const STYLES = `
     border-left:3px solid #c5e8d1;
   }
 
-  /* ── Distribution bars ── */
+  
   .vp-root .dist-bar-track {
     flex:1; height:6px; background:#e8ede9;
     border-radius:10px; overflow:hidden;
@@ -318,7 +316,7 @@ const STYLES = `
     animation: vp-bar 0.7s ease both;
   }
 
-  /* ── Rating summary ── */
+  
   .vp-root .rating-summary-card {
     background:#fff; border-radius:13px;
     border:1.5px solid #e8ede9;
@@ -331,7 +329,7 @@ const STYLES = `
     font-family:'DM Mono',monospace;
   }
 
-  /* ── Pagination ── */
+  
   .vp-root .pag-row {
     display:flex; align-items:center; justify-content:center;
     gap:6px; margin-top:22px; flex-wrap:wrap;
@@ -353,7 +351,7 @@ const STYLES = `
   }
   .vp-root .pag-btn:disabled { opacity:0.4; cursor:not-allowed; }
 
-  /* ── Empty state ── */
+  
   .vp-root .empty-state-vp {
     text-align:center; padding:44px 24px;
     animation: vp-up 0.3s ease both;
@@ -365,18 +363,17 @@ const STYLES = `
     margin:0 auto 16px;
   }
 
-  /* ── Char counter ── */
+  
   .vp-root .char-counter {
     font-size:11px; color:#6b7a64; text-align:right; margin-top:4px;
   }
   .vp-root .char-counter.near { color:#d68910; }
   .vp-root .char-counter.over { color:#c0392b; }
 
-  /* ── Required star ── */
+  
   .vp-root .req { color:#c0392b; }
 `;
 
-/* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const Icon = {
   User:    ({ s=16 }) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   Star:    ({ s=16 }) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
@@ -398,10 +395,8 @@ const Icon = {
   Wrench:    ({ s=16 }) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
 };
 
-/* ─── Days ────────────────────────────────────────────────────────────────────  */
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
-/* ─── Section card wrapper ──────────────────────────────────────────────────── */
 function SectionCard({ icon, iconBg, iconColor, title, subtitle, children, delay = 0, style = {} }) {
   return (
     <div className="section-card" style={{ animationDelay: `${delay}ms`, ...style }}>
@@ -419,7 +414,6 @@ function SectionCard({ icon, iconBg, iconColor, title, subtitle, children, delay
   );
 }
 
-/* ─── Toggle chip ───────────────────────────────────────────────────────────── */
 function ToggleChip({ label, selected, onClick, disabled }) {
   return (
     <button
@@ -434,7 +428,6 @@ function ToggleChip({ label, selected, onClick, disabled }) {
   );
 }
 
-/* ─── Star display ──────────────────────────────────────────────────────────── */
 function StarRow({ score }) {
   const filled = formatStars(score);
   return (
@@ -446,7 +439,6 @@ function StarRow({ score }) {
   );
 }
 
-/* ─── Rating card ───────────────────────────────────────────────────────────── */
 function RatingCard({ rating, index }) {
   return (
     <div className="rating-card" style={{ animationDelay: `${index * 0.07}s` }}>
@@ -471,7 +463,6 @@ function RatingCard({ rating, index }) {
   );
 }
 
-/* ─── VolunteerProfile ──────────────────────────────────────────────────────── */
 export default function VolunteerProfile() {
   const { user, updateVolunteerProfile: updateContextProfile } = useAuth();
 
@@ -537,7 +528,7 @@ export default function VolunteerProfile() {
       const res = await getMyRatings({ page, limit: 5 });
       setRatings(res.data || []);
       setRatingsMeta(res.pagination || null);
-    } catch { /* silent */ }
+    } catch {  }
     finally { setRatingsLoading(false); }
   }, []);
 
@@ -605,9 +596,7 @@ export default function VolunteerProfile() {
       <Navbar title="My Profile">
         <div className="vp-root">
           <div className="vp-page">
-
-            {/* ── Hero ── */}
-            <div className="hero-card">
+<div className="hero-card">
               <div className="hero-avatar">{getInitials(user?.name)}</div>
 
               <div style={{ flex:1, minWidth:0 }}>
@@ -644,9 +633,7 @@ export default function VolunteerProfile() {
                 ))}
               </div>
             </div>
-
-            {/* ── Alerts ── */}
-            {error && (
+{error && (
               <div className="alert-banner alert-error">
                 <Icon.Alert s={18} />
                 <span style={{ flex:1 }}>{error}</span>
@@ -670,9 +657,7 @@ export default function VolunteerProfile() {
                 </div>
               </div>
             )}
-
-            {/* ── Tabs ── */}
-            <div className="tab-bar">
+<div className="tab-bar">
               {[
                 { id:'profile', label:'Edit Profile', icon:<Icon.User s={14} /> },
                 { id:'ratings', label:'My Ratings',   icon:<Icon.Star s={14} /> },
@@ -686,15 +671,9 @@ export default function VolunteerProfile() {
                 </button>
               ))}
             </div>
-
-            {/* ══════════════════════════════════════════
-                EDIT PROFILE TAB
-            ══════════════════════════════════════════ */}
-            {activeTab === 'profile' && (
+{activeTab === 'profile' && (
               <form onSubmit={handleSave} noValidate>
-
-                {/* About You */}
-                <SectionCard
+<SectionCard
                   icon={<Icon.User s={16} />}
                   iconBg="#eef6fb" iconColor="#1a6b9a"
                   title="About You"
@@ -735,9 +714,7 @@ export default function VolunteerProfile() {
                     <div className="vp-hint">Format: XXXXX-XXXXXXX-X (for identity verification)</div>
                   </div>
                 </SectionCard>
-
-                {/* Skills */}
-                <SectionCard
+<SectionCard
                   icon={<Icon.Wrench s={16} />}
                   iconBg="#f2fbf6" iconColor="#1a6b3c"
                   title="My Skills"
@@ -756,9 +733,7 @@ export default function VolunteerProfile() {
                     ))}
                   </div>
                 </SectionCard>
-
-                {/* Emergency Types */}
-                <SectionCard
+<SectionCard
                   icon={<Icon.Zap s={16} />}
                   iconBg="#fffbec" iconColor="#d68910"
                   title="Emergency Types I Handle"
@@ -776,9 +751,7 @@ export default function VolunteerProfile() {
                     ))}
                   </div>
                 </SectionCard>
-
-                {/* Service Area */}
-                <SectionCard
+<SectionCard
                   icon={<Icon.MapPin s={16} />}
                   iconBg="#fff0ef" iconColor="#c0392b"
                   title={
@@ -843,9 +816,7 @@ export default function VolunteerProfile() {
                     </div>
                   </div>
                 </SectionCard>
-
-                {/* Weekly Availability */}
-                <SectionCard
+<SectionCard
                   icon={<Icon.Calendar s={16} />}
                   iconBg="#f2fbf6" iconColor="#229450"
                   title="Weekly Availability"
@@ -865,9 +836,7 @@ export default function VolunteerProfile() {
                     ))}
                   </div>
                 </SectionCard>
-
-                {/* Blood Donation */}
-                <SectionCard
+<SectionCard
                   icon={<Icon.Droplet s={16} />}
                   iconBg="#fff0ef" iconColor="#c0392b"
                   title="Blood Donation"
@@ -916,9 +885,7 @@ export default function VolunteerProfile() {
                     </div>
                   )}
                 </SectionCard>
-
-                {/* Save / Reset */}
-                <div style={{ display:'flex', gap:'12px', justifyContent:'flex-end', paddingTop:'4px' }}>
+<div style={{ display:'flex', gap:'12px', justifyContent:'flex-end', paddingTop:'4px' }}>
                   <button type="button" className="btn-ghost-vp" disabled={saving} onClick={loadProfile}>
                     <Icon.RotateCcw s={15} /> Reset
                   </button>
@@ -931,14 +898,9 @@ export default function VolunteerProfile() {
                 </div>
               </form>
             )}
-
-            {/* ══════════════════════════════════════════
-                RATINGS TAB
-            ══════════════════════════════════════════ */}
-            {activeTab === 'ratings' && (
+{activeTab === 'ratings' && (
               <div>
-                {/* Summary */}
-                <div className="rating-summary-card">
+<div className="rating-summary-card">
                   <div style={{ display:'flex', alignItems:'center', gap:'32px', flexWrap:'wrap' }}>
                     <div style={{ textAlign:'center', flexShrink:0 }}>
                       <div className="big-score">{profile?.averageRating?.toFixed(1) || '—'}</div>
@@ -947,9 +909,7 @@ export default function VolunteerProfile() {
                         {profile?.totalRatings ?? 0} ratings
                       </div>
                     </div>
-
-                    {/* Distribution */}
-                    <div style={{ flex:1, minWidth:200 }}>
+<div style={{ flex:1, minWidth:200 }}>
                       {[5,4,3,2,1].map(star => {
                         const count = ratings.filter(r => Math.round(r.score) === star).length;
                         const pct   = ratings.length > 0 ? (count / ratings.length) * 100 : 0;
@@ -969,9 +929,7 @@ export default function VolunteerProfile() {
                     </div>
                   </div>
                 </div>
-
-                {/* List */}
-                {ratingsLoading ? (
+{ratingsLoading ? (
                   <Loader variant="skeleton" count={3} />
                 ) : ratings.length === 0 ? (
                   <div className="empty-state-vp">
@@ -992,9 +950,7 @@ export default function VolunteerProfile() {
                     ))}
                   </div>
                 )}
-
-                {/* Pagination */}
-                {ratingsMeta && ratingsMeta.pages > 1 && (
+{ratingsMeta && ratingsMeta.pages > 1 && (
                   <div className="pag-row">
                     <button className="pag-btn" disabled={ratingsPage <= 1} onClick={() => setRatingsPage(p => Math.max(1, p-1))}>
                       <Icon.ChevLeft s={15} />

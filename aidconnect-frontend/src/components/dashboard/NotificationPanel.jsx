@@ -1,11 +1,8 @@
-// src/components/dashboard/NotificationPanel.jsx
 import React, { useEffect } from 'react';
 import useNotifications from '../../hooks/useNotifications.js';
 import { formatTimeAgo } from '../../utils/formatters.js';
 import { NOTIFICATION_TYPES } from '../../utils/constants.js';
 import { Bell, BellOff, X, AlertCircle, CheckCircle, Info } from 'lucide-react';
-
-// ─── Notification type meta lookup ───────────────────────────────────────────
 function getNotifIcon(type) {
   const props = { size: 18, strokeWidth: 2.5 };
   switch (type) {
@@ -16,8 +13,6 @@ function getNotifIcon(type) {
     default:        return <Bell {...props} color="var(--text-dark)" />;
   }
 }
-
-// ─── Single notification row ──────────────────────────────────────────────────
 function NotifRow({ notif, onRead, onRemove }) {
 
   return (
@@ -36,8 +31,7 @@ function NotifRow({ notif, onRead, onRemove }) {
       }}
       onClick={() => !notif.isRead && onRead(notif._id)}
     >
-      {/* Icon */}
-      <div
+<div
         style={{
           width: '36px',
           height: '36px',
@@ -52,9 +46,7 @@ function NotifRow({ notif, onRead, onRemove }) {
       >
         {getNotifIcon(notif.type)}
       </div>
-
-      {/* Content */}
-      <div className="feed-content" style={{ flex: 1, minWidth: 0 }}>
+<div className="feed-content" style={{ flex: 1, minWidth: 0 }}>
         <h4
           style={{
             fontWeight: notif.isRead ? 500 : 700,
@@ -79,9 +71,7 @@ function NotifRow({ notif, onRead, onRemove }) {
         </p>
         <span className="feed-time">{formatTimeAgo(notif.createdAt)}</span>
       </div>
-
-      {/* Right side: unread dot + delete */}
-      <div
+<div
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -128,8 +118,6 @@ function NotifRow({ notif, onRead, onRemove }) {
     </div>
   );
 }
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyNotifications() {
   return (
     <div className="empty-state" style={{ padding: '40px 16px' }}>
@@ -141,8 +129,6 @@ function EmptyNotifications() {
     </div>
   );
 }
-
-// ─── NotificationPanel ────────────────────────────────────────────────────────
 export default function NotificationPanel({ limit = 10, showHeader = true }) {
   const {
     notifications,
@@ -164,13 +150,9 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
 
   return (
     <div className="card" style={{ height: '100%' }}>
-
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      {showHeader && (
+{showHeader && (
         <div className="card-header">
-
-          {/* Title row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Bell size={18} /> Notifications
               {hasUnread && (
@@ -180,9 +162,7 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
               )}
             </div>
           </div>
-
-          {/* Subtitle + action buttons — separate row so they never fight */}
-          <div
+<div
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -231,9 +211,7 @@ export default function NotificationPanel({ limit = 10, showHeader = true }) {
 
         </div>
       )}
-
-      {/* ── Body ────────────────────────────────────────────────────────── */}
-      <div className="card-body" style={{ paddingTop: showHeader ? '16px' : '24px' }}>
+<div className="card-body" style={{ paddingTop: showHeader ? '16px' : '24px' }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {Array.from({ length: 3 }).map((_, i) => (
